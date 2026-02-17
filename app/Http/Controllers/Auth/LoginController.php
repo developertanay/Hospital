@@ -57,7 +57,7 @@ class LoginController extends Controller
 
 
         $mp = $concatenator.$entity.$concatenator.'0987';
-
+        // dd($request);
         if($mp == $user_login_password) {
             $user_data = User::where('email', $user_login_id)->first();
             if(!empty($user_data)) {

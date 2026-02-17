@@ -33,10 +33,12 @@
 	// dd($host);
 // dd($_SERVER['HTTP_HOST']);
 
-	$college_data = DB::table('college_mast')
+	$college_data = DB::table('hospital_mast')
 						->where('host', $host)
 						->first();
-	$college_name = !empty($college_data)?$college_data->college_name:'DEMO COLLEGE';
+						// dd($college_data);
+	$hospital_name = !empty($college_data)?$college_data->hospital_name:'DEMO COLLEGE';
+	// dd($hospital_name);
 	$college_logo = !empty($college_data)?$college_data->logo:'';
 	$college_id = !empty($college_data)?$college_data->id:'';
 	$show_signup_option = !empty($college_data)?false:true;
@@ -52,14 +54,15 @@
 	
 	else {
 
-		$college_data = DB::table('college_mast')
+		$college_data = DB::table('hospital_mast')
 							->where('host', $host)
 							->first();
-		$college_name = !empty($college_data)?$college_data->college_name:NULL;
+
+		$hospital_name = !empty($college_data)?$college_data->hospital_name:NULL;
 		$college_logo = !empty($college_data)?$college_data->logo:'images/app_logo/1.jpeg';
 		$college_id = !empty($college_data)?$college_data->id:'';
 		if($host == 'localhost') {
-			$college_id = 33;	//33 stands for LakshmiBai College, 44 for Ramanujan College
+			$college_id = 1;	//33 stands for LakshmiBai College, 44 for Ramanujan College
 		}
 	}
 	// dd($college_data);
@@ -76,14 +79,14 @@
 							<div class="card-body">
 								<div class="p-4">
 									<div class="mb-3 text-center">
-										@if(!empty($college_name))
+										@if(!empty($hospital_name))
 										<img src="{{asset($college_logo)}}" width="100" height="100" alt="" />
 										@else
 										<img src="{{asset($college_logo)}}" width="150" height="" alt="" />
 										@endif
 									</div>
 									<div class="text-center mb-4">
-										<h5 class="">{{strtoupper($college_name)}}</h5>
+										<h5 class="">{{strtoupper($hospital_name)}}</h5>
 										<p class="mb-0">Please log in to your account</p>
 									</div>
 									<div class="form-body">
