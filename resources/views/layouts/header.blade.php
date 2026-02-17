@@ -109,7 +109,7 @@
 			$register_type = !empty($auth_data->register_type)?$auth_data->register_type:NULL;
 
 			if(!empty($college_id)) {
-				$college_data = DB::table('college_mast')->where('id', $college_id)->first();
+				$college_data = DB::table('hospital_mast')->where('id', $college_id)->first();
 				$logo = !empty($college_data->logo)?$college_data->logo:'';
 				$short_name = !empty($college_data->short_name)?$college_data->short_name:'';
 			}

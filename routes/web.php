@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-            Route::resource('JobApplication', 'JobApplicationController');
             
     Route::get('forgot_password', function () {
         return view('forgot_password');
@@ -28,6 +27,7 @@ use Illuminate\Support\Facades\Route;
 
     Route::get('feedback', 'FeedbackController@index');
     Route::post('submit_feedback', 'FeedbackController@store');
+    Route::resource('Bedtype', 'BedtypeController');
 
 
     Route::get('api_login', 'AppLoginController@login');
