@@ -1,0 +1,596 @@
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 130208 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 129600 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 130850 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 130239 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 129630 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 131205 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 130207 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 129207 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 131209 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 130208 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 130208 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 131208 ms: Connection timed out
+curl: (28) Failed to connect to erp.ramanujancollege.ac.in port 443 after 131177 ms: Connection timed out
+--2024-01-17 11:46:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:47:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:48:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:48:13--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:49:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:49:12--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:50:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:50:13--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:50:25--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:51:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:51:13--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:51:24--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:52:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:52:12--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:52:26--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:52:39--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:53:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:53:12--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:53:25--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:53:38--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:54:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:54:13--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:54:24--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:54:40--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:54:53--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:55:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:55:12--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:55:24--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:55:39--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:55:52--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Setting --output-document (outputdocument) to /dev/null
+DEBUG output created by Wget 1.21.2 on linux-gnu.
+
+Reading HSTS entries from /home/ubuntu/.wget-hsts
+URI encoding = ‘UTF-8’
+--2024-01-17 11:56:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Caching erp.ramanujancollege.ac.in => 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:56:12--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:56:25--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:56:38--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:56:54--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Setting --output-document (outputdocument) to /dev/null
+DEBUG output created by Wget 1.21.2 on linux-gnu.
+
+Reading HSTS entries from /home/ubuntu/.wget-hsts
+URI encoding = ‘UTF-8’
+--2024-01-17 11:57:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Caching erp.ramanujancollege.ac.in => 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:57:09--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:57:13--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:57:25--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:57:38--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:57:53--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Setting --output-document (outputdocument) to /dev/null
+DEBUG output created by Wget 1.21.2 on linux-gnu.
+
+Reading HSTS entries from /home/ubuntu/.wget-hsts
+URI encoding = ‘UTF-8’
+--2024-01-17 11:58:01--  https://erp.ramanujancollege.ac.in/mail1
+Resolving erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)... 125.63.65.164
+Caching erp.ramanujancollege.ac.in => 125.63.65.164
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:58:08--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 11:58:13--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:58:24--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:58:39--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:58:53--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:59:10--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 11:59:12--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:59:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 11:59:25--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:59:39--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 11:59:52--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:00:09--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:00:11--  (try: 2)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:00:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:00:25--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:00:38--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:00:53--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:01:09--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:01:24--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:01:26--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:01:39--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:01:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:01:53--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:02:08--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:02:24--  (try: 3)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:02:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:02:39--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:02:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:02:52--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:03:10--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:03:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Closed fd 4
+Retrying.
+
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:03:38--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:03:42--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:03:54--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:04:00--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:04:09--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:04:24--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Closed fd 4
+Retrying.
+
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:04:38--  (try: 4)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:04:42--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:04:53--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:04:59--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:05:08--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:05:26--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:05:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:05:52--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:06:00--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:06:10--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:06:18--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:06:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:06:40--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:06:52--  (try: 5)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:07:00--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:07:09--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:07:17--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:07:24--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:07:42--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:07:59--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:08:09--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:08:19--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:08:26--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:08:38--  (try:11)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... --2024-01-17 12:08:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:08:59--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:09:08--  (try: 6)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:09:18--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+Terminated
+--2024-01-17 12:09:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Terminated
+Terminated
+Terminated
+failed: Connection timed out.
+Retrying.
+
+Terminated
+Terminated
+--2024-01-17 12:09:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Terminated
+Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:10:25--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:10:42--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:10:59--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:11:24--  (try: 7)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:11:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:11:59--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:12:41--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:13:00--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:13:18--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:13:40--  (try: 8)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:14:00--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:14:17--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x0000556a50b66e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:14:59--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x556a50b66e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:15:19--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:15:38--  (try:11)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000055db426a8e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:15:58--  (try: 9)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x55db426a8e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... Closed fd 4
+failed: Connection timed out.
+Releasing 0x000056466e474e20 (new refcount 1).
+Retrying.
+
+--2024-01-17 12:16:18--  (try:10)  https://erp.ramanujancollege.ac.in/mail1
+Found erp.ramanujancollege.ac.in in host_name_addresses_map (0x56466e474e20)
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... failed: Connection timed out.
+Retrying.
+
+--2024-01-17 12:16:37--  (try:11)  https://erp.ramanujancollege.ac.in/mail1
+Connecting to erp.ramanujancollege.ac.in (erp.ramanujancollege.ac.in)|125.63.65.164|:443... 
