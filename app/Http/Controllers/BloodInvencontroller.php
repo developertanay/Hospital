@@ -55,7 +55,9 @@ class BloodInvencontroller extends Controller
      */
     public function store(Request $request)
     {
+        // dd($request);
        $name=!empty($request->blood)?$request->blood:NULL;
+       $data=!empty($request->type)?$request->type:NULL;
         $status = !empty($request->status)?$request->status:1;
         $updated_at = date('Y-m-d H:i:s');
         $updated_by = Auth::user()->id;
@@ -65,7 +67,8 @@ class BloodInvencontroller extends Controller
 
         $myArr = [
             // 'college_id'=>$college_id,
-            'blood_type'=>$name,
+            'blood_id'=>$data,
+            'unit'=>$name,
             'status'=>$status,
             'updated_at'=>$updated_at,
             'updated_by'=>$updated_by,
@@ -76,7 +79,7 @@ class BloodInvencontroller extends Controller
         // dd($myArr);
 
         DB::beginTransaction();
-        $query = bloodtype::create($myArr);
+        $query = BloodInv::create($myArr);
         
         if($query) {
             DB::commit();
@@ -111,14 +114,17 @@ class BloodInvencontroller extends Controller
     public function edit($id)
     {
         $decrypted_id = Crypt::decryptString($id);
-        $data =bloodtype::getDataFromId($decrypted_id);
+        $data =BloodInv::getDataFromId($decrypted_id);
+        $blood = DB::table('blood_type')->where('status', '!=',9)->pluck('blood_type', 'id');
+
         // $module =Module::pluckActiveParent();
         // dd($data);
         
         return view($this->current_menu.'/edit', [
             'data'=>$data,
+            'blood'=>$blood,
             'current_menu' => $this->current_menu,
-            'encrypted_id'=>$id,
+            'id'=>$id,
         ]);
     }
 
@@ -132,23 +138,30 @@ class BloodInvencontroller extends Controller
     public function update(Request $request, $id)
     {
         $decrypted_id = Crypt::decryptString($id);
-        $name = !empty($request->blood)?$request->blood:NULL;
+         $name=!empty($request->blood)?$request->blood:NULL;
+       $data=!empty($request->type)?$request->type:NULL;
         $status = !empty($request->status)?$request->status:1;
-        $sequence = !empty($request->sequence)?$request->sequence:1;
         $updated_at = date('Y-m-d H:i:s');
-        $updated_by =Auth::user()->id;
+        $updated_by = Auth::user()->id;
+        $created_at = date('Y-m-d H:i:s');
+        $created_by = Auth::user()->id;
+
 
         $myArr = [
-            'blood_type'=>$name,
+            // 'college_id'=>$college_id,
+            'blood_id'=>$data,
+            'unit'=>$name,
             'status'=>$status,
-            // 'sequence' => $sequence,
             'updated_at'=>$updated_at,
-            'updated_by'=>$updated_by
+            'updated_by'=>$updated_by,
+            'created_at'=>$created_at,
+            'created_by'=>$created_by,
+
         ];
         // dd($myArr);
 
         DB::beginTransaction();
-        $query = bloodtype::updateDataFromId($decrypted_id, $myArr);
+        $query = BloodInv::updateDataFromId($decrypted_id, $myArr);
         
         if($query) {
             DB::commit();

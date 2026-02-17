@@ -1,7 +1,7 @@
 @extends('layouts.header')
 
 @section('title')
-Blood-Type
+Blood-Inventory
 @endsection
 
 @section('content')
@@ -18,7 +18,7 @@ Blood-Type
 				
 				<div class="card">
 					<div class="card-body p-4">
-						<h5 class="mb-4">Blood-Type</h5>
+						<h5 class="mb-4">Blood-Inventory</h5>
 
 			    <form class="row g-3"action="{{route($current_menu.'.store')}}" method="POST" enctype="multipart/form-data">
 		            @csrf
@@ -27,9 +27,8 @@ Blood-Type
 			            <div class="form-group row" style="margin-top: 10px;">
                             <div class="col-md-4">
 	                            <label for="single-select-field" class="form-label">Blood-Type</label>
-	                             <select class="form-select single-select-field" name="college_id"  data-placeholder="Select College" >
+	                             <select class="form-select single-select-field" name="type"  data-placeholder="Select Blood-Type" >
 	                            <option value="">Select</option>
-
 	                             @foreach($data as $key => $value)
 	                            <option value="{{$key}} ">{{$value}}</option>
 	                            @endforeach
