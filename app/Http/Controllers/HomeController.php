@@ -159,7 +159,8 @@ class HomeController extends Controller
                         $category_mast_cus[] = $catg_id;
                         $category_values[] = $catg_count;
                 }
-                $course_count = Course::where('college_id', $college_id)->where('status',1)->count();
+                $course_count = 20;
+                // dd($total_student_count,$gender,$course_count,$faculty_count,$category_labels,$category_values,$gender_mast,$category_mast_cus);
                 return view('index',[
                     'total_student_count' => $total_student_count,
                     'gender' => $gender,

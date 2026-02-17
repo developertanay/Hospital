@@ -20,6 +20,7 @@ class LoginController extends Controller {
             'username' => 'required',
             'password' => 'required',         
         ]);
+        // dd($request);
         if($validator->fails()) {
             return response()->json(['response'=>FALSE,'message'=>'Validation Error!','Error'=>$validator->errors()],200);
         }
