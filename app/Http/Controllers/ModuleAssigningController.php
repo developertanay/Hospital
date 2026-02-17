@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Role;
-use App\Models\College;
+use App\Models\Hospital;
 use App\Models\Modules;
 
 use DB;
@@ -27,7 +27,7 @@ class ModuleAssigningController extends Controller
     public function index()
     {
         $college_id=Auth::user()->college_id;
-        $college_mast=College::pluckActiveCodeAndName($college_id);
+        $college_mast=Hospital::pluckActiveCodeAndName($college_id);
         $role_mast= Role::pluckActiveCodeAndName($college_id);
         // dd($role_mast);
          return view($this->current_menu.'/index',[
@@ -48,7 +48,7 @@ class ModuleAssigningController extends Controller
         $data=$request;
         $role_id=!empty($request->role_id)?$request->role_id:null;
         $college_id=Auth::user()->college_id;
-        $college_mast=College::pluckActiveCodeAndName($college_id);
+        $college_mast=Hospital::pluckActiveCodeAndName($college_id);
         $role_mast= Role::pluckActiveCodeAndName($college_id);
         $parent_arr=Modules::pluckActiveParent($college_id);
         $module_full_data=Modules::pluckActiveChilds($college_id);

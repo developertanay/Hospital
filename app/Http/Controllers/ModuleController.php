@@ -61,6 +61,8 @@ class ModuleController extends Controller
     {
         // dd($request);
         // $college_id=!empty($request->college_id)?$request->college_id:NULL;
+        $college_id=Auth::user()->college_id;
+        // dd($request, Auth::user()->college_id);
         $parent_id=!empty($request->parent_id)?$request->parent_id:NULL;
         $module_name=!empty($request->name)?$request->name:NULL;
         $url=!empty($request->url)?$request->url:'#';
@@ -74,7 +76,7 @@ class ModuleController extends Controller
 
 
         $myArr = [
-            // 'college_id'=>$college_id,
+            'college_id'=>$college_id,
             'parent_id'=>$parent_id,
             'name'=>$module_name,
             'url'=>$url,

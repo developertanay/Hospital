@@ -30,6 +30,8 @@ use Illuminate\Support\Facades\Route;
     Route::resource('Bedtype', 'BedtypeController');
     Route::resource('BloodType', 'BloodTypeController');
     Route::resource('BloodInven', 'BloodInvencontroller');
+    Route::resource('BedInven', 'BedInvencontroller');
+    Route::resource('Hospital', 'Hospitalcontroller');
 
 
     Route::get('api_login', 'AppLoginController@login');
