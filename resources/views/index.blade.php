@@ -730,7 +730,7 @@
 							<div class="d-flex align-items-center">
 								<div>
 									<p class="mb-0 text-secondary">Total Admitted Patients</p>
-									<h4 class="my-1 text-info">{{$total_student_count}}</h4>
+									<h4 class="my-1 text-info">342</h4>
 									<p class="mb-0 font-13"></p>
 								</div>
 								<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">{{--<i class='bx bxs-cart'></i>--}}<i class='bx bxs-group'></i>
@@ -746,8 +746,8 @@
 					   <div class="card-body">
 						   <div class="d-flex align-items-center">
 							   <div>
-								   <p class="mb-0 text-secondary">On-Duty Medical Staff</p>
-								   <h4 class="my-1 text-warning">{{$faculty_count}}</h4>
+								   <p class="mb-0 text-secondary">Beds Available</p>
+								   <h4 class="my-1 text-warning">85</h4>
 								   <p class="mb-0 font-13"></p>
 							   </div>
 							   <div class="widgets-icons-2 rounded-circle bg-gradient-orange text-white ms-auto"><i class='bx bxs-group'></i>
@@ -765,7 +765,7 @@
 						   <div class="d-flex align-items-center">
 							   <div>
 								   <p class="mb-0 text-secondary">Active Wards</p>
-								   <h4 class="my-1 text-danger">{{$course_count}}</h4>
+								   <h4 class="my-1 text-danger">12</h4>
 								   <p class="mb-0 font-13"></p>
 							   </div>
 							   <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto"><i class='bx bxs-wallet'></i>
@@ -784,16 +784,7 @@
 								   <p class="mb-0 text-secondary">Patient Demo</p>
 								   <h4 class="my-1 text-success">
 								   	<?php $get_comma = 0; ?>
-								   	@foreach($gender_mast as $key => $value)
-
-								   		@if(!empty($gender[$key]))
-								   			@if($get_comma)
-								   			,
-								   			@endif
-								   			<?php $get_comma = 1; ?>
-								   		{{substr($value,0,1)}}-{{$gender[$key]}}
-								   		@endif
-								   	@endforeach
+								   	<h4 class="my-1 text-success">M-180, F-162</h4>
 									</h4>
 								   <p class="mb-0 font-13"></p>
 							   </div>
@@ -857,8 +848,8 @@
 						</div>
 						  <div class="card-body">
 							<div class="d-flex align-items-center ms-auto font-13 gap-2 mb-3">
-								<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1" style="color: #14abef"></i>Present</span>
-								<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1" style="color: #ffc107"></i>Absent</span>
+								<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1" style="color: #14abef"></i>Bed Occupied</span>
+								<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1" style="color: #ffc107"></i>Bed Available</span>
 							</div>
 							<div class="chart-container-1">
 								<canvas id="chart1"></canvas>
@@ -868,7 +859,7 @@
 							<div class="col">
 							  <div class="p-3">
 								<h5 class="mb-0">2415</h5>
-								<small class="mb-0">Hours of Study </small>
+								<small class="mb-0">Total Beds</small>
 								{{--
 								 <span><i class="bx bx-up-arrow-alt align-middle"></i> 2.43%</span></small>
 								--}}
@@ -878,7 +869,7 @@
 							<div class="col">
 							  <div class="p-3">
 								<h5 class="mb-0">238</h5>
-								<small class="mb-0"> Guest Lectures </small>
+								<small class="mb-0">Occupied Beds</small>
 								{{--
 									<span> <i class="bx bx-up-arrow-alt align-middle"></i> 12.65%</span>
 								--}}
@@ -887,7 +878,7 @@
 							<div class="col">
 							  <div class="p-3">
 								<h5 class="mb-0">13</h5>
-								<small class="mb-0">Outreach Programs</small>
+								<small class="mb-0">Available Beds</small>
 								{{--
 								 <span> <i class="bx bx-up-arrow-alt align-middle"></i> 5.62%</span>
 								--}}
