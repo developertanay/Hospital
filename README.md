@@ -1,64 +1,267 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+```markdown
+# Hospital Management System with Real-Time Blood Bank & Bed Inventory
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive hospital management system built with Laravel that provides real-time tracking of blood inventory, bed availability, and role-based module access. Features RESTful APIs for seamless data integration with government health departments.
 
-## About Laravel
+## 🏥 Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 🔐 Authentication & Authorization
+- Secure login page with Laravel Breeze/Sanctum
+- Multi-role support (Admin, Doctor, Nurse, Staff, Ambulance, Family)
+- Module-level permissions using Spatie/laravel-permission
+- Email verification & password reset
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 📊 Dashboard
+- Real-time overview of hospital statistics
+- Key metrics display (bed occupancy, blood inventory levels)
+- Interactive charts using Chart.js
+- Quick access to frequently used modules
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🩸 Blood Bank Management
+- Real-time blood inventory tracking
+- Multiple blood types support (A+, A-, B+, B-, AB+, AB-, O+, O-)
+- Automatic updates upon blood donation via API
+- Historical donation records
+- Blood expiry tracking and alerts
+- Government reporting capabilities via API endpoints
 
-## Learning Laravel
+### 🛏️ Bed Inventory Management
+- Real-time bed occupancy tracking
+- Multiple bed types (ICU, General, Emergency, Pediatric, NICU, CCU)
+- Bed availability status with color coding
+- Predictive discharge dates using ML algorithms
+- Automatic bed count updates during admission/discharge
+- Bed allocation history with patient details
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 📦 Module Management
+- Dynamic module creation through admin panel
+- Module assignment to specific roles
+- Customizable access permissions
+- Modular architecture with Laravel modules
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 🔄 Real-Time Updates
+- Laravel WebSocket/Pusher for real-time updates
+- API integration for blood donation records
+- Automatic bed count updates during admission
+- Discharge-triggered bed availability updates
+- Live dashboard refresh without page reload
 
-## Laravel Sponsors
+## 🚀 Technology Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+### Backend
+- Laravel 10.x - PHP Framework
+- MySQL/PostgreSQL - Database
+- Laravel Sanctum - API Authentication
+- Laravel WebSockets - Real-time updates
+- Spatie Laravel Permission - Role & Permissions
+- Laravel Queue - Job processing
+- Redis - Caching & Broadcasting
 
-### Premium Partners
+### Frontend
+- Blade Templates / Livewire / Inertia.js
+- Bootstrap 5 / Tailwind CSS
+- Alpine.js / Vue.js (optional)
+- Chart.js - Data visualization
+- Axios - API calls
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## 📋 Prerequisites
 
-## Contributing
+- PHP >= 8.1
+- Composer
+- MySQL
+- Node.js & NPM
+- Redis (optional)
+- Git
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🔧 Installation
 
-## Code of Conduct
+1. Clone the repository
+```bash
+git clone https://github.com/developertanay/Hospital.git
+cd Hospital
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. Install PHP dependencies
+```bash
+composer install
+```
 
-## Security Vulnerabilities
+3. Install NPM dependencies
+```bash
+npm install && npm run dev
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. Environment setup
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## License
+5. Configure database in `.env` file
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=hospital_db
+DB_USERNAME=root
+DB_PASSWORD=
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+PUSHER_APP_ID=your_pusher_id
+PUSHER_APP_KEY=your_pusher_key
+PUSHER_APP_SECRET=your_pusher_secret
+PUSHER_APP_CLUSTER=mt1
+```
+
+6. Run migrations and seeders
+```bash
+php artisan migrate --seed
+```
+
+7. Start the development server
+```bash
+php artisan serve
+php artisan websockets:serve
+```
+
+## 📡 API Endpoints
+
+### Authentication
+- POST /api/login - User login
+- POST /api/register - User registration  
+- POST /api/logout - User logout
+- GET /api/user - Get authenticated user
+
+### Blood Bank API
+- GET /api/blood/inventory - Get current blood inventory
+- POST /api/blood/donate - Record new blood donation
+- GET /api/blood/type/{type} - Get specific blood type details
+- PUT /api/blood/update/{id} - Update blood record
+- DELETE /api/blood/remove/{id} - Remove expired blood
+- GET /api/blood/donations - Get donation history
+- GET /api/blood/expiring - Get expiring blood units
+
+### Bed Management API
+- GET /api/beds - Get all beds
+- GET /api/beds/available - Get available beds
+- POST /api/beds/admit - Admit patient
+- PUT /api/beds/discharge/{id} - Discharge patient
+- GET /api/beds/occupancy - Get occupancy stats
+- GET /api/beds/predictions - Get discharge predictions
+- GET /api/beds/type/{type} - Get beds by type
+
+### Module Management API
+- GET /api/modules - Get all modules
+- POST /api/modules/create - Create new module
+- POST /api/modules/assign - Assign module to role
+- GET /api/modules/user/{userId} - Get user modules
+- PUT /api/modules/permissions - Update permissions
+
+## 📁 Laravel Project Structure
+
+```
+hospital-management-system/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Auth/
+│   │   │   ├── BloodBankController.php
+│   │   │   ├── BedController.php
+│   │   │   ├── ModuleController.php
+│   │   │   └── DashboardController.php
+│   │   └── Middleware/
+│   ├── Models/
+│   │   ├── User.php
+│   │   ├── BloodInventory.php
+│   │   ├── Bed.php
+│   │   ├── Module.php
+│   │   └── Patient.php
+│   └── Services/
+├── database/
+│   ├── migrations/
+│   ├── seeders/
+│   │   ├── RoleSeeder.php
+│   │   ├── ModuleSeeder.php
+│   │   └── UserSeeder.php
+├── resources/
+│   ├── views/
+│   │   ├── layouts/
+│   │   ├── auth/
+│   │   ├── dashboard/
+│   │   ├── blood-bank/
+│   │   └── beds/
+│   └── js/
+├── routes/
+│   ├── web.php
+│   └── api.php
+└── .env
+```
+
+## 🎯 Key Laravel Packages Used
+
+- Laravel Sanctum - API authentication
+- Spatie Laravel Permission - Role & permissions
+- Laravel WebSockets - Real-time updates
+- Laravel Excel - Export reports
+- Laravel Debugbar - Development debugging
+- Barryvdh/Laravel-DomPDF - PDF generation
+- Laravel Telescope - Monitoring (optional)
+
+## 🔒 Security Features
+
+- Laravel's built-in CSRF protection
+- XSS protection
+- SQL injection prevention via Eloquent
+- Rate limiting on APIs
+- JWT/OAuth2 ready
+- Role-based middleware
+- Encrypted sensitive data
+
+## 📊 Real-time Implementation
+
+### Broadcasting Events
+- BloodDonated event broadcasts to blood-inventory channel
+- BedStatusUpdated event broadcasts to bed-occupancy channel
+- PatientAdmitted event updates bed availability
+- PatientDischarged event triggers bed release
+
+### Listening with Laravel Echo
+```javascript
+window.Echo.channel('blood-inventory')
+    .listen('BloodDonated', (e) => {
+        updateBloodInventory(e.data);
+    });
+```
+
+## 📈 Reporting Features
+
+- Blood donation reports (Daily/Weekly/Monthly)
+- Bed occupancy analytics
+- Discharge predictions report
+- Government compliance reports
+- Export to Excel/PDF
+- Email scheduled reports
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👥 Authors
+
+- Your Name - [YourGitHub](https://github.com/developertanay)
+
+## 📧 Contact
+
+For any queries or support, please email: your.email@example.com
+
+---
+
+**Made with ❤️ for better healthcare management**
+```
