@@ -782,7 +782,7 @@
 					</div> 
 				</a>
 
-				   <a href="{{url('CourseMast')}}">
+				   
 				   <div class="col">
 					<div class="card radius-10 border-start border-0 border-4 border-danger">
 					   <div class="card-body">
@@ -798,8 +798,8 @@
 					   </div>
 					</div>
 				  </div>
-					</a>
-					<a href="{{url('genderwise_report')}}">
+					
+					
 				  <div class="col">
 					<div class="card radius-10 border-start border-0 border-4 border-success">
 					   <div class="card-body">
@@ -818,7 +818,7 @@
 					   </div>
 					</div>
 				  </div>
-				</a>
+				
 				</div><!--end row-->
 				<div class="row mt-4">
 					<div class="col-12 col-md-6 d-flex">
