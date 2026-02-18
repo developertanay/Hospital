@@ -9,7 +9,7 @@ use App\Models\Gender;
 use App\Models\Category;
 use App\Models\User_Profile;
 use App\Models\State;
-use App\Models\College;
+use App\Models\Hospital;
 use App\Models\Course;
 use App\Models\Qualification;
 use App\Models\Documents;
@@ -50,7 +50,7 @@ class UserProfileController extends Controller
         $enrollment_no = $auth_data->email;
         $role_id = $auth_data->role_id;
         $college_id  = $auth_data->college_id;
-        $college_mast = College::pluckActiveCodeAndName();
+        $college_mast = Hospital::pluckActiveCodeAndName();
 
         $college = '';
         $course = '';
@@ -65,11 +65,11 @@ class UserProfileController extends Controller
             $college_roll_no=!empty($user_profile_data->roll_no)?$user_profile_data->roll_no:'';
             $semester=!empty($user_profile_data->semester)?$user_profile_data->semester:'';
             if($role_id==3) {
-                $course_mast =Course::pluckCodeAndName();
+                // $course_mast =Course::pluckCodeAndName();
                 $course = !empty($course_mast[$user_profile_data->course_id])?$course_mast[$user_profile_data->course_id]:'';
             }
             else if($role_id==4) {
-                $department_mast = Department::pluckCodeAndName();
+                // $department_mast = Department::pluckCodeAndName();
                 $course = !empty($department_mast[$user_profile_data->course_id])?$department_mast[$user_profile_data->course_id]:'';
             }
             else {
@@ -81,7 +81,7 @@ class UserProfileController extends Controller
         }
 
         $user_profile_id= User_Profile::getDataFromUsersId($users_id);
-        $academic_year =  AcademicYear::getLatestYear($college_id);
+        // $academic_year =  AcademicYear::getLatestYear($college_id);
         $subjects = [];
         $attendance_head_id = [];
         $attendance_body_data = [];
@@ -117,7 +117,7 @@ class UserProfileController extends Controller
             // 'total_attendance'=>$total_attendance,
             // 'present_count'=>$present_count,
             'user_profile_id'=>$user_profile_id,
-            'academic_year'=>$academic_year,
+            // 'academic_year'=>$academic_year,
             'role_id'=>$role_id,
         ]);
     }
@@ -133,7 +133,7 @@ class UserProfileController extends Controller
         $gender_mast = Gender::pluckActiveCodeAndName();
         $category_mast = Category::pluckActiveCodeAndName();
         $state_mast = State::pluckCodeAndName();
-        $college_mast = College::pluckActiveCodeAndName();
+        $college_mast = Hospital::pluckActiveCodeAndName();
         $course_mast =Course::pluckCodeAndName();
         $qualification_mast= Qualification::pluckCodeAndName();
         $document_mast= Documents::pluckCodeAndName();
@@ -178,7 +178,7 @@ class UserProfileController extends Controller
         $permanent_address = !empty($request->permanent_address)?$request->permanent_address:NULL;
         $permanent_state = !empty($request->permanent_state)?$request->permanent_state:NULL;
         $permanent_pin_code = !empty($request->permanent_pin_code)?$request->permanent_pin_code:NULL;
-        $college = !empty($request->college)?$request->college:NULL;
+        $college = !empty($request->college)?$request->Hospital:NULL;
         $course = !empty($request->course)?$request->course:NULL;
         $semester = !empty($request->semester)?$request->semester:NULL;
         $enrollment_no = !empty($request->enrollment_no)?$request->enrollment_no:NULL;
@@ -380,7 +380,7 @@ class UserProfileController extends Controller
         // $gender_mast = Gender::pluckActiveCodeAndName();
         // $category_mast = Category::pluckActiveCodeAndName();
         // $state_mast = State::pluckCodeAndName();
-        // $college_mast = College::pluckActiveCodeAndName();
+        // $college_mast = Hospital::pluckActiveCodeAndName();
         // $course_mast =Course::pluckCodeAndName();
         // $qualification_mast= Qualification::pluckCodeAndName();
         // $document_mast= Documents::pluckCodeAndName();
@@ -403,7 +403,7 @@ class UserProfileController extends Controller
         $gender_mast = Gender::pluckActiveCodeAndName();
         $category_mast = Category::pluckActiveCodeAndName();
         $state_mast = State::pluckCodeAndName();
-        $college_mast = College::pluckActiveCodeAndName();
+        $college_mast = Hospital::pluckActiveCodeAndName();
         $course_mast =Course::pluckCodeAndName();
         $qualification_mast= Qualification::pluckCodeAndName();
         $document_mast= Documents::pluckCodeAndName();
