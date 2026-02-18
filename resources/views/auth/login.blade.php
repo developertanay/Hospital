@@ -64,6 +64,7 @@
 		if($host == 'localhost') {
 			$college_id = 1;	//33 stands for LakshmiBai College, 44 for Ramanujan College
 		}
+		// dd($college_data,$college_logo,$hospital_name);
 	}
 	// dd($college_data);
 
