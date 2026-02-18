@@ -766,20 +766,20 @@
 				</div>
 
 				<div class="col">
-					<div class="card radius-10 border-start border-0 border-4 border-danger shadow">
-						<div class="card-body">
-							<div class="d-flex align-items-center">
-								<div>
-									<p class="mb-0 text-danger fw-bold">Next Bed Free In:</p>
-									<h4 class="my-1 text-danger" id="top-widget-next-free">Predicting...</h4>
-									<p class="mb-0 font-13 text-secondary" id="top-widget-ward">Fetching Ward...</p>
+						<div class="card radius-10 border-start border-0 border-4 border-danger">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Ambulances Available</p>
+										<h4 class="my-1 text-danger">5</h4>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-bloody text-white ms-auto">
+										<i class='bx bxs-ambulance'></i>
+									</div>
 								</div>
-								<div class="widgets-icons-2 rounded-circle bg-gradient-bloody text-white ms-auto"><i class='bx bx-time-five'></i></div>
 							</div>
 						</div>
-					</div>
-				</div>
-			</div> 
+					</div> 
 				</a>
 
 				   <a href="{{url('CourseMast')}}">
@@ -1327,60 +1327,85 @@ var ctx = document.getElementById("chart4").getContext('2d');
    
 	</script>
 	<script>
-    // ⚠️ Change this to your ML Laptop's IP address (e.g., 'http://192.168.1.15:5000/api/dashboard/live_status')
-    // Leave as 127.0.0.1 if testing on the same machine!
-    const ML_API_URL = 'http://127.0.0.1:5000/api/dashboard/live_status'; 
+		// ⚠️ Check your IP! If testing locally, keep as 127.0.0.1
+		const ML_API_URL = 'http://127.0.0.1:5000/api/dashboard/live_status'; 
 
-    async function pullApiData() {
-        try {
-            const response = await fetch(ML_API_URL);
-            const data = await response.json();
+		async function updateDashboardData() {
+			try {
+				const response = await fetch(ML_API_URL);
+				const data = await response.json();
 
-            if (response.ok) {
-                // 1. Inject Bed Prediction Data
-				// 1. Inject Bed Prediction Data
-                const bed = data.ml_bed_prediction;
-                
-                // Update the middle cards (if you kept them)
-                if(document.getElementById('api-ward-type')) document.getElementById('api-ward-type').innerText = bed.ward_admitted;
-                if(document.getElementById('api-predicted-hours')) document.getElementById('api-predicted-hours').innerText = bed.predicted_hours_until_free + " hrs";
-				// Update the HUGE Bed Availability Card
-                if(document.getElementById('huge-api-predicted-hours')) {
-                    document.getElementById('huge-api-predicted-hours').innerText = bed.predicted_hours_until_free + " hours";
-                    document.getElementById('huge-api-ward-type').innerText = "Ward: " + bed.ward_admitted;
-                }
+				if (response.ok) {
+					// 1. DATA PREP
+					const bed = data.ml_bed_prediction;
 
-                // 🔥 Update the NEW Top 4 Widget to solve the Problem Statement!
-                document.getElementById('top-widget-next-free').innerText = bed.predicted_hours_until_free + " Hours";
-                document.getElementById('top-widget-ward').innerText = "Ward: " + bed.ward_admitted;
+					// ---------------------------------------------------------
+					// UPDATE: Small Bed Widget (If it exists)
+					// ---------------------------------------------------------
+					const smallWard = document.getElementById('api-ward-type');
+					const smallPred = document.getElementById('api-predicted-hours');
+					
+					if(smallWard) smallWard.innerText = bed.ward_admitted;
+					if(smallPred) smallPred.innerText = bed.predicted_hours_until_free + " hrs";
 
-                // 2. Inject Blood Bank Data
-                const bloodDiv = document.getElementById('api-blood-container');
-                bloodDiv.innerHTML = ""; // Clear loading text
-                
-                data.live_blood_bank.forEach(blood => {
-                    bloodDiv.innerHTML += `
-                        <div class="border rounded text-center m-1 shadow-sm" style="width: 80px; padding: 10px; background: #fff;">
-                            <strong class="text-danger fs-5">${blood.Blood_Type}</strong><br>
-                            <span class="fw-bold fs-5">${blood.End_of_Day_Inventory}</span><br>
-                            <small class="text-muted">units</small>
-                        </div>
-                    `;
-                });
-            }
-        } catch (error) {
-            console.error("API Connection Failed. Is the Python server running?", error);
-            document.getElementById('api-ward-type').innerText = "CONNECTION FAILED";
-        }
-    }
+					// ---------------------------------------------------------
+					// UPDATE: Huge Dashboard (If it exists)
+					// ---------------------------------------------------------
+					const hugePred = document.getElementById('huge-api-predicted-hours');
+					const hugeWard = document.getElementById('huge-api-ward-type');
 
-    // Run immediately on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        pullApiData();
-        // Refresh API data every 5 seconds
-        setInterval(pullApiData, 5000); 
-    });
-</script>
+					if(hugePred) hugePred.innerText = bed.predicted_hours_until_free + " hours";
+					if(hugeWard) hugeWard.innerText = "Ward: " + bed.ward_admitted;
+
+					// ---------------------------------------------------------
+					// UPDATE: Old "Next Free" Widget (SKIP IF DELETED)
+					// ---------------------------------------------------------
+					// This check prevents the crash! 
+					const oldWidget = document.getElementById('top-widget-next-free');
+					if(oldWidget) {
+						oldWidget.innerText = bed.predicted_hours_until_free + " Hours";
+					}
+
+					// ---------------------------------------------------------
+					// UPDATE: Blood Bank (This will run now!)
+					// ---------------------------------------------------------
+					const bloodDiv = document.getElementById('api-blood-container');
+					if(bloodDiv) {
+						bloodDiv.innerHTML = ""; // Clear old data
+						
+						data.live_blood_bank.forEach(blood => {
+							// Prediction Logic
+							const dailyUsage = 4; 
+							let daysLeft = Math.floor(blood.End_of_Day_Inventory / dailyUsage);
+							let isCritical = daysLeft <= 3;
+							let badgeClass = isCritical ? "bg-danger text-white" : "bg-warning text-dark";
+							let borderClass = isCritical ? "border-danger bg-light-danger" : "border-secondary";
+
+							bloodDiv.innerHTML += `
+								<div class="border rounded text-center m-1 shadow-sm p-2 ${borderClass}" style="width: 110px; background: #fff;">
+									<strong class="text-danger fs-5">${blood.Blood_Type}</strong><br>
+									<span class="fw-bold fs-4">${blood.End_of_Day_Inventory}</span>
+									<small class="text-muted d-block" style="font-size:0.7em">units</small>
+									<span class="badge ${badgeClass} mt-1" style="font-size: 0.7em;">Empty in ${daysLeft}d</span>
+								</div>
+							`;
+						});
+					}
+
+				} else {
+					console.error("API Error: ", data.error);
+				}
+			} catch (error) {
+				console.error("Network Error: Is server.py running?", error);
+			}
+		}
+
+		// Run on load and refresh every 5 seconds
+		document.addEventListener('DOMContentLoaded', () => {
+			updateDashboardData();
+			setInterval(updateDashboardData, 5000); 
+		});
+	</script>
 </body>
 
 </html>
