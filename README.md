@@ -7,6 +7,7 @@ A comprehensive hospital management system built with Laravel that provides real
 ![My Image](C:\xampp\htdocs\Hospital\resources\WhatsApp Image 2026-02-18 at 10.37.19 AM.jpeg)
 ![My Image](C:\xampp\htdocs\Hospital\resources\Screenshot 2026-02-18 104114.png)
 ![Hospital Management System Dashboard Screenshot](C:\xampp\htdocs\Hospital\resources\Screenshot 2026-02-18 104054.png)
+<img src="resources/WhatsApp Image 2026-02-18 at 10.37.19 AM.jpeg" alt="Hospital Image">
 
 
 
