@@ -4,7 +4,11 @@
 A comprehensive hospital management system built with Laravel that provides real-time tracking of blood inventory, bed availability, and role-based module access. Features RESTful APIs for seamless data integration with government health departments.
 
 ## 🏥 Features
-<img width="1920" height="1020" alt="image" src="https://github.com/user-attachments/assets/d6bba0da-962e-43aa-a41a-16388725b32a" />
+<img 
+  src="https://github.com/user-attachments/assets/d6bba0da-962e-43aa-a41a-16388725b32a"
+  alt="image"
+  width="600"
+/>
 
 ### 🔐 Authentication & Authorization
 - Secure login page with Laravel Breeze/Sanctum
