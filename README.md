@@ -255,11 +255,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- Your Name - [YourGitHub](https://github.com/developertanay)
+- Tanay Jorihar - [YourGitHub](https://github.com/developertanay)
 
 ## 📧 Contact
 
-For any queries or support, please email: your.email@example.com
+For any queries or support, please email: developertanay@gmail.com
 
 ---
 
