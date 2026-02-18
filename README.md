@@ -68,7 +68,7 @@ A comprehensive hospital management system built with Laravel that provides real
 
 - PHP >= 8.1
 - Composer
-- MySQL/PostgreSQL
+- MySQL
 - Node.js & NPM
 - Redis (optional)
 - Git
@@ -77,8 +77,8 @@ A comprehensive hospital management system built with Laravel that provides real
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/hospital-management-system.git
-cd hospital-management-system
+git clone https://github.com/developertanay/Hospital.git
+cd Hospital
 ```
 
 2. Install PHP dependencies
