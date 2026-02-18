@@ -824,8 +824,8 @@
 					<div class="col-12 col-md-6 d-flex">
 						<div class="card radius-10 border-start border-0 border-4 border-danger w-100">
 						<div class="card-body">
-							<h5 class="card-title mb-3">🏥 AI Bed Predictor (API Data)</h5>
-							<p class="mb-1" style="font-size: 1.1em;">Admitted Ward: <strong id="api-ward-type" class="text-danger">Fetching...</strong></p>
+							<h5 class="card-title mb-3">🏥 Next Bed free in:</h5>
+							<p class="mb-1" style="font-size: 1.1em;">Ward: <strong id="api-ward-type" class="text-danger">Fetching...</strong></p>
 							<div class="p-3 mt-3 bg-light rounded text-center">
 								<span class="text-secondary">Predicted Stay Length:</span><br>
 								<strong style="font-size: 2.5em; color: #d9534f;" id="api-predicted-hours">--</strong>
