@@ -845,48 +845,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="row">
-                   <div class="col-12 col-lg-8 d-flex">
-				<div class="card radius-10 w-100 border-start border-0 border-4 border-info">
-					<div class="card-header bg-transparent border-bottom-0 pb-0">
-						<div class="d-flex align-items-center">
-							<div>
-								<h5 class="mb-0 fw-bold">🛏️ Real-Time Bed Availability</h5>
-							</div>
-						</div>
-					</div>
-					<div class="card-body">
-						<div class="row row-cols-1 row-cols-md-3 mb-4 text-center">
-							<div class="col">
-								<div class="p-3 border rounded shadow-sm bg-light">
-									<h4 class="mb-0 text-primary fs-2">2415</h4>
-									<p class="mb-0 text-secondary">Total Beds</p>
-								</div>
-							</div>
-							<div class="col">
-								<div class="p-3 border rounded shadow-sm bg-light">
-									<h4 class="mb-0 text-warning fs-2">238</h4>
-									<p class="mb-0 text-secondary">Occupied Beds</p>
-								</div>
-							</div>
-							<div class="col">
-								<div class="p-3 border border-2 border-success rounded shadow-sm" style="background-color: #f0fff4;">
-									<h4 class="mb-0 text-success fs-2">13</h4>
-									<p class="mb-0 fw-bold text-success">Available Beds</p>
-								</div>
-							</div>
-						</div>
-
-						<div class="p-4 rounded shadow-sm text-center" style="background: linear-gradient(45deg, #ff416c, #ff4b2b);">
-							<h5 class="text-white mb-2" style="opacity: 0.9;"><i class='bx bx-brain'></i> AI Prediction: Next Bed Free In</h5>
-							<h1 class="display-3 fw-bold text-white mb-0" id="huge-api-predicted-hours">-- hours</h1>
-							<p class="mb-0 mt-2 fs-5 text-white" id="huge-api-ward-type" style="opacity: 0.8;">Ward: Fetching...</p>
-						</div>
-					</div>
-				</div><!--end row-->
-
-			</div>
-		</div>
+				
 		<!--end page wrapper -->
 		<!--start overlay-->
 		 <div class="overlay toggle-icon"></div>
@@ -895,7 +854,7 @@
 		  <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 		<!--End Back To Top Button-->
 		<footer class="page-footer">
-			<p class="mb-0">Copyright © 2024. All rights reserved by Antha Prerna Cell.</p>
+			<p class="mb-0">Copyright © 2024. All rights reserved by Espada.</p>
 		</footer>
 	</div>
 	<!--end wrapper-->
