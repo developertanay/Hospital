@@ -729,7 +729,7 @@
 							<div class="d-flex align-items-center">
 								<div>
 									<p class="mb-0 text-secondary">Total Hospital Beds</p>
-									<h4 class="my-1 text-primary">500</h4>
+									<h4 class="my-1 text-primary">138</h4>
 								</div>
 								<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto"><i class='bx bx-building'></i></div>
 							</div>
@@ -743,7 +743,7 @@
 							<div class="d-flex align-items-center">
 								<div>
 									<p class="mb-0 text-secondary">Currently Occupied</p>
-									<h4 class="my-1 text-warning">482</h4>
+									<h4 class="my-1 text-warning">120</h4>
 								</div>
 								<div class="widgets-icons-2 rounded-circle bg-gradient-orange text-white ms-auto"><i class='bx bx-user-pin'></i></div>
 							</div>
