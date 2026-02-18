@@ -847,71 +847,42 @@
 				</div>
 				<div class="row">
                    <div class="col-12 col-lg-8 d-flex">
-                      <div class="card radius-10 w-100">
-						<div class="card-header">
-							<div class="d-flex align-items-center">
-								<div>
-									<h6 class="mb-0">Bed Availability</h6>
+				<div class="card radius-10 w-100 border-start border-0 border-4 border-info">
+					<div class="card-header bg-transparent border-bottom-0 pb-0">
+						<div class="d-flex align-items-center">
+							<div>
+								<h5 class="mb-0 fw-bold">🛏️ Real-Time Bed Availability</h5>
+							</div>
+						</div>
+					</div>
+					<div class="card-body">
+						<div class="row row-cols-1 row-cols-md-3 mb-4 text-center">
+							<div class="col">
+								<div class="p-3 border rounded shadow-sm bg-light">
+									<h4 class="mb-0 text-primary fs-2">2415</h4>
+									<p class="mb-0 text-secondary">Total Beds</p>
 								</div>
-								<div class="dropdown ms-auto">
-									<a class="dropdown-toggle dropdown-toggle-nocaret" href="#" data-bs-toggle="dropdown"><i class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
-									</a>
-									<ul class="dropdown-menu">
-										<li><a class="dropdown-item" href="javascript:;">Action</a>
-										</li>
-										<li><a class="dropdown-item" href="javascript:;">Another action</a>
-										</li>
-										<li>
-											<hr class="dropdown-divider">
-										</li>
-										<li><a class="dropdown-item" href="javascript:;">Something else here</a>
-										</li>
-									</ul>
+							</div>
+							<div class="col">
+								<div class="p-3 border rounded shadow-sm bg-light">
+									<h4 class="mb-0 text-warning fs-2">238</h4>
+									<p class="mb-0 text-secondary">Occupied Beds</p>
+								</div>
+							</div>
+							<div class="col">
+								<div class="p-3 border border-2 border-success rounded shadow-sm" style="background-color: #f0fff4;">
+									<h4 class="mb-0 text-success fs-2">13</h4>
+									<p class="mb-0 fw-bold text-success">Available Beds</p>
 								</div>
 							</div>
 						</div>
-						  <div class="card-body">
-							<div class="d-flex align-items-center ms-auto font-13 gap-2 mb-3">
-								<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1" style="color: #14abef"></i>Bed Occupied</span>
-								<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1" style="color: #ffc107"></i>Bed Available</span>
-							</div>
-							<div class="chart-container-1">
-								<canvas id="chart1"></canvas>
-							  </div>
-						  </div>
-						  <div class="row row-cols-1 row-cols-md-3 row-cols-xl-3 g-0 row-group text-center border-top">
-							<div class="col">
-							  <div class="p-3">
-								<h5 class="mb-0">2415</h5>
-								<small class="mb-0">Total Beds</small>
-								{{--
-								 <span><i class="bx bx-up-arrow-alt align-middle"></i> 2.43%</span></small>
-								--}}
-								
-							  </div>
-							</div>
-							<div class="col">
-							  <div class="p-3">
-								<h5 class="mb-0">238</h5>
-								<small class="mb-0">Occupied Beds</small>
-								{{--
-									<span> <i class="bx bx-up-arrow-alt align-middle"></i> 12.65%</span>
-								--}}
-							  </div>
-							</div>
-							<div class="col">
-							  <div class="p-3">
-								<h5 class="mb-0">13</h5>
-								<small class="mb-0">Available Beds</small>
-								{{--
-								 <span> <i class="bx bx-up-arrow-alt align-middle"></i> 5.62%</span>
-								--}}
-							  </div>
-							</div>
-						  </div>
-					  </div>
-				   </div>
-				  
+
+						<div class="p-4 rounded shadow-sm text-center" style="background: linear-gradient(45deg, #ff416c, #ff4b2b);">
+							<h5 class="text-white mb-2" style="opacity: 0.9;"><i class='bx bx-brain'></i> AI Prediction: Next Bed Free In</h5>
+							<h1 class="display-3 fw-bold text-white mb-0" id="huge-api-predicted-hours">-- hours</h1>
+							<p class="mb-0 mt-2 fs-5 text-white" id="huge-api-ward-type" style="opacity: 0.8;">Ward: Fetching...</p>
+						</div>
+					</div>
 				</div><!--end row-->
 
 			</div>
@@ -1414,6 +1385,11 @@ var ctx = document.getElementById("chart4").getContext('2d');
                 // Update the middle cards (if you kept them)
                 if(document.getElementById('api-ward-type')) document.getElementById('api-ward-type').innerText = bed.ward_admitted;
                 if(document.getElementById('api-predicted-hours')) document.getElementById('api-predicted-hours').innerText = bed.predicted_hours_until_free + " hrs";
+				// Update the HUGE Bed Availability Card
+                if(document.getElementById('huge-api-predicted-hours')) {
+                    document.getElementById('huge-api-predicted-hours').innerText = bed.predicted_hours_until_free + " hours";
+                    document.getElementById('huge-api-ward-type').innerText = "Ward: " + bed.ward_admitted;
+                }
 
                 // 🔥 Update the NEW Top 4 Widget to solve the Problem Statement!
                 document.getElementById('top-widget-next-free').innerText = bed.predicted_hours_until_free + " Hours";
