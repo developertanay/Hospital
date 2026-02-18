@@ -57,7 +57,7 @@
 		$college_data = DB::table('hospital_mast')
 							->where('host', $host)
 							->first();
-
+		// dd($college_data,$host);
 		$hospital_name = !empty($college_data)?$college_data->hospital_name:NULL;
 		$college_logo = !empty($college_data)?$college_data->logo:'images/app_logo/1.jpeg';
 		$college_id = !empty($college_data)?$college_data->id:'';

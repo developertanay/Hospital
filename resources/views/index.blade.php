@@ -25,7 +25,7 @@
 	<link rel="stylesheet" href="assets/css/dark-theme.css"/>
 	<link rel="stylesheet" href="assets/css/semi-dark.css"/>
 	<link rel="stylesheet" href="assets/css/header-colors.css"/>
-	<title>College ERP</title>
+	<title>Hospital</title>
 </head>
 
 <body>
@@ -43,7 +43,7 @@
 
 		$college_id = Auth::user()->college_id;
 		if(!empty($college_id)) {
-			$college_data = DB::table('college_mast')->where('id', $college_id)->first();
+			$college_data = DB::table('hospital_mast')->where('id', $college_id)->first();
 			$logo = !empty($college_data->logo)?$college_data->logo:'';
 			$short_name = !empty($college_data->short_name)?$college_data->short_name:'';
 		}
@@ -729,7 +729,7 @@
 						<div class="card-body">
 							<div class="d-flex align-items-center">
 								<div>
-									<p class="mb-0 text-secondary">Total Students</p>
+									<p class="mb-0 text-secondary">Total Admitted Patients</p>
 									<h4 class="my-1 text-info">{{$total_student_count}}</h4>
 									<p class="mb-0 font-13"></p>
 								</div>
@@ -746,7 +746,7 @@
 					   <div class="card-body">
 						   <div class="d-flex align-items-center">
 							   <div>
-								   <p class="mb-0 text-secondary">Total Faculty</p>
+								   <p class="mb-0 text-secondary">On-Duty Medical Staff</p>
 								   <h4 class="my-1 text-warning">{{$faculty_count}}</h4>
 								   <p class="mb-0 font-13"></p>
 							   </div>
@@ -764,7 +764,7 @@
 					   <div class="card-body">
 						   <div class="d-flex align-items-center">
 							   <div>
-								   <p class="mb-0 text-secondary">Total Courses</p>
+								   <p class="mb-0 text-secondary">Active Wards</p>
 								   <h4 class="my-1 text-danger">{{$course_count}}</h4>
 								   <p class="mb-0 font-13"></p>
 							   </div>
@@ -781,7 +781,7 @@
 					   <div class="card-body">
 						   <div class="d-flex align-items-center">
 							   <div>
-								   <p class="mb-0 text-secondary">Gender Distribution</p>
+								   <p class="mb-0 text-secondary">Patient Demo</p>
 								   <h4 class="my-1 text-success">
 								   	<?php $get_comma = 0; ?>
 								   	@foreach($gender_mast as $key => $value)
@@ -805,14 +805,38 @@
 				  </div>
 				</a>
 				</div><!--end row-->
+				<div class="row mt-4">
+					<div class="col-12 col-md-6 d-flex">
+						<div class="card radius-10 border-start border-0 border-4 border-danger w-100">
+						<div class="card-body">
+							<h5 class="card-title mb-3">🏥 AI Bed Predictor (API Data)</h5>
+							<p class="mb-1" style="font-size: 1.1em;">Admitted Ward: <strong id="api-ward-type" class="text-danger">Fetching...</strong></p>
+							<div class="p-3 mt-3 bg-light rounded text-center">
+								<span class="text-secondary">Predicted Stay Length:</span><br>
+								<strong style="font-size: 2.5em; color: #d9534f;" id="api-predicted-hours">--</strong>
+							</div>
+						</div>
+						</div>
+					</div>
 
+					<div class="col-12 col-md-6 d-flex">
+						<div class="card radius-10 border-start border-0 border-4 border-success w-100">
+						<div class="card-body">
+							<h5 class="card-title mb-3">🩸 Blood Inventory (API Data)</h5>
+							<div id="api-blood-container" class="d-flex flex-wrap mt-3">
+								<span class="text-muted">Fetching live inventory...</span>
+							</div>
+						</div>
+						</div>
+					</div>
+				</div>
 				<div class="row">
                    <div class="col-12 col-lg-8 d-flex">
                       <div class="card radius-10 w-100">
 						<div class="card-header">
 							<div class="d-flex align-items-center">
 								<div>
-									<h6 class="mb-0">Attendance Overview</h6>
+									<h6 class="mb-0">Bed Availability</h6>
 								</div>
 								<div class="dropdown ms-auto">
 									<a class="dropdown-toggle dropdown-toggle-nocaret" href="#" data-bs-toggle="dropdown"><i class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
@@ -1621,6 +1645,49 @@ var ctx = document.getElementById("chart4").getContext('2d');
    });	 
    
 	</script>
+	<script>
+    // ⚠️ Change this to your ML Laptop's IP address (e.g., 'http://192.168.1.15:5000/api/dashboard/live_status')
+    // Leave as 127.0.0.1 if testing on the same machine!
+    const ML_API_URL = 'http://127.0.0.1:5000/api/dashboard/live_status'; 
+
+    async function pullApiData() {
+        try {
+            const response = await fetch(ML_API_URL);
+            const data = await response.json();
+
+            if (response.ok) {
+                // 1. Inject Bed Prediction Data
+                const bed = data.ml_bed_prediction;
+                document.getElementById('api-ward-type').innerText = bed.ward_admitted;
+                document.getElementById('api-predicted-hours').innerText = bed.predicted_hours_until_free + " hrs";
+
+                // 2. Inject Blood Bank Data
+                const bloodDiv = document.getElementById('api-blood-container');
+                bloodDiv.innerHTML = ""; // Clear loading text
+                
+                data.live_blood_bank.forEach(blood => {
+                    bloodDiv.innerHTML += `
+                        <div class="border rounded text-center m-1 shadow-sm" style="width: 80px; padding: 10px; background: #fff;">
+                            <strong class="text-danger fs-5">${blood.Blood_Type}</strong><br>
+                            <span class="fw-bold fs-5">${blood.End_of_Day_Inventory}</span><br>
+                            <small class="text-muted">units</small>
+                        </div>
+                    `;
+                });
+            }
+        } catch (error) {
+            console.error("API Connection Failed. Is the Python server running?", error);
+            document.getElementById('api-ward-type').innerText = "CONNECTION FAILED";
+        }
+    }
+
+    // Run immediately on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        pullApiData();
+        // Refresh API data every 5 seconds
+        setInterval(pullApiData, 5000); 
+    });
+</script>
 </body>
 
 </html>
