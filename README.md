@@ -7,7 +7,7 @@ A comprehensive hospital management system built with Laravel that provides real
 
 ### 🔐 Authentication & Authorization
 - Secure login page with Laravel Breeze/Sanctum
-- Multi-role support (Admin, Doctor, Nurse, Staff, Ambulance, Family)
+- Multi-role support (Admin, Staff, Ambulance, Family)
 - Module-level permissions using Spatie/laravel-permission
 - Email verification & password reset
 
