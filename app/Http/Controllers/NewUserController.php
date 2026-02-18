@@ -41,26 +41,27 @@ class NewUserController extends Controller
         $contact_no=!empty($request->contact_no)?$request->contact_no:'';
         $role=!empty($request->role)?$request->role:'';
         $submit=!empty($request->submit)?$request->submit:'';
-    if(!empty($submit)){
-        if(!empty($name) || !empty($contact_no) || !empty($role)){
-            
+        // dd(!empty($submit));
+        if(!empty($submit)){
+            if(!empty($name) || !empty($contact_no) || !empty($role)){
+                
 
-        $data=User_Profile::getUserfromNamePhoneRole($college_id,$name,$contact_no,$role);
-    // dd($data);
-        }        
-        else
-       {
-        $message = 'Please select Any Field';
-        Session::flash('message', $message);
-        return view($this->current_menu.'/index', [
-            'current_menu'=>$this->current_menu,
-            'role_mast'=>$role_mast,
-            'data'=>[],
-            'role'=>$role
-        ]);
-    }
-    }
+                $data=User_Profile::getUserfromNamePhoneRole($college_id,$name,$contact_no,$role);
+            }        
+            else
+           {
+                $message = 'Please select Any Field';
+                Session::flash('message', $message);
+                return view($this->current_menu.'/index', [
+                    'current_menu'=>$this->current_menu,
+                    'role_mast'=>$role_mast,
+                    'data'=>[],
+                    'role'=>$role
+                ]);
+            }
+        }
         
+    // dd($data);
         // dd($data);
         
 
@@ -85,8 +86,8 @@ class NewUserController extends Controller
         $gender_mast =Gender::pluckCodeAndName($college_id);
         $category_mast =Category::pluckActiveCodeAndName($college_id);
         $state = State::pluckCodeAndName();
-        $department_mast = CollegeDeptMapping::pluckDeptandFromCollegId($college_id);
-        $department_id  = Department::whereIn('id',$department_mast)->pluck('department_name','id');
+        // $department_mast = CollegeDeptMapping::pluckDeptandFromCollegId($college_id);
+        // $department_id  = Department::whereIn('id',$department_mast)->pluck('department_name','id');
         $role_id = Role::pluckActiveCodeAndName($college_id);
          return view($this->current_menu.'/create', [
             'current_menu'=>$this->current_menu,
@@ -94,7 +95,7 @@ class NewUserController extends Controller
             'category_mast'=>$category_mast,
             'state'=>$state,
             'role_id'=>$role_id,
-            'department_id'=>$department_id,
+            // 'department_id'=>$department_id,
         ]);
     }
 

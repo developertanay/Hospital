@@ -69,16 +69,6 @@ New User
 										 </select>
 									</div>
 									<div class="col-md-2">
-									<label for="single-select-clear-field" class="form-label">Department</label>
-									 <select class="form-select single-select-clear-field" name="department"  data-placeholder="Choose Department">
-										 <option></option>
-										 @foreach($department_id as $key => $value)
-											
-											<option value="{{$key}}" >{{$value}}</option>
-									@endforeach
-									 </select>
-								 	</div>
-									<div class="col-md-2">
 										<label class="form-label">Upload Image</label>
 										<input class="form-control" style="width: 150%;" type="file" name="image" >
 									</div>

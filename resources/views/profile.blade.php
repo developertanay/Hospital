@@ -58,98 +58,7 @@ My Profile
 		<!--start page wrapper -->
 		<div class="page-wrapper">
 			<div class="page-content">
-				<!--breadcrumb-->
-				<div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-					<div class="breadcrumb-title pe-3">User Profile</div>
-					<div class="ps-3">
-						<nav aria-label="breadcrumb">
-							<ol class="breadcrumb mb-0 p-0">
-								<li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a>
-								</li>
-								<li class="breadcrumb-item active" aria-current="page">User Profile</li>
-							</ol>
-
-						</nav>
-						
-					</div>
-					
-
-
-						
-					<div class="ms-auto">
-						<div class="btn-group">
-							{{--
-							//commented on 250124 because of mobile view
-							<!-- Button trigger modal -->
-							<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal">Change Password</button>
-							<!-- Modal -->
-							<div class="modal fade" id="exampleVerticallycenteredModal" tabindex="-1" aria-hidden="true">
-								<div class="modal-dialog modal-dialog-centered">
-									<form action="{{url('change_password')}}" method="POST">
-										@csrf
-										<div class="modal-content">
-											<div class="modal-header">
-												<h5 class="modal-title">Change Password</h5>
-												<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-											</div>
-											<div class="modal-body">
-												<div class="form-group">
-													<div class="row">
-														<div class="col-md-6">
-															<label for="current_password">Enter Current Password</label>
-														</div>
-														<div class="col-md-6">
-															<input class="form-control" type="password" name="current_password" id="current_password" autocomplete="off" required>
-														</div>
-													</div>
-													<div class="row">
-														<div class="col-md-6">
-															<label for="current_password">Enter New Password</label>
-														</div>
-														<div class="col-md-6">
-															<input class="form-control" type="password" name="new_password" id="new_password" autocomplete="off" onkeyup="check_new_password()" required>
-														</div>
-													</div>
-													<div class="row">
-														<div class="col-md-6">
-															<label for="confirm_new_password">Confirm New Password</label>
-														</div>
-														<div class="col-md-6">
-															<input class="form-control" type="password" name="confirm_new_password" autocomplete="off" id="confirm_new_password" onkeyup="check_new_password()" required>
-														</div>
-													</div>
-													<div class="row">
-														<div class="col-md-6">
-														</div>
-														<div class="col-md-6">
-															<span id='password_match_msg' style="display: none;"><font color="red">Password Does Not Match</font></span>
-														</div>
-													</div>
-												</div>
-											</div>
-											<div class="modal-footer">
-												<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-												<button type="submit" name="update_password_btn" id="update_password_btn" class="btn btn-primary" disabled>Update</button>
-											</div>
-										</div>
-									</form>
-								</div>
-							</div>
-							//commented on 250124 because of mobile view
-							--}}
-
-							{{--
-							<button type="button" class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">	<span class="visually-hidden">Toggle Dropdown</span>
-							</button>
-							<div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">	<a class="dropdown-item" href="javascript:;">Action</a>
-								<a class="dropdown-item" href="javascript:;">Another action</a>
-								<a class="dropdown-item" href="javascript:;">Something else here</a>
-								<div class="dropdown-divider"></div>	<a class="dropdown-item" href="javascript:;">Separated link</a>
-							</div>
-							--}}
-						</div>
-					</div>
-				</div>
+				
 				<!--end breadcrumb-->
 				<div class="container">
 					<div class="main-body">
@@ -181,26 +90,11 @@ My Profile
 										<ul class="list-group list-group-flush">
 											
 											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0">College</h6>
+												<h6 class="mb-0">Hospital</h6>
 												<span class="text-secondary">{{$user_arr['college']}}</span>
 											</li>
 											
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-											@if(Auth::user()->role_id==3)
-												<h6 class="mb-0">Department</h6>
-											@elseif(Auth::user()->role_id==4)
-												<h6 class="mb-0">Department</h6>
-											@endif
-												<span class="text-secondary">{{$user_arr['course']}}</span>
-											</li>
-
 											
-											@if(Auth::user()->role_id==3)
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0">Semester</h6>
-												<span class="text-secondary">{{!empty($user_arr['user_profile_data']->semester)?$user_arr['user_profile_data']->semester:''}}</span>
-											</li>
-											@endif
 
 											{{--
 											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
@@ -271,36 +165,7 @@ My Profile
 												<input type="file" name="profile_picture" class="form-control" />
 											</div>
 										</div>
-										@if(Auth::user()->role_id == 3 && $semester != 1)
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">CSAS Form Number</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" style="background-color: aliceblue;"  class="form-control" value="{{!empty($user_arr['user_profile_data']->enrolment_no)?$user_arr['user_profile_data']->enrolment_no:''}}" readonly />
-											</div>
-										</div>
-										@elseif(Auth::user()->role_id == 3)
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">CSAS Form Number</h6>
-											</div>
-										<div class="col-sm-9 text-secondary">
-												<input type="text" style="background-color: aliceblue;"  class="form-control" value="{{$csas_form_number}}" readonly />
-											</div>
-										</div>
-										@endif
-											@if(Auth::user()->role_id==3)
-
-											<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">College Roll No.</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" style="background-color: aliceblue;" class="form-control" name="college_roll_no" value="{{$college_roll_no}}"  readonly />
-											</div>
-										</div>
-										@endif
+										
 										
 											{{--<div class="col-sm-3">
 												<h6 class="mb-0">Payment Refrence Number</h6>

@@ -50,7 +50,7 @@
 		}
 	</style>
 
-	<title>College ERP</title>
+	<title>Hospital</title>
 </head>
 
 <body class="">

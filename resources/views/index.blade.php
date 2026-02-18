@@ -25,7 +25,7 @@
 	<link rel="stylesheet" href="assets/css/dark-theme.css"/>
 	<link rel="stylesheet" href="assets/css/semi-dark.css"/>
 	<link rel="stylesheet" href="assets/css/header-colors.css"/>
-	<title>College ERP</title>
+	<title>Hospital</title>
 </head>
 
 <body>
@@ -43,7 +43,7 @@
 
 		$college_id = Auth::user()->college_id;
 		if(!empty($college_id)) {
-			$college_data = DB::table('college_mast')->where('id', $college_id)->first();
+			$college_data = DB::table('hospital_mast')->where('id', $college_id)->first();
 			$logo = !empty($college_data->logo)?$college_data->logo:'';
 			$short_name = !empty($college_data->short_name)?$college_data->short_name:'';
 		}
