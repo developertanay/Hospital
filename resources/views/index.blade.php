@@ -837,7 +837,7 @@
 					<div class="col-12 col-md-6 d-flex">
 						<div class="card radius-10 border-start border-0 border-4 border-success w-100">
 						<div class="card-body">
-							<h5 class="card-title mb-3">🩸 Blood Inventory (API Data)</h5>
+							<h5 class="card-title mb-3">🩸 Blood Bank Inventory</h5>
 							<div id="api-blood-container" class="d-flex flex-wrap mt-3">
 								<span class="text-muted">Fetching live inventory...</span>
 							</div>
