@@ -45,49 +45,98 @@ class AmbulanceService {
     private function dispatch(&$s) {
         $now=$this->now(); $busy=[];
         foreach ($s['calls'] as &$r) {
+            $r['offers']=$r['offers']??[];
             if (!$this->active($r)) continue;
-            if ($r['status']==='Searching' && $r['search_until']<=$now) { $r['status']='Expired'; $r['offer_driver']=null; $this->event($r,'No driver confirmed within 10 minutes.'); continue; }
+            if ($r['status']==='Searching' && $r['search_until']<=$now) {
+                $r['status']='Expired'; $r['offers']=[]; $r['offer_driver']=null;
+                $this->event($r,'No driver confirmed within 10 minutes.'); continue;
+            }
             if ($r['driver_id']) $busy[$r['driver_id']]=true;
         } unset($r);
         foreach ($s['calls'] as &$r) {
-            if ($r['status']!=='Searching') continue;
-            if ($r['offer_driver']) {
-                $d=$this->driver($s,$r['offer_driver']);
-                if ($r['offer_until']>$now && $d['on_duty'] && $d['seen_at']>$now-90 && ($d['location_mode']==='demo' || ($d['location_at']??0)>$now-120) && !isset($busy[$d['id']])) { $busy[$d['id']]=true; continue; }
-                $r['skipped'][]=$r['offer_driver']; $r['offer_driver']=null;
-            }
-            if ($r['retry_at']<=$now) { $r['skipped']=[]; $r['retry_at']=$now+60; }
-            $candidates=[];
+            if ($r['status']!=='Searching') { $r['offers']=[]; continue; }
+            // Broadcast to all eligible drivers. An offer does not make a driver busy.
+            // Only an accepted trip claims a driver, under the shared exclusive lock.
+            $offers=[];
             foreach ($s['drivers'] as $d) {
-                if (!$d['on_duty'] || $d['seen_at']<=$now-90 || isset($busy[$d['id']]) || in_array($d['id'],$r['skipped'],true) || $d['location_mode']!==$r['location']['mode']) continue;
+                if (!$d['on_duty'] || $d['seen_at']<=$now-90 || isset($busy[$d['id']]) || in_array($d['id'],$r['skipped'],true)) continue;
+                $simulated=($d['location_mode']==='demo' && ($d['follow_pickup']??false));
+                if (!$simulated && $d['location_mode']!==$r['location']['mode']) continue;
                 if ($d['location_mode']==='gps' && ($d['location_at']??0)<=$now-120) continue;
-                $distance=self::distance($r['location']['lat'],$r['location']['lng'],$d['lat'],$d['lng']);
-                if ($distance<=25) $candidates[]=['id'=>$d['id'],'distance'=>$distance];
+                $position=$this->position($d,$r);
+                $distance=self::distance($r['location']['lat'],$r['location']['lng'],$position['lat'],$position['lng']);
+                if ($distance<=25) $offers[]=['driver_id'=>$d['id'],'distance_km'=>round($distance,2),'eta_minutes'=>$this->eta($distance),'until'=>$r['search_until'],'simulated'=>$simulated];
             }
-            usort($candidates,fn($a,$b)=>($a['distance']<=>$b['distance']) ?: strcmp($a['id'],$b['id']));
-            if ($candidates) { $r['offer_driver']=$candidates[0]['id']; $r['distance_km']=round($candidates[0]['distance'],2); $r['offer_until']=$now+30; $busy[$r['offer_driver']]=true; $this->event($r,'Pickup offered to nearest available demo driver.'); }
+            usort($offers,fn($a,$b)=>($a['eta_minutes']<=>$b['eta_minutes']) ?: ($a['distance_km']<=>$b['distance_km']) ?: strcmp($a['driver_id'],$b['driver_id']));
+            if (!$r['offers'] && $offers) $this->event($r,'Pickup broadcast to nearby available drivers. First confirmed acceptance wins.');
+            $r['offers']=$offers;
+            // Compatibility fields for older clients; authorization uses the whole offer list.
+            $r['offer_driver']=$offers[0]['driver_id']??null;
+            $r['distance_km']=$offers[0]['distance_km']??null;
+            $r['offer_until']=$offers?$r['search_until']:null;
         } unset($r);
+    }
+    private function eta($distance) { return max(1,(int)ceil($distance*1.3/25*60)); }
+    private function position($d,$r) {
+        if ($d['location_mode']==='demo' && ($d['follow_pickup']??false)) {
+            $offset=['D1'=>0.006,'D2'=>0.012,'D3'=>0.02][$d['id']]??0.01;
+            $d['lat']=max(-89.9,min(89.9,$r['location']['lat']+$offset));
+            $d['lng']=fmod($r['location']['lng']+$offset+540,360)-180;
+        }
+        if ($d['location_mode']==='demo' && $r['driver_id']===$d['id'] && isset($r['accepted_at'])) {
+            $start=$r['driver_start'];
+            $duration=max(20,($r['pickup_eta_minutes']??1)*60);
+            $progress=min(1,max(0,($this->now()-$r['accepted_at'])/$duration));
+            if (in_array($r['status'],['At pickup','Picked up','First aid','Transporting','Completed'],true)) $progress=1;
+            $d['lat']=$start['lat']+($r['location']['lat']-$start['lat'])*$progress;
+            $d['lng']=$start['lng']+($r['location']['lng']-$start['lng'])*$progress;
+        }
+        return $d;
+    }
+    private function completeProfile($profile) {
+        foreach (['name','mobile','age','emergency_name','emergency_phone'] as $key) if (empty($profile[$key])) return false;
+        return preg_match('/^\+?[0-9]{8,15}$/',$profile['mobile']) && preg_match('/^\+?[0-9]{8,15}$/',$profile['emergency_phone']) && $profile['age']>=1 && $profile['age']<=120;
     }
     public function profile($p,$input) { return $this->transaction(function (&$s) use ($p,$input) { $s['profiles'][(string)$p['id']]=$input; return ['message'=>'Emergency details saved.']; }); }
     public function state($p) {
         return $this->transaction(function (&$s) use ($p) {
             $calls=[];
             foreach (array_reverse($s['calls']) as $r) {
-                $own=$r['owner_id']===$p['id']; $assigned=$p['role']==='driver' && ($r['driver_id']===($p['driver']??null) || $r['offer_driver']===($p['driver']??null));
+                $own=$r['owner_id']===$p['id']; $assigned=$p['role']==='driver' && ($r['driver_id']===($p['driver']??null) || in_array($p['driver']??null,array_column($r['offers'],'driver_id'),true));
                 if ($p['role']!=='admin' && !$own && !$assigned) continue;
                 unset($r['skipped'],$r['retry_at']);
-                if ($r['driver_id']) $r['driver']=$this->driver($s,$r['driver_id']);
+                $r['nearby_driver_count']=count($r['offers']);
+                $r['eta_kind']='estimate';
+                if ($p['role']==='driver' && !$r['driver_id']) {
+                    foreach ($r['offers'] as $offer) if ($offer['driver_id']===$p['driver']) {
+                        $r['distance_km']=$offer['distance_km']; $r['eta_minutes']=$offer['eta_minutes']; $r['offer_until']=$offer['until'];
+                    }
+                }
+                if ($r['driver_id']) {
+                    $r['driver']=$this->position($this->driver($s,$r['driver_id']),$r);
+                    $r['distance_km']=round(self::distance($r['location']['lat'],$r['location']['lng'],$r['driver']['lat'],$r['driver']['lng']),2);
+                    $r['eta_minutes']=$this->eta($r['distance_km']);
+                    $r['tracking_simulated']=$r['driver']['location_mode']==='demo';
+                    $r['driver_location_stale']=$r['driver']['location_mode']==='gps' && ($r['driver']['location_at']??0)<=$this->now()-120;
+                }
+                unset($r['offers']);
                 if ($p['role']==='driver' && !$r['driver_id']) $r['patient']=['name'=>'Emergency pickup','age'=>$r['patient']['age']];
                 $calls[]=$r;
             }
             $drivers=$p['role']==='admin'?$s['drivers']:($p['role']==='driver'?[$this->driver($s,$p['driver'])]:[]);
-            return ['patient_profile'=>$s['profiles'][(string)$p['id']]??null,'calls'=>$calls,'drivers'=>$drivers,'now'=>$this->now()];
+            return ['patient_profile'=>$s['profiles'][(string)$p['id']]??null,'calls'=>$calls,'drivers'=>$drivers,'profile_complete'=>$this->completeProfile($s['profiles'][(string)$p['id']]??[]),'now'=>$this->now()];
         });
     }
     public function duty($p,$input) {
         return $this->transaction(function (&$s) use ($p,$input) {
-            foreach ($s['drivers'] as &$d) if ($d['id']===$p['driver']) { $d['on_duty']=$input['on_duty']; $d['seen_at']=$this->now(); if (isset($input['lat'])) { $d['lat']=$input['lat']; $d['lng']=$input['lng']; $d['location_mode']=$input['mode']; $d['location_at']=$this->now(); } break; } unset($d);
+            foreach ($s['drivers'] as &$d) if ($d['id']===$p['driver']) { $d['on_duty']=$input['on_duty']; $d['seen_at']=$this->now(); if (isset($input['lat'])) { $d['lat']=$input['lat']; $d['lng']=$input['lng']; $d['location_mode']=$input['mode']; $d['location_at']=$this->now(); $d['follow_pickup']=($input['follow_pickup']??false) && $input['mode']==='demo'; } break; } unset($d);
             $this->dispatch($s); return ['message'=>'Driver availability updated.'];
+        });
+    }
+    public function contact($p,$phone) {
+        return $this->transaction(function (&$s) use ($p,$phone) {
+            foreach ($s['drivers'] as &$d) if ($d['id']===$p['driver']) $d['phone']=$phone;
+            unset($d); return ['message'=>'Driver contact saved.'];
         });
     }
     public function heartbeat($p) {
@@ -95,13 +144,13 @@ class AmbulanceService {
     }
     public function create($p,$location) {
         return $this->transaction(function (&$s) use ($p,$location) {
-            $profile=$s['profiles'][(string)$p['id']]??null; if (!$profile) throw new RuntimeException('Save your emergency details before using SOS.');
+            $profile=$s['profiles'][(string)$p['id']]??null; if (!$profile || !$this->completeProfile($profile)) throw new RuntimeException('Save your emergency details before using SOS.');
             if (abs($this->now()-$location['captured_at'])>120) throw new RuntimeException('Location is stale. Get a fresh GPS fix and retry.');
             foreach ($s['calls'] as $r) if ($r['owner_id']===$p['id'] && $this->active($r)) return ['id'=>$r['id'],'message'=>'Your existing SOS is still active.'];
             $recent=array_filter($s['calls'],fn($r)=>$r['owner_id']===$p['id'] && $r['created_at']>$this->now()-600);
             if (count($recent)>=3) throw new RuntimeException('Too many SOS requests. Please wait before retrying.');
             $id=bin2hex(random_bytes(6));
-            $r=['id'=>$id,'owner_id'=>$p['id'],'patient'=>$profile,'location'=>$location,'status'=>'Searching','created_at'=>$this->now(),'search_until'=>$this->now()+600,'offer_driver'=>null,'offer_until'=>null,'driver_id'=>null,'distance_km'=>null,'skipped'=>[],'retry_at'=>$this->now()+60,'bed_request_id'=>null,'hospital_id'=>null,'events'=>[]];
+            $r=['id'=>$id,'owner_id'=>$p['id'],'patient'=>$profile,'location'=>$location,'status'=>'Searching','created_at'=>$this->now(),'search_until'=>$this->now()+600,'offer_driver'=>null,'offer_until'=>null,'driver_id'=>null,'distance_km'=>null,'skipped'=>[],'retry_at'=>$this->now()+60,'bed_request_id'=>null,'hospital_id'=>null,'offers'=>[],'events'=>[]];
             $this->event($r,'SOS received. Searching for an on-duty ambulance within 25 km.'); $s['calls'][]=$r; $this->dispatch($s);
             return ['id'=>$id,'message'=>'SOS sent. Waiting for driver confirmation.'];
         });
@@ -122,9 +171,9 @@ class AmbulanceService {
                 if ($r['owner_id']!==$p['id'] || !in_array($r['status'],['Searching','Accepted','At pickup'],true)) throw new RuntimeException('This SOS cannot be cancelled by this account.');
                 $r['status']='Cancelled'; $r['offer_driver']=null; $this->event($r,'Patient cancelled SOS.');
             } elseif (in_array($action,['accept','decline'],true)) {
-                if ($p['role']!=='driver' || $r['status']!=='Searching' || $r['offer_driver']!==$p['driver'] || $r['offer_until']<=$this->now()) throw new RuntimeException('Offer expired or belongs to another driver.');
-                if ($action==='decline') { $r['skipped'][]=$p['driver']; $r['offer_driver']=null; $this->event($r,'Driver declined. Trying next available ambulance.'); }
-                else { $r['driver_id']=$p['driver']; $r['offer_driver']=null; $r['status']='Accepted'; $this->event($r,'Driver accepted. Contact details shared with assigned driver.'); }
+                if ($p['role']!=='driver' || $r['status']!=='Searching' || !in_array($p['driver'],array_column($r['offers'],'driver_id'),true) || $r['offer_until']<=$this->now()) throw new RuntimeException('Offer expired or belongs to another driver.');
+                if ($action==='decline') { $r['skipped'][]=$p['driver']; $r['offer_driver']=null; $this->event($r,'A driver declined. Other nearby drivers can still accept.'); }
+                else { $d=$this->position($this->driver($s,$p['driver']),$r); $r['driver_start']=['lat'=>$d['lat'],'lng'=>$d['lng']]; $r['accepted_at']=$this->now(); $r['pickup_eta_minutes']=$this->eta(self::distance($r['location']['lat'],$r['location']['lng'],$d['lat'],$d['lng'])); $r['driver_id']=$p['driver']; $r['offer_driver']=null; $r['status']='Accepted'; $this->event($r,'Driver accepted. Contact details shared with assigned driver.'); }
             } else {
                 if ($p['role']!=='driver' || $r['driver_id']!==$p['driver']) throw new RuntimeException('Only the assigned driver can update this trip.');
                 $next=['arrive'=>['Accepted','At pickup'],'pickup'=>['At pickup','Picked up'],'first_aid'=>['Picked up','First aid'],'complete'=>['First aid','Completed']];

@@ -31,7 +31,7 @@ final details = {
 };
 
 void main() {
-  testWidgets('SOS requires saved details and is disabled when offline', (
+  testWidgets('SOS prompts for details and is disabled when offline', (
     tester,
   ) async {
     final s = SosSession('patient');
@@ -44,7 +44,11 @@ void main() {
     );
     expect(find.text('Add emergency details'), findsOneWidget);
     final sos = find.widgetWithText(FilledButton, 'SOS · Request ambulance');
-    expect(tester.widget<FilledButton>(sos).onPressed, isNull);
+    expect(tester.widget<FilledButton>(sos).onPressed, isNotNull);
+    await tester.pumpAndSettle();
+    expect(find.text('Emergency details'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
     s.sosState!['patient_profile'] = details;
     s.online = false;
     s.notifyListeners();
@@ -136,4 +140,85 @@ void main() {
       s.dispose();
     },
   );
+  testWidgets('Driver onboarding goes online for a GPS-compatible demo', (
+    tester,
+  ) async {
+    final s = SosSession('driver');
+    s.sosState!['drivers'] = [
+      {
+        'id': 'D1',
+        'name': 'Demo',
+        'vehicle': 'AMB1',
+        'phone': '+919000000001',
+        'on_duty': false,
+        'location_mode': 'demo',
+      },
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SosScreen(session: s, openBed: (_) {}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Start receiving SOS pickups'), findsOneWidget);
+    await tester.tap(find.text('Online for demo'));
+    await tester.pumpAndSettle();
+    expect(s.sent?['action'], 'duty');
+    expect(s.sent?['on_duty'], true);
+    expect(s.sent?['follow_pickup'], true);
+    await tester.pumpWidget(const SizedBox());
+    s.dispose();
+  });
+  testWidgets('Patient sees driver on the way, ETA, tracking and call action', (
+    tester,
+  ) async {
+    final s = SosSession('patient');
+    s.sosState!['patient_profile'] = details;
+    s.sosState!['calls'] = [
+      {
+        'id': 'accepted1',
+        'status': 'Accepted',
+        'driver_id': 'D2',
+        'offer_until': null,
+        'patient': details,
+        'location': {
+          'lat': 19.07,
+          'lng': 72.87,
+          'mode': 'gps',
+          'captured_at': 1000,
+          'accuracy': 5,
+        },
+        'driver': {
+          'name': 'Riya',
+          'vehicle': 'AMB02',
+          'phone': '+919000000003',
+          'lat': 19.08,
+          'lng': 72.88,
+          'location_mode': 'demo',
+          'seen_at': 1000,
+        },
+        'distance_km': 1.2,
+        'eta_minutes': 4,
+        'tracking_simulated': true,
+        'events': [],
+        'bed_request_id': null,
+      },
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SosScreen(session: s, openBed: (_) {}),
+        ),
+      ),
+    );
+    expect(find.text('Driver is on the way'), findsOneWidget);
+    await tester.ensureVisible(find.textContaining('1.2 km away'));
+    expect(find.textContaining('estimated 4 min'), findsOneWidget);
+    await tester.ensureVisible(find.textContaining('Call assigned driver'));
+    expect(find.textContaining('+919000000003'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    s.dispose();
+  });
 }

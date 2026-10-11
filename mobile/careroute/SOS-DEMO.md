@@ -1,86 +1,45 @@
-# SOS + ambulance dispatch demo
+# SOS ambulance demo — version 1.2.0
 
-**SQL merge update:** hospital transfer now uses active SQL hospital records, numeric IDs, real inventory, configured care types and saved coordinates. Admin must assign hospital operators and operators must add available beds first. Choose whichever compatible hospital exists; A/C/E sample comparisons below are historical examples. The former `CareRouteDemoSeeder` no longer creates business accounts. Existing passwords are preserved; `AmbulanceDemoSeeder` explicitly provisions only the three dispatch demo drivers on a new installation. Run the eight additive migrations listed in the root README. Driver accounts migrated from the old app keep their passwords and enabled/disabled status.
+## Setup
 
-Install the updated CareRoute **1.1.0 (build 2)** Android APK over the previous app. Existing patient login and server settings remain. Start Apache + MySQL and use the same local API address described in [LOCAL-SETUP.md](LOCAL-SETUP.md).
+Start Apache and MySQL in XAMPP. This app uses the updated SQL users, role permissions, hospitals, care types and bed inventory. Dispatch trips/emergency profiles remain a locked JSON demo store (`storage/app/ambulance-demo.json`); the SQL ambulance master is not an external fleet integration. Do not reset either store to test this flow.
 
-If preparing another checkout, run `php artisan config:clear`, `php artisan route:clear`, and `php artisan db:seed --class=CareRouteDemoSeeder`. No new database migration is needed for SOS. Do not reset existing emergency data.
+On the phone open Server connection and set `http://PC-WIFI-IP/Hospital/public/api/mobile`. Currently this PC is `10.9.3.66`. Phone and PC must share Wi-Fi. Test the `/health` address in the phone browser first. The Android emulator uses `10.0.2.2`; the Flutter browser demo uses `http://localhost/Hospital/public/api/mobile`.
 
-## Accounts
+Existing demo accounts on this PC were verified enabled with password `CareRoute@2026`:
 
-Every seeded account uses `CareRoute@2026`, unless its password was subsequently changed.
+| Login | Purpose |
+|---|---|
+| patient@careroute.test | Patient / SOS |
+| driver.1@careroute.test | Aman / ambulance D1 |
+| driver.2@careroute.test | Riya / ambulance D2 |
+| driver.3@careroute.test | Kabir / ambulance D3 |
 
-| Login | Role |
-| --- | --- |
-| patient@careroute.test | Patient: saved emergency profile, SOS, trip status, normal hospital requests |
-| driver.1@careroute.test | Aman, ambulance D1, closest to the sample pickup |
-| driver.2@careroute.test | Riya, ambulance D2, next closest |
-| driver.3@careroute.test | Kabir, ambulance D3 |
-| hospital.c@careroute.test | Hospital C: ICU verification, acceptance and arrival |
-| hospital.b@careroute.test | Hospital B: alternative ICU allocation |
-| admin@careroute.test | All SOS trips and existing hospital administration |
+A new installation may explicitly run `php artisan db:seed --class=AmbulanceDemoSeeder` to create missing drivers; it does not overwrite existing passwords or enabled flags. SQL migrations from the root README must already be applied. No new migration is needed for this SOS update. New patients can register in the app. Admin assigns hospital operator accounts to actual SQL hospitals and operators add beds; old A–E JSON hospital fixtures are not used.
 
-Driver accounts are seeded by the server. Patient signup cannot create a driver/admin role. Seeded driver phone numbers and vehicles are mock values. The patient/contact numbers entered in the emergency profile are the numbers the driver's call buttons open in the phone dialer; calls are not automatically placed. Maps opens the pickup coordinates in an external maps application/browser.
+## Two-minute demo
 
-## Fast demo on two devices
+1. Open the patient APK on a phone. Open the Flutter app/browser preview on two additional devices or separate browser profiles for driver 1 and driver 2. All sessions must use the same backend. Do not sign out a driver to sign in a patient on the same device: signing out marks that driver off duty.
+2. Log in as each driver. Select **Online for demo** in the setup prompt. This explicitly enables simulated ambulance positions near each pickup, including real GPS pickups. Keep each driver app visible/open. An existing on-duty demo driver can select **Enable demo pickups near patient GPS**. Driver 1 is closest, followed by driver 2 and driver 3.
+3. For actual call demonstrations select **Set driver phone for call demo** and enter a test number you control. Seed phone numbers are dummy numbers. Calls open the OS dialer and require the user to place the call.
+4. Log in as the patient. If basic details are missing, the app prompts for full name, mobile, age, emergency contact name and number. Save once. If you dismiss setup, tapping SOS opens setup again; it does not send an incomplete SOS.
+5. Use real GPS or explicitly switch on **Use demo pickup location**. Tap **SOS · Request ambulance**. No emergency request form is required. Patient sees **Finding your driver…**, the number of alerted nearby drivers, and honest searching feedback when no drivers are online.
+6. Within the normal 5-second refresh, both online demo drivers see the SAME pickup with an alert, distance, estimated travel time, **Accept pickup** and **Reject pickup**. Unassigned drivers see pickup/age but not contact details.
+7. Driver 1 rejects. Driver 2 still has the request and accepts it. Alternatively accept on both simultaneously: exactly one wins, and the other is told that the offer is no longer available. Accepting removes this pickup from the other drivers and removes the winning driver from other open pickups.
+8. Patient sees **Driver is on the way**, driver's name, ambulance, phone, distance, ETA and progress diagram. Demo driver position moves toward the pickup over time. **View driver in Maps** opens the current simulated coordinates. All simulated movement is visibly labelled. Real GPS drivers use fresh foreground GPS updates instead.
+9. Patient selects **Call assigned driver**. Assigned driver selects **Call patient** or **Call emergency contact**. The native phone dialer opens with the saved number. Browser previews require a phone handler, so use an actual phone to demo calls.
+10. Driver selects **Reached pickup location → Patient picked up → Record first aid provided**. Either complete without hospital transfer, or select **Hospital needed · request a bed**, choose a SQL care type and an online hospital with an available bed.
+11. For hospital transfer, the hospital operator logs into the website, verifies severity, accepts the linked bed request and confirms arrival. Driver then selects **Complete hospital handoff**. The patient owns the linked SQL request and can open it in the app. No automatic hospital acceptance or self-declared Critical priority is granted.
 
-1. Driver device: sign in as **driver.1@careroute.test** → **Dispatch** → enable **Use demo driver coordinates** → **Go on duty**. Keep this app open.
-2. Optionally put driver 2 on duty on another device with demo coordinates. A separate browser origin (e.g. `localhost:8088` versus `127.0.0.1:8088`) has separate stored sessions; two tabs at the same origin share login storage.
-3. Patient device: sign in → **SOS** → **Add emergency details**. Save name, mobile number, age, emergency contact name and number. These are saved server-side once and reused for future SOS requests.
-4. Enable **Use demo pickup location**. The sample point is Delhi, 28.6139 / 77.2090. Both driver and patient must use demo mode for this scenario. The app clearly marks this as simulated coordinates.
-5. Tap the large **SOS · Request ambulance** button. No emergency request form is needed. The patient sees **Searching**, not a claimed confirmed dispatch.
-6. Aman gets a foreground alert and a **30-second offer** with pickup coordinates, age and straight-line distance. He cannot see patient phone/contact details before accepting. Other drivers do not see this offer.
-7. Driver taps **Accept pickup**. Patient sees **Accepted**, assigned driver and vehicle. Driver can now call the patient or emergency contact and open the pickup in Maps.
-8. Driver taps **Reached pickup location** → **Patient picked up** → **Record first aid provided**. Status updates appear on the patient's screen every five seconds while open. The first-aid button records an operator action; it does not generate treatment advice or certify the driver's clinical training.
-9. If no hospital transfer is needed: **Complete · no hospital transfer** ends the trip and frees the driver.
-10. If hospital care is needed: **Hospital needed · request a bed** → choose **ICU** → request an available compatible hospital, e.g. **Hospital C**. Hospital A has no ICU bed; Hospital E remains Offline. Hospital distances are existing seeded demo values, not live route measurements. If C is full, choose B or D.
-11. Hospital operator uses the website or mobile app → **Requests** → the request named `Patient [SOS id]` → **Verify Critical** → **Accept bed request**. The patient can also open it through **Open linked hospital request** on the SOS card. Driver cannot grant verified Critical priority or hospital approval.
-12. At hospital arrival: hospital operator → **Mark patient arrived**. Bed becomes **Occupied**. Driver → **Complete hospital handoff**. This is blocked until the hospital confirms arrival.
+## Behavior and limits
 
-## Actual GPS mode on phones
+- Nearby eligible drivers within 25 km receive a broadcast, ranked by distance/estimated pickup time; each can accept or reject. First acceptance wins under one exclusive lock. It is not automatically assigned solely because a driver is nearest.
+- Declining suppresses this pickup for that driver for the rest of the request. Other drivers remain eligible. Late online drivers are added while searching. An accepted busy driver cannot accept a second pickup.
+- Duplicate SOS taps return the existing active trip. Three new SOS requests per ten minutes are allowed. Unconfirmed pickups expire after ten minutes. Driver presence expires after 90 seconds without a heartbeat; real GPS must be updated within 120 seconds. Foreground GPS updates every 30 seconds and state refreshes every five seconds.
+- Cancellation is allowed before pickup and is shown to the assigned driver. After pickup only the assigned driver can advance the trip. Today's assigned trips and previous trip activity appear in dispatch.
+- ETA is an estimate using straight-line distance, a 1.3 route factor and assumed 25 km/h speed. It is not live road routing or traffic data. The progress diagram is not a street map. Demo movement does not automatically record driver arrival/pickup.
+- Alerts are sound/haptic/in-app while the app is open; closed/background apps do not receive push notifications. This is a working local demo, not a connected emergency ambulance provider. Real emergency service dispatch/push must be added before real-world use.
 
-Disable both demo switches. Put the driver on duty near the patient using current GPS. Allow **precise location / while using the app** on both devices. The first SOS tap obtains a fresh location fix and sends it with the saved profile. No background-location permission is requested.
+## Verification
 
-While apps are open, driver GPS and pre-pickup patient GPS refresh every 30 seconds. After pickup the pickup point stops changing; driver position can still update. Denied permission, disabled GPS, an old fix or accuracy worse than 200 m produces an error instead of silently using demo coordinates. The pickup coordinate mode is included in every request; demo drivers cannot be matched to a real GPS SOS.
-
-Use the same Wi-Fi and PC API URL for this local prototype. The APK's GPS works on the phone; Laravel still runs on the PC. Browser GPS requires a secure context (localhost/HTTPS); the explicit demo mode works for browser testing.
-
-## Dispatch rules and failure scenarios
-
-- Available means **on duty**, foreground heartbeat within 90 seconds, not already assigned/offered another active pickup, within a 25 km straight-line radius. GPS drivers also need a location update within 120 seconds.
-- Rank by Haversine distance, then driver ID for ties. Only one eligible driver gets an offer at a time.
-- Decline / 30-second timeout / stale or off-duty driver moves the offer to the next available driver. Skipped drivers become eligible for another attempt after 60 seconds.
-- Acceptance and driver allocation are protected by the same exclusive file lock. Duplicate accept cannot allocate two drivers. A driver stays busy until trip completion/cancellation; an accepted trip is never silently reassigned after connection loss.
-- No drivers: show an honest Searching state. Search ends as **Expired** after ten minutes; the patient may then send another SOS. Accepted trips do not expire automatically.
-- Duplicate taps return the existing active SOS. At most three new SOS requests per patient per ten minutes; existing API request throttling also applies.
-- Patient can cancel before pickup, with confirmation. Another patient or unassigned driver cannot modify the trip. After pickup, driver follows the ordered trip workflow.
-- Patient sees only own SOS trips. Driver sees only current offers/assigned trip history. Admin sees all trips. Hospital users receive only normal linked hospital requests, not dispatch data.
-- Temporary/confirmed hospital bed expiry still applies. A failed bed allocation keeps its linked request for retry rather than creating duplicate patient requests. Hospital verification and confirmation remain mandatory; occupied beds stay protected.
-
-## Implementation
-
-`lib/sos.dart`: patient profile + one-tap SOS, foreground driver alert, driver duty/trip actions, maps/call links and hospital handoff.
-
-`lib/location.dart`: permission checks, fresh GPS acquisition and explicitly separate demo coordinates.
-
-`lib/session.dart`: shared login, five-second role-scoped refresh and dispatch state; logout takes drivers off duty when the server is reachable.
-
-`/api/mobile/sos/state` and `/api/mobile/sos/action`: scoped Sanctum tokens and server-enforced role/ownership checks.
-
-`AmbulanceService`: JSON mock dispatch, serialized acceptance, Haversine ranking, timeouts, availability and linked `EmergencyBedService` requests. `storage/app/ambulance-demo.json` is runtime data and excluded from Git, like the existing emergency mock store.
-
-This is a working demo dispatch system with seeded drivers. It does not call an actual ambulance provider, send SMS, or deliver push notifications when the driver app is closed. A deployed backend, provider onboarding and a push service would be needed for that extension. iOS source includes foreground location permission text; iOS build/device verification still requires Mac/Xcode.
-
-## Validation
-
-```powershell
-# Repository root; isolated JSON stores, preserve real demo records:
-php tests/sos-smoke.php
-php tests/sos-api-smoke.php
-php tests/sos-race.php
-php tests/emergency-smoke.php
-# Flutter folder:
-flutter analyze
-flutter test
-flutter build apk --debug --dart-define=API_BASE_URL=http://PC-IP/Hospital/public/api/mobile
-```
+From project root: `php tests/sos-smoke.php`, `php tests/sos-api-smoke.php`, `php tests/sos-race.php`, `php tests/mobile-merge-smoke.php`. These use isolated stores/databases and do not replace actual demo trips. From `mobile/careroute`: `flutter analyze`, `flutter test`, `flutter build apk --debug --dart-define=API_BASE_URL=http://PC-WIFI-IP/Hospital/public/api/mobile`. iOS uses the same Flutter source; building/signing on iOS requires a Mac/Xcode and was not validated on this Windows PC.
