@@ -9,6 +9,7 @@
 /storage/app/emergency-test-*.json*
 .env
 .env.backup
+/env (1)
 .phpunit.result.cache
 docker-compose.override.yml
 Homestead.json
