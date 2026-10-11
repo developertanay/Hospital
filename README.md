@@ -110,7 +110,7 @@ New demo accounts use password **`CareRoute@2026`**:
 
 | Email | Role | Workspace |
 | --- | --- | --- |
-| `admin@careroute.test` | Admin | All demo requests, masters, inventory, assignments, users, reset |
+| `admin@careroute.test` | Admin | Management summary, masters, inventory, assignments and users |
 | `hospital.c@careroute.test` | Hospital C operator | New-request triage, C reservations and bed state, arrival |
 | `hospital.b@careroute.test` | Hospital B operator | New-request triage, B reservations and bed state, arrival |
 | `patient@careroute.test` | Patient/requester | Submit emergencies, request beds, track own requests |
@@ -140,7 +140,7 @@ Use `npm run watch` during development or `npm run prod` for a production build.
 
 Use separate browser profiles/private sessions for simultaneous roles; tabs in one browser profile share authentication.
 
-1. Admin signs in and resets emergency demo data.
+1. Admin manages masters, inventory and account assignments; use a prepared demo dataset for the care workflow.
 2. Patient submits Critical / ICU / Accident Site and requests Hospital C.
 3. Hospital C verifies severity and accepts the request into Reserved status.
 4. Patient submits a second ICU request. Hospital B is recommended because C's confirmed reservation is protected.
@@ -157,6 +157,16 @@ Paths are relative to the application base URL.
 | --- | --- | --- |
 | GET | `/login` | Login screen |
 | GET | `/`, `/emergency` | Role-based emergency workspace |
+| GET | `/emergency/requests` | Emergency form and hospital recommendations: patient only |
+| GET | `/emergency/approvals` | Verify, accept, reject, and record arrival: hospital operator only |
+| GET | `/emergency/beds` | Individual bed availability: hospital operator only |
+| GET | `/emergency/inventory` | Own hospital bed capacity and patient discharge |
+| GET | `/emergency/blood` | Own hospital blood stock by group |
+| GET | `/emergency/settings` | Own hospital contact, address and Open/Offline status |
+| POST | `/emergency/manage` | Validated hospital management updates; hospital identity comes from login |
+| Resource routes | `/emergency/inventory`, `/emergency/blood` | Hospital-scoped lists, Add/Edit forms, POST create, PUT update and DELETE remove |
+| GET | `/emergency/reservations` | Reservation status: patient only |
+| GET | `/emergency/history` | Decision history scoped to the signed-in role |
 | GET | `/emergency/state` | JSON state filtered for the signed-in demo account |
 | POST | `/emergency/action` | Emergency actions with session authentication and CSRF protection |
 | GET | `/demo/modules`, `/demo/users` | Admin demo guides |
@@ -166,6 +176,8 @@ Paths are relative to the application base URL.
 | GET | `/api/user` | User response protected by `auth:sanctum` |
 
 Emergency actions are `create`, `verify`, `request`, `accept`, `reject`, `arrive`, and admin-only `reset`. The old `login`/`logout` action values are rejected; use the account controls.
+
+The dashboard contains summaries and links, with each data category on its own page. Page URLs and JSON responses enforce assigned-module access. Patients see only their own requests/history and recommendations; operators see their own hospital's beds and assigned requests, plus new requests awaiting triage. Admins manage masters, inventories, users and assignments; they cannot access emergency requests, approvals, reservations, individual emergency beds or decision history. Masters, inventories, and user/module administration remain separate administration pages. The state endpoint accepts `?page=requests`, `approvals`, `beds`, `reservations`, or `history`; its default dashboard response contains counts rather than detail records.
 
 `routes/api.php` also contains legacy login, OTP, and password-update endpoints with external ERP integration. These are separate from CareRoute. Blood donation and bed prediction APIs described in the former README are not present.
 
@@ -188,6 +200,10 @@ Emergency actions are `create`, `verify`, `request`, `accept`, `reject`, `arrive
 
 MySQL hospital/inventory records and emergency A–E JSON data are separate. Editing legacy inventory does not change emergency capacity. Admin reset changes only emergency JSON state, preserving accounts and MySQL management data. Locations are descriptive; distances are seeded values.
 
+Hospital operators use their own Bed Inventory, Blood Inventory and Hospital Settings pages in the emergency workspace. These persist in the hospital's A–E JSON record. Bed capacity changes update emergency matching immediately and cannot remove held, reserved or occupied beds. Discharge releases an occupied bed and marks its linked request Discharged. Offline status excludes new recommendations while preserving existing allocations. Blood stock is separate from legacy MySQL blood inventory and is not a donation/expiry tracking system. Admin and patient accounts cannot access these hospital management pages.
+
+Bed and blood inventory use the same list/Add/Edit/Delete page pattern as the legacy masters. Each bed record has a name, care type and allocation status. Bed creation starts Available; only Available beds can be edited/deleted. Blood inventory stores one record per group per hospital, with duplicate groups rejected. Hospital settings edit the existing assigned hospital; hospital operators do not create/delete hospital master records.
+
 ## Verification
 
 Isolated emergency domain checks:
@@ -202,7 +218,13 @@ HTTP role workflow, against a running app with seeded accounts (PowerShell 7):
 pwsh -File .\tests\demo-role-flow.ps1 -BaseUrl http://localhost/Hospital/public
 ```
 
-The HTTP script resets emergency state at the start and end; run it on a demo instance. `php artisan test` runs the PHPUnit suite, which currently contains starter examples rather than comprehensive application coverage.
+The HTTP workflow script creates test requests and requires a prepared disposable demo instance with capacity available. It verifies that admins cannot reset care data. `php artisan test` runs the PHPUnit suite, which currently contains starter examples rather than comprehensive application coverage.
+
+For read-only page/data permission checks (no reset):
+
+```powershell
+pwsh -File .\tests\demo-page-access.ps1 -BaseUrl http://localhost/Hospital/public
+```
 
 ## Troubleshooting and prototype limits
 

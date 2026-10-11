@@ -13,7 +13,7 @@ function Action-Demo($Account,$Payload) {
 }
 function Assert-Status($Response,[int]$Expected,[string]$Label){if($Response.StatusCode -ne $Expected){throw "$Label expected $Expected, got $($Response.StatusCode): $($Response.Content.Substring(0,[Math]::Min(300,$Response.Content.Length)))"};Write-Output "PASS $Label ($Expected)"}
 $admin=Login-Demo 'admin@careroute.test'
-Assert-Status (Action-Demo $admin @{action='reset'}) 200 'Admin prepares fresh emergency seed'
+Assert-Status (Action-Demo $admin @{action='reset'}) 403 'Admin cannot alter emergency workflow'
 $patient=Login-Demo 'patient@careroute.test'
 $hospitalC=Login-Demo 'hospital.c@careroute.test'
 $hospitalB=Login-Demo 'hospital.b@careroute.test'
@@ -31,10 +31,10 @@ Assert-Status (Action-Demo $patient @{action='request';id=$id;hospital_id='C'}) 
 Assert-Status (Action-Demo $hospitalB @{action='accept';id=$id}) 403 'Hospital B cannot accept C request'
 Assert-Status (Action-Demo $hospitalC @{action='verify';id=$id;severity='Critical'}) 200 'Hospital C verifies Critical'
 Assert-Status (Action-Demo $hospitalC @{action='accept';id=$id}) 200 'Hospital C accepts reservation'
-$state=Invoke-RestMethod "$BaseUrl/emergency/state" -WebSession $patient.Session
+$state=Invoke-RestMethod "$BaseUrl/emergency/state?page=reservations" -WebSession $patient.Session
 if(($state.requests|Where-Object id -eq $id).status -ne 'Reserved'){throw 'Patient cannot see Reserved status'}
 Write-Output 'PASS Patient sees Reserved'
 Assert-Status (Action-Demo $hospitalC @{action='arrive';id=$id}) 200 'Hospital C marks arrival'
 Assert-Status (Action-Demo $hospitalC @{action='reset'}) 403 'Hospital cannot reset demo'
-Assert-Status (Action-Demo $admin @{action='reset'}) 200 'Admin restores fresh emergency seed after test'
-Write-Output 'Role flow complete. Demo data reset and ready for presentation.'
+Assert-Status (Action-Demo $admin @{action='reset'}) 403 'Admin cannot reset care data'
+Write-Output 'Role flow complete. Test requests remain in the demo store; run on a prepared disposable demo instance.'

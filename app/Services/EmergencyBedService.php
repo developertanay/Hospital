@@ -181,5 +181,88 @@ class EmergencyBedService
         });
     }
 
+    public function manageHospital($hospitalId, $action, $input)
+    {
+        return $this->transaction(function (&$s) use ($hospitalId, $action, $input) {
+            $index = array_search($hospitalId, array_column($s['hospitals'], 'id'), true);
+            if ($index === false) throw new RuntimeException('Hospital not found.');
+            $h =& $s['hospitals'][$index];
+            if ($action === 'capacity') {
+                $care = $input['care']; $total = (int) $input['total'];
+                if (!in_array($care, ['General','ICU','Ventilator'], true) || $total < 0 || $total > 200) throw new RuntimeException('Invalid bed capacity.');
+                $current = array_values(array_filter($h['beds'], fn($b) => $b['care'] === $care));
+                $protected = count(array_filter($current, fn($b) => $b['status'] !== 'Available'));
+                if ($total < $protected) throw new RuntimeException('Capacity cannot be below '.$protected.' occupied, reserved or held beds. Discharge patients before reducing occupied capacity.');
+                $remove = max(0, count($current) - $total);
+                foreach (array_reverse(array_keys($h['beds'])) as $key) {
+                    if ($remove && $h['beds'][$key]['care'] === $care && $h['beds'][$key]['status'] === 'Available') { unset($h['beds'][$key]); $remove--; }
+                }
+                $h['beds'] = array_values($h['beds']);
+                for ($i = count($current); $i < $total; $i++) $h['beds'][] = ['id'=>$hospitalId.'-'.$care.'-'.bin2hex(random_bytes(4)), 'care'=>$care, 'status'=>'Available', 'request_id'=>null];
+                $this->event($s, $h['name'].' updated '.$care.' capacity to '.$total.'.');
+            } elseif ($action === 'discharge') {
+                $bedIndex = array_search($input['bed_id'], array_column($h['beds'], 'id'), true);
+                if ($bedIndex === false) throw new RuntimeException('This bed does not belong to your hospital.');
+                $bed =& $h['beds'][$bedIndex];
+                if ($bed['status'] !== 'Occupied') throw new RuntimeException('Only occupied beds can be discharged.');
+                $requestId = $bed['request_id'];
+                if ($requestId) {
+                    $rIndex = $this->index($s, $requestId);
+                    if ($s['requests'][$rIndex]['hospital_id'] !== $hospitalId || $s['requests'][$rIndex]['status'] !== 'Occupied') throw new RuntimeException('Patient admission does not match this hospital bed.');
+                    $s['requests'][$rIndex]['status'] = 'Discharged'; $s['requests'][$rIndex]['expires_at'] = null;
+                }
+                $bed['status'] = 'Available'; $bed['request_id'] = null;
+                $this->event($s, $h['name'].' discharged bed '.$bed['id'].'.', $requestId);
+            } elseif ($action === 'blood') {
+                if (!in_array($input['blood_type'], ['A+','A-','B+','B-','AB+','AB-','O+','O-'], true) || (int)$input['units'] < 0 || (int)$input['units'] > 10000) throw new RuntimeException('Invalid blood stock.');
+                $h['blood'][$input['blood_type']] = (int)$input['units'];
+                $this->event($s, $h['name'].' updated blood stock for '.$input['blood_type'].'.');
+            } elseif ($action === 'settings') {
+                if (!in_array($input['status'], ['Open','Offline'], true)) throw new RuntimeException('Invalid hospital status.');
+                $h['status'] = $input['status']; $h['contact'] = $input['contact'] ?? ''; $h['address'] = $input['address'] ?? '';
+                $this->event($s, $h['name'].' updated its hospital settings.');
+            } else throw new RuntimeException('Unknown hospital management action.');
+            $s['events'][0]['hospital_id'] = $hospitalId;
+        });
+    }
+
+    public function inventoryCrud($hospitalId, $type, $operation, $record, $input)
+    {
+        return $this->transaction(function (&$s) use ($hospitalId, $type, $operation, $record, $input) {
+            $index = array_search($hospitalId, array_column($s['hospitals'], 'id'), true);
+            if ($index === false) throw new RuntimeException('Hospital not found.');
+            if (!in_array($operation, ['create','update','delete'], true)) throw new RuntimeException('Invalid operation.');
+            $h =& $s['hospitals'][$index];
+            if ($type === 'inventory') {
+                if ($operation !== 'delete' && (!in_array($input['care'], ['General','ICU','Ventilator'], true) || empty(trim($input['name'])))) throw new RuntimeException('Invalid bed details.');
+                $bedIndex = array_search($record, array_column($h['beds'], 'id'), true);
+                if ($operation === 'create') {
+                    if (count(array_filter($h['beds'], fn($b)=>$b['care']===$input['care'])) >= 200) throw new RuntimeException('Maximum capacity for this care type reached.');
+                    $h['beds'][] = ['id'=>$hospitalId.'-'.bin2hex(random_bytes(6)), 'name'=>$input['name'], 'care'=>$input['care'], 'status'=>'Available', 'request_id'=>null];
+                } else {
+                    if ($bedIndex === false) throw new RuntimeException('Record not found in your hospital.');
+                    if ($h['beds'][$bedIndex]['status'] !== 'Available') throw new RuntimeException('Only available beds can be edited or deleted. Discharge an occupied patient first.');
+                    if ($operation === 'delete') { unset($h['beds'][$bedIndex]); $h['beds'] = array_values($h['beds']); }
+                    else {
+                        if ($h['beds'][$bedIndex]['care'] !== $input['care'] && count(array_filter($h['beds'], fn($b)=>$b['care']===$input['care'])) >= 200) throw new RuntimeException('Maximum capacity for this care type reached.');
+                        $h['beds'][$bedIndex]['care']=$input['care']; $h['beds'][$bedIndex]['name']=$input['name'];
+                    }
+                }
+            } elseif ($type === 'blood') {
+                if ($operation !== 'create' && !array_key_exists($record, $h['blood'] ?? [])) throw new RuntimeException('Record not found in your hospital.');
+                if ($operation === 'delete') unset($h['blood'][$record]);
+                else {
+                    $group=$input['blood_type'];
+                    if (!in_array($group, ['A+','A-','B+','B-','AB+','AB-','O+','O-'], true) || (int)$input['units'] < 0 || (int)$input['units'] > 10000) throw new RuntimeException('Invalid blood stock.');
+                    if (($operation==='create' || $group!==$record) && array_key_exists($group,$h['blood'] ?? [])) throw new RuntimeException('This blood group already exists. Edit its existing record.');
+                    if ($operation==='update' && $group!==$record) unset($h['blood'][$record]);
+                    $h['blood'][$group]=(int)$input['units'];
+                }
+            } else throw new RuntimeException('Invalid inventory type.');
+            $this->event($s, $h['name'].' '.$operation.'d a '.($type==='inventory'?'bed':'blood inventory').' record.');
+            $s['events'][0]['hospital_id']=$hospitalId;
+        });
+    }
+
     public function reset() { return $this->transaction(function (&$s) { $s = $this->seed(); }); }
 }
