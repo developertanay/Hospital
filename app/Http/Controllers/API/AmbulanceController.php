@@ -28,14 +28,18 @@ class AmbulanceController extends Controller {
             foreach ($call['hospital_options'] as &$h) if (isset($h['latitude'],$h['longitude'])) $h['distance']=round(AmbulanceService::distance($call['location']['lat'],$call['location']['lng'],$h['latitude'],$h['longitude']),1);
             unset($h);
         } unset($call);
-        return response()->json($state);
+        return response()->json($state)->header('Cache-Control','private, no-store');
     }
     public function action(Request $request,AmbulanceService $service,EmergencyBedService $beds) {
         $p=RoleAccess::profile(); if (!$p) return response()->json(['message'=>'Sign in first.'],401);
-        $action=$request->validate(['action'=>'required|in:profile,sos,location,duty,accept,decline,cancel,arrive,pickup,first_aid,transport,handoff,complete'])['action'];
+        $action=$request->validate(['action'=>'required|in:profile,driver_contact,sos,location,duty,accept,decline,cancel,arrive,pickup,first_aid,transport,handoff,complete'])['action'];
         $allowed=in_array($action,['profile','sos','location','cancel'],true)?['patient']:['driver'];
         if (!in_array($p['role'],$allowed,true)) return response()->json(['message'=>'This role cannot perform that SOS action.'],403);
         try {
+            if ($action==='driver_contact') {
+                $input=$request->validate(['phone'=>'required|regex:/^\+?[0-9]{8,15}$/']);
+                return response()->json($service->contact($p,$input['phone']));
+            }
             if ($action==='profile') {
                 $input=$request->validate(['name'=>'required|string|max:50','mobile'=>'required|regex:/^\+?[0-9]{8,15}$/','age'=>'required|integer|min:1|max:120','emergency_name'=>'required|string|max:60','emergency_phone'=>'required|regex:/^\+?[0-9]{8,15}$/']);
                 return response()->json($service->profile($p,$input));
@@ -46,7 +50,7 @@ class AmbulanceController extends Controller {
                 return response()->json($service->create($p,$input),201);
             }
             if ($action==='duty') {
-                $input=$request->validate(['on_duty'=>'required|boolean','lat'=>'required_if:on_duty,true|numeric|between:-90,90','lng'=>'required_with:lat|numeric|between:-180,180','mode'=>'required_with:lat|in:gps,demo']);
+                $input=$request->validate(['follow_pickup'=>'nullable|boolean','on_duty'=>'required|boolean','lat'=>'required_if:on_duty,true|numeric|between:-90,90','lng'=>'required_with:lat|numeric|between:-180,180','mode'=>'required_with:lat|in:gps,demo']);
                 return response()->json($service->duty($p,$input));
             }
             $request->validate(['id'=>'required|string|max:32']);

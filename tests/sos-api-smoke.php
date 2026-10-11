@@ -19,6 +19,9 @@ try {
         $user=App\Models\User::where('email',$email)->firstOrFail();$t=$user->createToken('sos-test',['careroute-mobile']);$tokens[]=$t->accessToken;$issued[$key]=$t->plainTextToken;
     }
     sosHttp('unknown','sos/state',null,401);sosHttp('hospital','sos/state',null,403);
+    sosHttp('patient','sos/action',['action'=>'driver_contact','phone'=>'+919000000001'],403);
+    sosHttp('driver','sos/action',['action'=>'driver_contact','phone'=>'123'],422);
+    sosHttp('driver','sos/action',['action'=>'driver_contact','phone'=>'+919000000099']);
     sosHttp('patient','sos/action',['action'=>'duty','on_duty'=>true],403);
     sosHttp('driver','action',['action'=>'create'],403);
     sosHttp('driver','sos/action',['action'=>'profile'],403);
@@ -30,10 +33,10 @@ try {
     sosHttp('patient','sos/action',array_merge($fix,['accuracy'=>500]),422);
     $id=sosHttp('patient','sos/action',$fix,201)['id'];
     $offer=sosHttp('driver','sos/state');if(isset($offer['calls'][0]['patient']['mobile']))throw new RuntimeException('Contacts leaked before acceptance');
-    sosHttp('driver2','sos/action',['action'=>'accept','id'=>$id],409);
+    $secondOffer=sosHttp('driver2','sos/state'); if(count($secondOffer['calls'])!==1)throw new RuntimeException('Broadcast missing for second driver');
     sosHttp('driver','sos/action',['action'=>'accept','id'=>$id]);
     sosHttp('driver2','sos/action',['action'=>'accept','id'=>$id],409);
-    $state=sosHttp('patient','sos/state');if($state['calls'][0]['status']!=='Accepted')throw new RuntimeException('Patient state not updated');
+    $state=sosHttp('patient','sos/state');if($state['calls'][0]['driver']['phone']!=='+919000000099')throw new RuntimeException('Updated driver contact not shared');if($state['calls'][0]['status']!=='Accepted')throw new RuntimeException('Patient state not updated');
     sosHttp('driver','sos/action',['action'=>'arrive','id'=>$id]);sosHttp('driver','sos/action',['action'=>'pickup','id'=>$id]);
     sosHttp('driver','sos/action',['action'=>'first_aid','id'=>$id]);
     sosHttp('driver','sos/action',['action'=>'transport','id'=>$id,'care'=>'ICU','hospital_id'=>'3']);

@@ -20,6 +20,7 @@ class SosScreen extends StatefulWidget {
 
 class _SosScreenState extends State<SosScreen> {
   bool demo = false, locating = false;
+  bool setupShown = false;
   String? locationError;
   Timer? tracking;
   final Set<String> notified = {};
@@ -36,7 +37,9 @@ class _SosScreenState extends State<SosScreen> {
   @override
   void initState() {
     super.initState();
+    demo = s.role == 'driver';
     s.addListener(alerts);
+    WidgetsBinding.instance.addPostFrameCallback((_) => alerts());
     tracking = Timer.periodic(
       const Duration(seconds: 30),
       (_) => updateLocation(),
@@ -50,15 +53,63 @@ class _SosScreenState extends State<SosScreen> {
     super.dispose();
   }
 
+  bool get profileReady {
+    final p = s.sosState?['patient_profile'] as Map?;
+    return p != null &&
+        ['name', 'mobile', 'age', 'emergency_name', 'emergency_phone'].every(
+          (key) => p[key] != null && p[key].toString().trim().isNotEmpty,
+        ) &&
+        s.sosState?['profile_complete'] != false;
+  }
+
   void alerts() {
-    if (!mounted ||
-        s.role != 'driver' ||
+    if (!mounted) return;
+    if (!setupShown && s.sosState != null && s.online) {
+      setupShown = true;
+      if ((s.role == 'patient' && !profileReady) ||
+          (s.role == 'driver' && driver?['on_duty'] != true)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          if (s.role == 'patient') {
+            await editProfile(context, s);
+          } else {
+            final choice = await showDialog<String>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Start receiving SOS pickups'),
+                content: const Text(
+                  'Demo mode places a simulated ambulance near each pickup, including real GPS pickups. Keep this driver app open on another device or browser.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Stay offline'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, 'gps'),
+                    child: const Text('Use my GPS'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, 'demo'),
+                    child: const Text('Online for demo'),
+                  ),
+                ],
+              ),
+            );
+            if (mounted && choice != null) {
+              setState(() => demo = choice == 'demo');
+              await duty(true);
+            }
+          }
+        });
+      }
+    }
+    if (s.role != 'driver' ||
         WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
       return;
     }
     for (final c in calls) {
-      if (c['status'] == 'Searching' &&
-          notified.add('${c['id']}:${c['offer_until']}')) {
+      if (c['status'] == 'Searching' && notified.add('${c['id']}')) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           SystemSound.play(SystemSoundType.alert);
@@ -68,7 +119,7 @@ class _SosScreenState extends State<SosScreen> {
               backgroundColor: _red,
               duration: const Duration(seconds: 8),
               content: Text(
-                'New SOS pickup • ${c['distance_km']} km away. Open Dispatch to accept.',
+                'NEW SOS • ${c['distance_km']} km • ~${c['eta_minutes'] ?? '?'} min. Accept below.',
               ),
             ),
           );
@@ -99,6 +150,10 @@ class _SosScreenState extends State<SosScreen> {
       : PickupLocation.current();
 
   Future<void> send() async {
+    if (!profileReady) {
+      await editProfile(context, s);
+      if (!mounted || !profileReady) return;
+    }
     setState(() {
       locating = true;
       locationError = null;
@@ -124,7 +179,12 @@ class _SosScreenState extends State<SosScreen> {
     try {
       final fix = on ? await locate() : <String, dynamic>{};
       if (!mounted || token != s.api.token) return;
-      await s.sosAction({'action': 'duty', 'on_duty': on, ...fix});
+      await s.sosAction({
+        'action': 'duty',
+        'on_duty': on,
+        'follow_pickup': demo,
+        ...fix,
+      });
     } catch (e) {
       if (mounted) setState(() => locationError = e.toString());
     } finally {
@@ -240,7 +300,7 @@ class _SosScreenState extends State<SosScreen> {
             const SizedBox(height: 8),
             Text(
               isDriver
-                  ? 'Stay on duty with this app open. Offers go to the nearest available driver first.'
+                  ? 'Nearby SOS pickups are shared with multiple drivers. First acceptance confirms the trip.'
                   : 'Saved emergency details + current pickup location. No request form during SOS.',
             ),
             const SizedBox(height: 8),
@@ -260,7 +320,7 @@ class _SosScreenState extends State<SosScreen> {
                 height: 104,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(backgroundColor: _red),
-                  onPressed: enabled && profile != null ? send : null,
+                  onPressed: enabled ? send : null,
                   icon: const Icon(Icons.sos, size: 36),
                   label: Text(
                     locating ? 'Getting location…' : 'SOS · Request ambulance',
@@ -275,7 +335,7 @@ class _SosScreenState extends State<SosScreen> {
               const SizedBox(height: 8),
               Text(
                 profile == null
-                    ? 'Add your emergency details below to enable SOS.'
+                    ? 'Tap SOS to complete missing emergency details first. After setup, SOS takes one tap.'
                     : demo
                     ? 'DEMO pickup location selected'
                     : 'Uses current GPS and your saved emergency details.',
@@ -312,7 +372,7 @@ class _SosScreenState extends State<SosScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Use demo pickup location'),
                   subtitle: const Text(
-                    'Delhi sample coordinates; never your actual GPS. Demo drivers must use the same mode.',
+                    'Delhi sample pickup. Online demo drivers can serve this or your GPS pickup.',
                   ),
                   value: demo,
                   onChanged: enabled ? (v) => setState(() => demo = v) : null,
@@ -332,6 +392,30 @@ class _SosScreenState extends State<SosScreen> {
                   fontSize: 18,
                 ),
               ),
+              Text('Contact: ${driver?['phone'] ?? 'Not set'}'),
+              TextButton.icon(
+                onPressed: enabled
+                    ? () => editDriverContact(
+                        context,
+                        s,
+                        driver?['phone']?.toString() ?? '',
+                      )
+                    : null,
+                icon: const Icon(Icons.phone),
+                label: const Text('Set driver phone for call demo'),
+              ),
+              if (driver?['on_duty'] == true &&
+                  driver?['location_mode'] == 'demo' &&
+                  driver?['follow_pickup'] != true)
+                FilledButton(
+                  onPressed: enabled
+                      ? () {
+                          setState(() => demo = true);
+                          duty(true);
+                        }
+                      : null,
+                  child: const Text('Enable demo pickups near patient GPS'),
+                ),
               Text(
                 driver?['on_duty'] == true
                     ? 'ON DUTY · ${driver?['location_mode']} location'
@@ -344,7 +428,7 @@ class _SosScreenState extends State<SosScreen> {
                   onChanged: enabled ? (v) => setState(() => demo = v) : null,
                   title: const Text('Use demo driver coordinates'),
                   subtitle: const Text(
-                    'Enable for the Delhi demo. Otherwise current GPS is used.',
+                    'Simulates an ambulance near each pickup, including GPS pickups. Otherwise uses driver GPS.',
                   ),
                 ),
               FilledButton.icon(
@@ -361,7 +445,7 @@ class _SosScreenState extends State<SosScreen> {
                       ? 'Getting location…'
                       : driver?['on_duty'] == true
                       ? 'Go off duty'
-                      : 'Go on duty',
+                      : 'Go online · receive SOS',
                 ),
               ),
               const SizedBox(height: 8),
@@ -379,6 +463,20 @@ class _SosScreenState extends State<SosScreen> {
                     : 'Your SOS trips will appear here.',
               ),
             ]),
+          if (isDriver)
+            panel([
+              const Text(
+                "Today's trips",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '${calls.where((c) {
+                  final dt = DateTime.fromMillisecondsSinceEpoch(((c['created_at'] as num?) ?? 0).toInt() * 1000);
+                  final today = DateTime.now();
+                  return dt.year == today.year && dt.month == today.month && dt.day == today.day && c['driver_id'] != null;
+                }).length} assigned trips today',
+              ),
+            ]),
           for (final c in calls.where(terminal)) trip(c),
         ],
       ),
@@ -394,7 +492,7 @@ class _SosScreenState extends State<SosScreen> {
     final now = (s.sosState?['now'] as num? ?? 0).toInt();
     final remaining = ((c['offer_until'] as num? ?? now).toInt() - now).clamp(
       0,
-      30,
+      600,
     );
     return panel([
       Row(
@@ -403,7 +501,11 @@ class _SosScreenState extends State<SosScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              status.toString(),
+              status == 'Searching' && !isDriver
+                  ? 'Finding your driver…'
+                  : status == 'Accepted' && !isDriver
+                  ? 'Driver is on the way'
+                  : status.toString(),
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -437,16 +539,20 @@ class _SosScreenState extends State<SosScreen> {
         label: const Text('Open pickup in Maps'),
       ),
       if (status == 'Searching') ...[
+        if (!isDriver) const LinearProgressIndicator(),
+        const SizedBox(height: 12),
         Text(
           isDriver
-              ? 'Pickup offer · ${c['distance_km']} km straight-line distance · $remaining seconds left'
-              : c['offer_driver'] == null
+              ? 'NEW PICKUP · ${c['distance_km']} km · estimated ${c['eta_minutes'] ?? '?'} min • $remaining seconds left'
+              : (c['nearby_driver_count'] ??
+                        (c['offer_driver'] == null ? 0 : 1)) ==
+                    0
               ? 'No nearby driver is available yet. Searching within 25 km; no pickup is confirmed.'
-              : 'Waiting for the nearest driver to confirm. No pickup is confirmed yet.',
+              : 'Alert sent to ${c['nearby_driver_count'] ?? 1} nearby drivers. Waiting for acceptance…',
         ),
         if (isDriver) ...[
           button('Accept pickup', 'accept', c),
-          button('Decline · offer next driver', 'decline', c),
+          button('Reject pickup', 'decline', c),
         ],
       ],
       if (d != null) ...[
@@ -455,11 +561,37 @@ class _SosScreenState extends State<SosScreen> {
           '${d['name']} • ${d['vehicle']}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        if (!isDriver) callButton('Call assigned driver', d['phone']),
+        if (!isDriver) ...[
+          Text(
+            '${c['distance_km']} km away • estimated ${c['eta_minutes'] ?? '?'} min to pickup',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const Text(
+            'ETA estimate uses straight-line distance and assumed speed; no traffic routing.',
+          ),
+          if (c['tracking_simulated'] == true)
+            const Text(
+              'DEMO • simulated ambulance movement',
+              style: TextStyle(color: _red),
+            ),
+          SizedBox(height: 140, child: CustomPaint(painter: PickupPainter(c))),
+          callButton('Call assigned driver', d['phone']),
+          OutlinedButton.icon(
+            onPressed: () => external(
+              Uri.https('www.google.com', '/maps/search/', {
+                'api': '1',
+                'query': '${d['lat']},${d['lng']}',
+              }),
+            ),
+            icon: const Icon(Icons.pin_drop),
+            label: const Text('View driver in Maps'),
+          ),
+        ],
         Text(
           'Driver position: ${d['lat']}, ${d['lng']} • ${d['location_mode']}',
         ),
-        if (now - (d['seen_at'] as num).toInt() > 90)
+        if (now - (d['seen_at'] as num).toInt() > 90 ||
+            c['driver_location_stale'] == true)
           const Text(
             'Driver connection is stale. Contact the driver directly.',
             style: TextStyle(color: _red),
@@ -551,6 +683,144 @@ class _SosScreenState extends State<SosScreen> {
   }
 }
 
+class PickupPainter extends CustomPainter {
+  final Map<String, dynamic> trip;
+  PickupPainter(this.trip);
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)),
+      Paint()..color = const Color(0xFFE9F1F6),
+    );
+    final road = Paint()
+      ..color = const Color(0xFFCFDCE6)
+      ..strokeWidth = 2;
+    for (double x = 20; x < size.width; x += 35) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), road);
+    }
+    for (double y = 20; y < size.height; y += 30) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), road);
+    }
+    final remaining = ((trip['distance_km'] as num?) ?? 1).toDouble();
+    final initial =
+        ((trip['pickup_eta_minutes'] as num?) ?? 1).toDouble() * 25 / 60 / 1.3;
+    final ratio = (remaining / (initial > 0 ? initial : 1)).clamp(0.0, 1.0);
+    final pickup = Offset(size.width - 45, 65);
+    final ambulance = Offset(pickup.dx - (size.width - 90) * ratio, 65);
+    canvas.drawLine(
+      const Offset(45, 65),
+      pickup,
+      Paint()
+        ..color = _navy
+        ..strokeWidth = 4,
+    );
+    canvas.drawCircle(pickup, 12, Paint()..color = _red);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: ambulance, width: 30, height: 24),
+        const Radius.circular(5),
+      ),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawLine(
+      ambulance.translate(-7, 0),
+      ambulance.translate(7, 0),
+      Paint()
+        ..color = _red
+        ..strokeWidth = 4,
+    );
+    canvas.drawLine(
+      ambulance.translate(0, -7),
+      ambulance.translate(0, 7),
+      Paint()
+        ..color = _red
+        ..strokeWidth = 4,
+    );
+    final text = TextPainter(
+      text: const TextSpan(
+        text: 'Driver to Pickup • progress diagram',
+        style: TextStyle(color: _navy, fontSize: 12),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.width - 30);
+    text.paint(canvas, const Offset(15, 110));
+  }
+
+  @override
+  bool shouldRepaint(covariant PickupPainter oldDelegate) => true;
+}
+
+Future<void> editDriverContact(
+  BuildContext context,
+  Session session,
+  String initial,
+) async {
+  final controller = TextEditingController(text: initial);
+  final form = GlobalKey<FormState>();
+  bool busy = false;
+  String? error;
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, set) => AlertDialog(
+        title: const Text('Driver contact number'),
+        content: Form(
+          key: form,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Use a real test phone number to demonstrate calls. The dialer opens; calls are not placed automatically.',
+              ),
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Phone number'),
+                validator: (v) =>
+                    RegExp(r'^\+?[0-9]{8,15}$').hasMatch(v?.trim() ?? '')
+                    ? null
+                    : 'Enter 8–15 digits with optional +',
+              ),
+              if (error != null)
+                Text(error!, style: const TextStyle(color: _red)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: busy ? null : () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: busy
+                ? null
+                : () async {
+                    if (!form.currentState!.validate()) return;
+                    set(() => busy = true);
+                    try {
+                      await session.sosAction({
+                        'action': 'driver_contact',
+                        'phone': controller.text.trim(),
+                      });
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    } catch (e) {
+                      if (ctx.mounted) {
+                        set(() {
+                          busy = false;
+                          error = e.toString();
+                        });
+                      }
+                    }
+                  },
+            child: Text(busy ? 'Saving…' : 'Save number'),
+          ),
+        ],
+      ),
+    ),
+  );
+  controller.dispose();
+}
+
 Future<void> editProfile(BuildContext context, Session session) async {
   final data =
       session.sosState?['patient_profile'] as Map<String, dynamic>? ?? {};
@@ -587,7 +857,7 @@ Future<void> editProfile(BuildContext context, Session session) async {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Save once. SOS shares these details only with your assigned driver.',
+                    'Complete all details before your first SOS. Save once; future pickups need no request form. Contacts are shared after acceptance.',
                   ),
                   const SizedBox(height: 12),
                   for (var i = 0; i < fields.length; i++)
