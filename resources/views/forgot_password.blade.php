@@ -6,7 +6,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!--favicon-->
-	<link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
+	@include('branding.meta')
 	<!-- loader-->
 	{{--
 	<link href="{{asset('assets/css/pace.min.css')}}" rel="stylesheet" />

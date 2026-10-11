@@ -7,11 +7,11 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="csrf-token" content="{{ csrf_token() }}" />
 	<!--favicon-->
-	<link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
+	@include('branding.meta')
 	{{--
 	<link rel="icon" href="" type="image/png" />
 	--}}
-	<link href="https://fonts.googleapis.com/css?family=Noto+Sans&subset=devanagari" rel="stylesheet">W
+	<link href="https://fonts.googleapis.com/css?family=Noto+Sans&subset=devanagari" rel="stylesheet">
 	<!--plugins-->
 	<link href="{{asset('assets/plugins/simplebar/css/simplebar.css')}}" rel="stylesheet" />
 	<link rel="stylesheet" href="{{asset('assets/css/flatpickr.min.css')}}" />
@@ -157,7 +157,7 @@
 					<img src="{{ asset(config('branding.logo')) }}" class="logo-icon" alt="Hospital logo">
 				</div>
 				<div>
-					<h4 class="logo-text" style="color: #3e3f94;">{{strtoupper($short_name)}}</h4>
+					<h4 class="logo-text" style="color: {{ config('branding.primary_color') }};">{{ $short_name ? strtoupper($short_name) : config('branding.name') }}</h4>
 				</div>
 				<div class="toggle-icon ms-auto"><i class='bx bx-arrow-back'></i>
 				</div>
@@ -421,7 +421,7 @@
 		<!--Start Back To Top Button--> <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 		<!--End Back To Top Button-->
 		<footer class="page-footer">
-			<p class="mb-0">Copyright © 2024. All rights reserved by Antha Prerna Cell.</p>
+			<p class="mb-0">© {{ now()->year }} {{ config('branding.name') }}. All rights reserved.</p>
 		</footer>
 	</div>
 	<!--end wrapper-->

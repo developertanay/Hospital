@@ -170,7 +170,7 @@ class LoginController extends Controller
         if (!empty($user->care_role)) return redirect('/emergency');
     }
 
-    public function showLoginForm() { return view('demo.login'); }
+    public function showLoginForm() { return view('auth.login'); }
 
     /**
      * Create a new controller instance.

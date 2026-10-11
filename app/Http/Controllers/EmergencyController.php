@@ -18,13 +18,36 @@ class EmergencyController extends Controller
         if ($profile['role'] === 'admin' && $page === 'dashboard') {
             $summary = [
                 ['label' => 'Hospitals', 'value' => \App\Models\Hospital::where('status', '!=', 9)->count(), 'url' => 'Hospital'],
-                ['label' => 'Managed bed records', 'value' => \App\Models\CareBed::count(), 'url' => 'Hospital'],
+                ['label' => 'Departments', 'value' => \App\Models\Department::where('status', '!=', 9)->count(), 'url' => 'Department'],
+                ['label' => 'Ambulances', 'value' => \App\Models\Ambulance::where('status', '!=', 9)->count(), 'url' => 'Ambulance'],
+                ['label' => 'Bed inventory records', 'value' => \App\Models\BedInven::where('status','!=',9)->count(), 'url' => 'BedInven'],
                 ['label' => 'Blood units', 'value' => \App\Models\BloodInv::where('status', '!=', 9)->sum('unit'), 'url' => 'BloodInven'],
-                ['label' => 'Users', 'value' => \App\Models\User::where('college_id', $profile['college_id'])->count(), 'url' => 'NewUser'],
+                ['label' => 'Accounts', 'value' => \App\Models\User::where('college_id', $profile['college_id'])->count(), 'url' => 'Accounts'],
             ];
         }
         $careTypes = app(EmergencyBedService::class)->careTypes();
-        return view('emergency', compact('summary', 'page', 'careTypes'));
+        $details = $page === 'dashboard' ? $this->dashboardDetails($profile) : [];
+        return view('emergency', compact('summary', 'page', 'careTypes', 'details'));
+    }
+
+    private function dashboardDetails($profile)
+    {
+        $menu = RoleAccess::menu();
+        if ($profile['role'] === 'admin') {
+            return [
+                'hospitals' => isset($menu['Hospital']) ? \App\Models\Hospital::where('status','!=',9)->orderByDesc('id')->limit(5)->get() : collect(),
+                'ambulances' => isset($menu['Ambulance']) ? \App\Models\Ambulance::with(['category','hospital'])->where('status','!=',9)->orderByDesc('id')->limit(5)->get() : collect(),
+            ];
+        }
+        if ($profile['role'] === 'hospital') {
+            $id = $profile['hospital'];
+            return [
+                'hospital' => $id ? \App\Models\Hospital::find($id) : null,
+                'bedStatus' => $id ? \App\Models\CareBed::where('hospital_id',$id)->selectRaw('status, count(*) as total')->groupBy('status')->get() : collect(),
+                'departments' => $id ? \App\Models\HospitalDepartment::with('department')->where('hospital_id',$id)->where('status',1)->whereHas('department',fn($q)=>$q->where('status',1))->get() : collect(),
+            ];
+        }
+        return ['requests' => \App\Models\CareRequest::with(['hospital','type'])->where('owner_id',$profile['id'])->orderByDesc('created_at')->limit(5)->get()];
     }
 
     public function state(Request $request, EmergencyBedService $service)
@@ -43,7 +66,7 @@ class EmergencyController extends Controller
         }
         if ($p['role']==='hospital') {
             $state['hospitals']=array_values(array_filter($state['hospitals'],fn($h)=>$h['id']===$p['hospital']));
-            $state['requests']= $p['hospital'] ? array_values(array_filter($state['requests'],fn($r)=>$r['status']==='New' || $r['hospital_id']===$p['hospital'])) : [];
+            $state['requests']= $p['hospital'] ? array_values(array_filter($state['requests'],fn($r)=>($page==='approvals' && $r['status']==='New') || $r['hospital_id']===$p['hospital'])) : [];
         }
         if ($p['role']!=='admin') {
             $visibleIds=array_column($state['requests'],'id');
@@ -55,6 +78,7 @@ class EmergencyController extends Controller
             'requests' => count($state['requests']),
             'pending' => collect($state['requests'])->where('status', 'Pending')->count(),
             'reserved' => collect($state['requests'])->where('status', 'Reserved')->count(),
+            'occupied' => collect($state['requests'])->where('status', 'Occupied')->count(),
         ];
         foreach ($state['requests'] as &$record) {
             unset($record['client'], $record['owner_id']);
