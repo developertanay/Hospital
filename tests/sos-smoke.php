@@ -1,0 +1,63 @@
+<?php
+require __DIR__.'/../vendor/autoload.php';
+$app=require __DIR__.'/../bootstrap/app.php'; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+use App\Services\AmbulanceService;
+use App\Services\EmergencyBedService;
+$path=storage_path('app/sos-test-'.bin2hex(random_bytes(4)).'.json');
+$bedPath=$path.'.beds'; $now=time(); $count=0;
+$s=new AmbulanceService($path,function()use(&$now){return $now;}); $beds=new EmergencyBedService($bedPath,300);
+$patient=['id'=>101,'role'=>'patient']; $other=['id'=>102,'role'=>'patient']; $admin=['id'=>1,'role'=>'admin'];
+$d1=['id'=>201,'role'=>'driver','driver'=>'D1']; $d2=['id'=>202,'role'=>'driver','driver'=>'D2']; $d3=['id'=>203,'role'=>'driver','driver'=>'D3'];
+$details=['name'=>'SOS Test Patient','mobile'=>'+919000000001','age'=>30,'emergency_name'=>'Test Contact','emergency_phone'=>'+919000000002'];
+$location=['lat'=>28.6139,'lng'=>77.2090,'accuracy'=>5,'captured_at'=>$now,'mode'=>'demo'];
+function checkSos($ok,$message){global $count;if(!$ok)throw new RuntimeException($message);$count++;}
+function deniedSos($fn){try{$fn();}catch(RuntimeException $e){return true;}return false;}
+try {
+    checkSos(deniedSos(fn()=>$s->create($patient,$location)),'Profile required');
+    $s->profile($patient,$details); $s->profile($other,$details+[]);
+    checkSos(deniedSos(fn()=>$s->create($patient,array_merge($location,['captured_at'=>$now-121]))),'Fresh location required');
+    foreach ([[$d1,28.6139,77.2090],[$d2,28.6239,77.2190],[$d3,28.6439,77.2390]] as [$d,$lat,$lng]) $s->duty($d,['on_duty'=>true,'lat'=>$lat,'lng'=>$lng,'mode'=>'demo']);
+    $id=$s->create($patient,$location)['id']; $r=$s->state($patient)['calls'][0];
+    checkSos($r['offer_driver']==='D1','Nearest driver gets first offer');
+    checkSos($s->create($patient,$location)['id']===$id,'Duplicate tap returns existing SOS');
+    checkSos(count($s->state($other)['calls'])===0,'Patient privacy');
+    checkSos(count($s->state($d2)['calls'])===0,'Other drivers cannot see offer');
+    checkSos(!isset($s->state($d1)['calls'][0]['patient']['mobile']),'Contacts hidden before acceptance');
+    checkSos(deniedSos(fn()=>$s->action($d2,$id,'accept')),'Wrong driver cannot accept');
+    $s->action($d1,$id,'decline'); checkSos($s->state($patient)['calls'][0]['offer_driver']==='D2','Decline goes to next nearest');
+    $now+=31; checkSos($s->state($patient)['calls'][0]['offer_driver']==='D3','Timeout rotates to third driver');
+    checkSos(deniedSos(fn()=>$s->action($d2,$id,'accept')),'Expired offer cannot accept');
+    $s->action($d3,$id,'accept');
+    checkSos($s->state($d3)['calls'][0]['patient']['mobile']===$details['mobile'],'Assigned driver gets contact details');
+    checkSos(deniedSos(fn()=>$s->action($d1,$id,'accept')),'Single winner enforced');
+    $second=$s->create($other,array_merge($location,['captured_at'=>$now]))['id'];
+    checkSos($s->state($other)['calls'][0]['offer_driver']!=='D3','Busy driver excluded');
+    checkSos(deniedSos(fn()=>$s->action($other,$id,'cancel')),'Other patient cannot cancel');
+    checkSos(deniedSos(fn()=>$s->action($d3,$id,'pickup')),'Pickup requires arrival');
+    $s->action($d3,$id,'arrive'); $s->action($d3,$id,'pickup'); $s->action($d3,$id,'first_aid');
+    checkSos(deniedSos(fn()=>$s->action($patient,$id,'cancel')),'Cancellation blocked after pickup');
+    checkSos(deniedSos(fn()=>$s->action($d3,$id,'transport',['care'=>'ICU','hospital_id'=>'A'],$beds)),'Hospital A ICU rejected');
+    $linked=$s->state($patient)['calls'][0]['bed_request_id']; checkSos((bool)$linked,'Failed allocation preserves linked request for retry');
+    $s->action($d3,$id,'transport',['care'=>'ICU','hospital_id'=>'C'],$beds);
+    $bed=collect($beds->state()['requests'])->firstWhere('id',$linked);
+    checkSos($bed['status']==='Pending' && $bed['owner_id']===101,'Transport creates patient-owned bed request');
+    checkSos(!$bed['verified'] && $bed['priority']===1,'SOS cannot self-grant Critical priority');
+    checkSos(deniedSos(fn()=>$s->action($d3,$id,'handoff',[],$beds)),'Handoff requires hospital arrival');
+    $beds->verify($linked,'Critical','C'); $beds->action($linked,'accept','C');
+    checkSos(deniedSos(fn()=>$s->action($d3,$id,'handoff',[],$beds)),'Reserved is not arrived');
+    $beds->action($linked,'arrive','C'); $s->action($d3,$id,'handoff',[],$beds);
+    checkSos($s->state($patient)['calls'][0]['status']==='Completed','Hospital handoff completed');
+    $s->action($other,$second,'cancel');
+    foreach ([$d1,$d2,$d3] as $d) $s->duty($d,['on_duty'=>false]);
+    $empty=$s->create($other,array_merge($location,['captured_at'=>$now]))['id'];
+    checkSos($s->state($other)['calls'][0]['offer_driver']===null,'No driver means honest searching');
+    $now+=601; checkSos($s->state($other)['calls'][0]['status']==='Expired','Unconfirmed SOS expires');
+    $s->duty($d1,['on_duty'=>true,'lat'=>28.6139,'lng'=>77.2090,'mode'=>'gps']);
+    $far=$s->create($other,['lat'=>0,'lng'=>0,'accuracy'=>5,'captured_at'=>$now,'mode'=>'gps'])['id'];
+    checkSos($s->state($other)['calls'][0]['offer_driver']===null,'Outside radius driver excluded');
+    $s->action($other,$far,'cancel');
+    $gps=$s->create($other,array_merge($location,['mode'=>'gps','captured_at'=>$now]))['id'];
+    checkSos($s->state($other)['calls'][0]['offer_driver']==='D1','GPS drivers and patient match');
+    $now+=121; $s->heartbeat($d1); checkSos($s->state($other)['calls'][0]['offer_driver']===null,'Heartbeat cannot keep stale GPS eligible');
+    echo "PASS: $count SOS dispatch and hospital handoff checks\n";
+} finally { foreach ([$path,$path.'.lock',$path.'.tmp',$bedPath,$bedPath.'.lock',$bedPath.'.tmp'] as $f) if(file_exists($f))unlink($f); }

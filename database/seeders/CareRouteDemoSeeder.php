@@ -10,7 +10,7 @@ class CareRouteDemoSeeder extends Seeder
     {
         DB::transaction(function () {
             $now=now(); $roles=['admin'=>2];
-            foreach (['hospital'=>'Hospital Operator','patient'=>'Patient Requester'] as $key=>$name) {
+            foreach (['hospital'=>'Hospital Operator','patient'=>'Patient Requester','driver'=>'Ambulance Driver'] as $key=>$name) {
                 $id=DB::table('role_mast')->where('name',$name)->where('college_id',1)->value('id');
                 if (!$id) $id=DB::table('role_mast')->insertGetId(['name'=>$name,'college_id'=>1,'status'=>1,'sequence'=>20,'created_at'=>$now]);
                 $roles[$key]=$id;

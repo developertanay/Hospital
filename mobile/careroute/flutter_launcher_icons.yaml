@@ -1,0 +1,13 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/hospital-logo.png
+  remove_alpha_ios: true
+  background_color_ios: '#102C46'
+  adaptive_icon_background: '#102C46'
+  adaptive_icon_foreground: assets/hospital-logo.png
+  web:
+    generate: true
+    image_path: assets/hospital-logo.png
+    background_color: '#102C46'
+    theme_color: '#087F8C'

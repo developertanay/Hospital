@@ -1,6 +1,6 @@
 # CareRoute — Emergency Bed Management MVP
 
-Working hackathon prototype built on the existing Laravel 8 project. No new packages required. The new landing page is the emergency coordination dashboard; legacy hospital CRUD stays available at its existing routes.
+Working hackathon prototype built on the existing Laravel 8 project. The new landing page is the emergency coordination dashboard; legacy hospital CRUD stays available at its existing routes. The patient-first Flutter Android/iOS app lives in [mobile/careroute](mobile/careroute/README.md); see [mobile setup and full flow](mobile/careroute/LOCAL-SETUP.md). Mobile and web share the same backend and bed allocation logic.
 
 ## Run locally (XAMPP)
 

@@ -5,13 +5,16 @@
 - XAMPP: **Apache + MySQL running**. MySQL port `3306`, database `hospitals`.
 - Login: http://localhost/Hospital/public/login
 - Dashboard: http://localhost/Hospital/public/emergency
-- All four NEW demo accounts use password **`CareRoute@2026`**.
+- All newly seeded demo accounts use password **`CareRoute@2026`**.
 
 | Login email | Role | Workspace |
 | --- | --- | --- |
 | `admin@careroute.test` | Admin | All working hospital modules, masters, inventory, assignments, users, all emergency requests and reset |
 | `hospital.c@careroute.test` | Hospital Operator C | Triage new emergencies, accept/reject C requests, C beds and arrival |
 | `hospital.b@careroute.test` | Hospital Operator B | Triage new emergencies, accept/reject B requests, B beds and arrival |
+| `hospital.a@careroute.test` | Hospital Operator A | Triage and manage Hospital A requests and beds |
+| `hospital.d@careroute.test` | Hospital Operator D | Triage and manage Hospital D requests and beds |
+| `hospital.e@careroute.test` | Hospital Operator E | View E's Offline status and own beds; E cannot receive new requests while Offline |
 | `patient@careroute.test` | Patient / Requester | Create emergency, recommendations, request bed, own reservation status |
 
 Use **Sign out** before changing accounts. Tabs in the same browser profile share a login; use separate browser profiles/private sessions if you want multiple roles simultaneously. A patient's requests persist across logout/login because they belong to the account, not the browser session. Patient cannot access admin Masters, cannot self-verify Critical, cannot accept reservations and cannot use the old PIN to gain hospital privileges.

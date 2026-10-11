@@ -27,3 +27,16 @@ Route::post('checkOtpServer2', 'API\LoginController@checkOtpServer2');
 
 Route::post('updatePassword', 'API\LoginController@updatePassword');
 Route::post('updatePasswordServer2', 'API\LoginController@updatePasswordServer2');
+
+Route::prefix('mobile')->group(function () {
+    Route::get('health', [App\Http\Controllers\API\MobileController::class,'health']);
+    Route::post('login', [App\Http\Controllers\API\MobileController::class,'login'])->middleware('throttle:mobile-login');
+    Route::post('register', [App\Http\Controllers\API\MobileController::class,'register'])->middleware('throttle:mobile-register');
+    Route::middleware(['auth:sanctum',App\Http\Middleware\MobileToken::class])->group(function () {
+        Route::get('state', [App\Http\Controllers\EmergencyController::class,'state']);
+        Route::post('action', [App\Http\Controllers\EmergencyController::class,'mutate']);
+        Route::get('sos/state', [App\Http\Controllers\API\AmbulanceController::class,'state']);
+        Route::post('sos/action', [App\Http\Controllers\API\AmbulanceController::class,'action']);
+        Route::post('logout', [App\Http\Controllers\API\MobileController::class,'logout']);
+    });
+});

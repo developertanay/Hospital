@@ -4,6 +4,7 @@
 /public/student_id_docs
 /storage/*.key
 /vendor
+/.tools/
 /.publish-hospital*/
 /storage/app/emergency-demo.json*
 /storage/app/emergency-test-*.json*
@@ -21,3 +22,6 @@ yarn-error.log
 
 /public/
 /composer.lock
+/.tools/
+/storage/app/ambulance-demo.json*
+/storage/app/sos-test-*

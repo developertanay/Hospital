@@ -35,7 +35,8 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
-        if (isset(config('demo.accounts')[$request->email])) return $this->frameworkLogin($request);
+        $mobileUser=User::where('email',$request->email)->first();
+        if (\App\Support\DemoAccess::forUser($mobileUser)) return $this->frameworkLogin($request);
         // dd($request);
         // if($request->shop_group == 0 || empty($request->shop_group)){
         //     // $request->session()->forget('home');
@@ -185,7 +186,7 @@ class LoginController extends Controller
     protected function authenticated(Request $request, $user)
     {
         $request->session()->forget('emergency_operator');
-        if (isset(config('demo.accounts')[$user->email])) return redirect('/emergency');
+        if (\App\Support\DemoAccess::forUser($user)) return redirect('/emergency');
     }
 
     public function showLoginForm() { return view('demo.login'); }

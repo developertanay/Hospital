@@ -14,6 +14,7 @@ class EmergencyController extends Controller
     {
         $p=DemoAccess::profile();
         if (!$p) return response()->json(['message'=>'Sign in with a demo account.'],401);
+        if ($p['role']==='driver') return response()->json(['profile'=>$p,'requests'=>[],'hospitals'=>[],'events'=>[],'operator'=>false]);
         $state=$service->state();
         if ($p['role']==='patient') {
             $state['requests']=array_values(array_filter($state['requests'],fn($r)=>($r['owner_id'] ?? null)===$p['id']));
@@ -35,6 +36,7 @@ class EmergencyController extends Controller
         $action = $data['action'];
         $profile=DemoAccess::profile();
         if (!$profile) return response()->json(['message'=>'Sign in with a demo account.'],401);
+        if ($profile['role']==='driver') return response()->json(['message'=>'Use the ambulance dispatch workflow.'],403);
         if (in_array($action,['login','logout'])) return response()->json(['message'=>'Use the account login/logout controls. Operator PIN access has been replaced by role logins.'],403);
         try {
             if ($action === 'create') {

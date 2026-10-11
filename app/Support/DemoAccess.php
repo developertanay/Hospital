@@ -9,8 +9,16 @@ class DemoAccess
     public static function profile()
     {
         $user = Auth::user();
+        return self::forUser($user);
+    }
+
+    public static function forUser($user)
+    {
         if (!$user) return null;
         $account = config('demo.accounts')[$user->email] ?? null;
+        if (!$account && \App\Models\Role::where('id',$user->role_id)->where('name','Patient Requester')->exists()) {
+            $account=['name'=>$user->name,'role'=>'patient','hospital'=>null];
+        }
         return $account ? $account + ['id'=>$user->id,'email'=>$user->email,'role_id'=>$user->role_id,'college_id'=>$user->college_id] : null;
     }
 

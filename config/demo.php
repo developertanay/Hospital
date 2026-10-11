@@ -2,9 +2,15 @@
 return [
     'accounts' => [
         'admin@careroute.test' => ['name'=>'Demo Admin','role'=>'admin','hospital'=>null],
+        'hospital.a@careroute.test' => ['name'=>'Hospital A Operator','role'=>'hospital','hospital'=>'A'],
         'hospital.c@careroute.test' => ['name'=>'Hospital C Operator','role'=>'hospital','hospital'=>'C'],
         'hospital.b@careroute.test' => ['name'=>'Hospital B Operator','role'=>'hospital','hospital'=>'B'],
+        'hospital.d@careroute.test' => ['name'=>'Hospital D Operator','role'=>'hospital','hospital'=>'D'],
+        'hospital.e@careroute.test' => ['name'=>'Hospital E Operator','role'=>'hospital','hospital'=>'E'],
         'patient@careroute.test' => ['name'=>'Demo Patient','role'=>'patient','hospital'=>null],
+        'driver.1@careroute.test' => ['name'=>'Aman · Demo driver','role'=>'driver','driver'=>'D1','hospital'=>null],
+        'driver.2@careroute.test' => ['name'=>'Riya · Demo driver','role'=>'driver','driver'=>'D2','hospital'=>null],
+        'driver.3@careroute.test' => ['name'=>'Kabir · Demo driver','role'=>'driver','driver'=>'D3','hospital'=>null],
     ],
     'modules' => [
         'dashboard'=>['name'=>'Dashboard','group'=>'Care coordination','url'=>'emergency','roles'=>['admin','hospital','patient']],
