@@ -305,7 +305,7 @@ class EmergencyBedService
             if (!in_array($operation, ['create','update','delete'], true)) throw new RuntimeException('Invalid operation.');
             $h =& $s['hospitals'][$index];
             if ($type === 'inventory') {
-                if ($operation !== 'delete' && (!in_array($input['care'], ['General','ICU','Ventilator'], true) || empty(trim($input['name'])))) throw new RuntimeException('Invalid bed details.');
+                if ($operation !== 'delete' && (!in_array($input['care'], $this->careTypes(), true) || empty(trim($input['name'])))) throw new RuntimeException('Choose an active bed type and enter a bed name.');
                 $bedIndex = array_search($record, array_column($h['beds'], 'id'), true);
                 if ($operation === 'create') {
                     if (count(array_filter($h['beds'], fn($b)=>$b['care']===$input['care'])) >= 200) throw new RuntimeException('Maximum capacity for this care type reached.');
@@ -324,7 +324,7 @@ class EmergencyBedService
                 if ($operation === 'delete') unset($h['blood'][$record]);
                 else {
                     $group=$input['blood_type'];
-                    if (!in_array($group, ['A+','A-','B+','B-','AB+','AB-','O+','O-'], true) || (int)$input['units'] < 0 || (int)$input['units'] > 10000) throw new RuntimeException('Invalid blood stock.');
+                    if (!in_array($group, $this->bloodTypes(), true) || (int)$input['units'] < 0 || (int)$input['units'] > 10000) throw new RuntimeException('Invalid blood stock.');
                     if (($operation==='create' || $group!==$record) && array_key_exists($group,$h['blood'] ?? [])) throw new RuntimeException('This blood group already exists. Edit its existing record.');
                     if ($operation==='update' && $group!==$record) unset($h['blood'][$record]);
                     $h['blood'][$group]=(int)$input['units'];

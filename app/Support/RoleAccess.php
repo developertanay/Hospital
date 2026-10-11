@@ -16,9 +16,10 @@ class RoleAccess
         if (!$user || !$user->care_enabled) return null;
         if (!in_array($user->care_role, ['admin', 'hospital', 'patient', 'driver'])) return null;
         if ($user->care_role === 'driver') {
-            $driver = config('ambulance.drivers')[$user->email] ?? null;
+            $driver = $user->ambulanceDriver;
+            if (!$driver || !$driver->ambulance || (int)$driver->ambulance->status!==1) return null;
             return $driver ? ['id'=>$user->id,'name'=>$user->name,'email'=>$user->email,
-                'role'=>'driver','driver'=>$driver['driver'],'hospital'=>null,
+                'role'=>'driver','driver'=>$driver->id,'hospital'=>$driver->ambulance->hospital_id ? (string)$driver->ambulance->hospital_id : null,
                 'role_id'=>$user->role_id,'college_id'=>$user->college_id] : null;
         }
 

@@ -5,7 +5,7 @@ import 'session.dart';
 import 'sos.dart';
 
 const navy = Color(0xFF102C46);
-const teal = Color(0xFF087F8C);
+const teal = Color(0xFF008CFF);
 
 class CareRouteApp extends StatefulWidget {
   final Session session;
@@ -274,13 +274,18 @@ class _AuthScreenState extends State<AuthScreen> {
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.username],
                       autocorrect: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Email address',
-                        prefixIcon: Icon(Icons.mail_outline),
+                      decoration: InputDecoration(
+                        labelText: register
+                            ? 'Email address'
+                            : 'Email / User ID',
+                        prefixIcon: const Icon(Icons.mail_outline),
                       ),
-                      validator: (v) =>
-                          RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                              .hasMatch(v!.trim())
+                      validator: (v) => !register
+                          ? (v!.trim().isEmpty
+                                ? 'Enter your email or user ID'
+                                : null)
+                          : RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                .hasMatch(v!.trim())
                           ? null
                           : 'Enter a valid email',
                     ),
@@ -578,7 +583,7 @@ class _RequestFormState extends State<RequestForm> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'A hospital verifies severity before Critical/Urgent priority applies. Distances and availability are seeded demo data.',
+              'A hospital verifies severity before Critical/Urgent priority applies. Availability comes from saved hospital inventory.',
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
@@ -1233,7 +1238,7 @@ class Account extends StatelessWidget {
       ),
       const SizedBox(height: 20),
       const Text(
-        'CareRoute • Hospital accounts and inventory come from the database. Ambulance dispatch still uses demo drivers and foreground GPS.',
+        'CareRoute • Web and app accounts, hospital inventory and ambulance dispatch share the same database. Location updates run while the app is open.',
         textAlign: TextAlign.center,
         style: TextStyle(color: Colors.black54, fontSize: 12),
       ),

@@ -43,3 +43,6 @@ A new installation may explicitly run `php artisan db:seed --class=AmbulanceDemo
 ## Verification
 
 From project root: `php tests/sos-smoke.php`, `php tests/sos-api-smoke.php`, `php tests/sos-race.php`, `php tests/mobile-merge-smoke.php`. These use isolated stores/databases and do not replace actual demo trips. From `mobile/careroute`: `flutter analyze`, `flutter test`, `flutter build apk --debug --dart-define=API_BASE_URL=http://PC-WIFI-IP/Hospital/public/api/mobile`. iOS uses the same Flutter source; building/signing on iOS requires a Mac/Xcode and was not validated on this Windows PC.
+# Current database-backed test
+
+Use [the web/app database setup](../../docs/WEB-APP-DATABASE.md) and `MobileTestAccountsSeeder`. Current test logins are `patient.test@careroute.test`, `hospital.test@careroute.test`, `driver1.test@careroute.test` and `driver2.test@careroute.test`. They use SQL profiles, assigned vehicles and shared dispatch transactions. The old fixed-driver prototype instructions below are superseded; demo GPS remains an explicit optional testing mode.

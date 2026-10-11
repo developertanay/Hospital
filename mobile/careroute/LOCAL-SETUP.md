@@ -1,5 +1,7 @@
 # CareRoute mobile: local setup and complete demo
 
+**Current build:** see [the shared database setup](../../docs/WEB-APP-DATABASE.md). Ambulance dispatch now uses MySQL and SQL vehicle/account assignments. Provision `MobileTestAccountsSeeder` for verified test logins. The current PC Wi-Fi API address is `http://10.9.4.134/Hospital/public/api/mobile`; older IP addresses and fixed driver/A–E accounts below are historical prototype examples.
+
 **After merging the SQL workflow:** hospitals, care types, inventory, accounts and permissions now come from MySQL. Follow the root README's eight additive migrations. Existing passwords remain, but operators need a real hospital assignment through Accounts & Hospital Access. `CareRouteDemoSeeder` is now a no-op; it no longer provisions patient/admin/hospital accounts. Patient signup still works in the app. Existing demo driver accounts are retained by migration 000008; new installations can explicitly run `AmbulanceDemoSeeder` for dispatch-only demo drivers. The older A–E examples below describe the previous prototype and are superseded by the SQL workflow.
 
 For the new SOS + ambulance flow, saved emergency profile and driver accounts, read [SOS-DEMO.md](SOS-DEMO.md).

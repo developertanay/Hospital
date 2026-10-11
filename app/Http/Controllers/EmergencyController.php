@@ -12,6 +12,7 @@ class EmergencyController extends Controller
     {
         $profile = RoleAccess::profile();
         if (!$profile) return redirect(auth()->check() ? '/dashboard' : '/login');
+        if ($profile['role']==='driver') return redirect('/emergency/dispatch');
         abort_unless(RoleAccess::canPage($page), 403, 'This page is not assigned to your role.');
 
         $summary = null;

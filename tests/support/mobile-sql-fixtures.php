@@ -30,6 +30,12 @@ CREATE TABLE module_assigning (id INTEGER PRIMARY KEY AUTOINCREMENT,modules_id I
     $accounts=[[1,'admin@careroute.test','admin',1,null],[101,'patient@careroute.test','patient',2,null],[102,'other@careroute.test','patient',2,null],[201,'driver.1@careroute.test','driver',4,null],[202,'driver.2@careroute.test','driver',4,null],[203,'driver.3@careroute.test','driver',4,null],[301,'hospital.c@careroute.test','hospital',3,3]];
     $password=Illuminate\Support\Facades\Hash::make('FixturePassword@2026');
     foreach($accounts as [$id,$email,$role,$roleId,$hospital]) $db->table('users')->insert(['id'=>$id,'name'=>'Fixture '.$role,'email'=>$email,'password'=>$password,'care_role'=>$role,'care_enabled'=>1,'role_id'=>$roleId,'college_id'=>1,'hospital_id'=>$hospital]);
+    $db->unprepared('CREATE TABLE ambulance_details (id INTEGER PRIMARY KEY,vehicle_number TEXT,driver_name TEXT,driver_contact TEXT,hospital_id INTEGER,status INTEGER);
+        CREATE TABLE ambulance_drivers (id TEXT PRIMARY KEY,user_id INTEGER,ambulance_id INTEGER,latitude REAL,longitude REAL,on_duty INTEGER,seen_at INTEGER,location_at INTEGER,location_mode TEXT,follow_pickup INTEGER,created_at TEXT,updated_at TEXT);');
+    foreach ([1=>201,2=>202,3=>203] as $number=>$userId) {
+        $db->table('ambulance_details')->insert(['id'=>$number,'vehicle_number'=>'FIXTURE-'.$number,'driver_name'=>'Fixture driver '.$number,'driver_contact'=>'+91900000010'.$number,'status'=>1]);
+        $db->table('ambulance_drivers')->insert(['id'=>'D'.$number,'user_id'=>$userId,'ambulance_id'=>$number,'on_duty'=>0,'seen_at'=>0,'location_at'=>0,'location_mode'=>'gps','follow_pickup'=>0]);
+    }
     foreach(config('workflow.modules') as $m) {
         $id=$db->table('modules')->insertGetId(['name'=>$m['name'],'url'=>$m['url'],'college_id'=>1,'care_group'=>$m['group'],'status'=>1,'sequence'=>1]);
         foreach(['admin'=>1,'patient'=>2,'hospital'=>3] as $role=>$roleId) if(in_array($role,$m['roles'],true))$db->table('module_assigning')->insert(['modules_id'=>$id,'role_id'=>$roleId,'college_id'=>1,'status'=>1,'view_flag'=>1]);

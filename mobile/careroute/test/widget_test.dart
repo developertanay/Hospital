@@ -180,6 +180,11 @@ void main() {
   ) async {
     final session = FakeSession();
     String? created;
+    session.state = {
+      'profile': {'role': 'patient'},
+      'care_types': ['General', 'ICU', 'Ventilator'],
+      'capabilities': ['create', 'request'],
+    };
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

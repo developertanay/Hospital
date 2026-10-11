@@ -40,8 +40,7 @@ class Session extends ChangeNotifier {
   bool get signedIn => api.token != null;
   String get role => profile?['role']?.toString() ?? 'patient';
   List<String> get careTypes =>
-      (state?['care_types'] as List? ?? ['General', 'ICU', 'Ventilator'])
-          .cast<String>();
+      (state?['care_types'] as List? ?? []).cast<String>();
   bool can(String action) => state?.containsKey('capabilities') == true
       ? (state!['capabilities'] as List).contains(action)
       : role == 'patient'

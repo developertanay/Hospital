@@ -5,6 +5,7 @@
 /storage/*.key
 /vendor
 /.tools/
+/deliverables/*.apk
 /.publish-hospital*/
 /storage/app/emergency-demo.json*
 /storage/app/emergency-test-*.json*

@@ -11,6 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     public function hospital() { return $this->belongsTo(Hospital::class); }
+    public function ambulanceDriver() { return $this->hasOne(AmbulanceDriver::class); }
     use HasApiTokens, HasFactory, Notifiable;
 
     /**

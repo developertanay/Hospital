@@ -2,10 +2,10 @@
 namespace App\Services;
 use RuntimeException;
 
-/** Demo dispatch. Offer, acceptance and availability share one exclusive lock. */
+/** SQL dispatch. Explicit file paths are supported only for isolated legacy tests. */
 class AmbulanceService {
     private $path; private $clock;
-    public function __construct($path=null,$clock=null) { $this->path=$path ?: storage_path('app/ambulance-demo.json'); $this->clock=$clock ?: fn()=>time(); }
+    public function __construct($path=null,$clock=null) { $this->path=$path; $this->clock=$clock ?: fn()=>time(); }
     private function now() { return ($this->clock)(); }
     private function seed() {
         $drivers=[];
@@ -13,6 +13,10 @@ class AmbulanceService {
         return ['profiles'=>[],'calls'=>[],'drivers'=>$drivers];
     }
     private function transaction($fn) {
+        if ($this->path===null) return app(AmbulanceDispatchStore::class)->transaction(function (&$state) use ($fn) {
+            $this->dispatch($state);
+            return $fn($state);
+        });
         $f=fopen($this->path.'.lock','c'); if (!$f || !flock($f,LOCK_EX)) throw new RuntimeException('Dispatch store unavailable.');
         try {
             $raw=file_exists($this->path)?file_get_contents($this->path):''; $s=$raw?json_decode($raw,true):$this->seed();

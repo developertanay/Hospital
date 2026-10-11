@@ -30,7 +30,14 @@ class LoginController extends Controller
     |
     */
 
-    use AuthenticatesUsers { login as protected frameworkLogin; }
+    use AuthenticatesUsers { login as protected frameworkLogin; logout as protected frameworkLogout; }
+
+    public function logout(Request $request)
+    {
+        $user=Auth::user();
+        if ($user && $user->care_role==='driver' && $user->ambulanceDriver) $user->ambulanceDriver->update(['on_duty'=>false]);
+        return $this->frameworkLogout($request);
+    }
 
 
     public function login(Request $request)

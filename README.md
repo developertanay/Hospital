@@ -1,183 +1,160 @@
-# Hospital Management & Emergency Bed Coordination
+# Hospital Management & CareRoute
 
-A Laravel 8 MVC application with database-backed hospitals, accounts, bed inventory, blood stock, emergency requests, hospital approvals and reservation history.
+Laravel 8 web application and Flutter Android client for hospital masters, hospital inventory, patient emergency requests and ambulance dispatch. Both clients use the same MySQL database through Laravel. Mobile users authenticate through Sanctum; database credentials stay on the server.
 
-The Flutter Android/iOS application remains in [mobile/careroute](mobile/careroute/README.md). Mobile authentication and bed requests use the same SQL accounts, hospital assignments and module permissions as the website. SOS dispatch retains its separate demo drivers; it requests hospital care using real SQL hospital IDs and coordinates, not the retired A–E mappings. Admin clinical actions and destructive demo reset are not exposed in mobile.
+## Final features and responsibilities
 
-Hospital names, accounts, care types, blood types, stock, beds and requests come from the database. The application no longer generates A–E hospitals, fixed bed capacities, sample emergencies, published demo passwords or fixed distances. It does not read the old emergency JSON file.
-
-## Responsibilities
-
-| Role | Pages and actions |
+| Role | Responsibilities |
 | --- | --- |
-| Admin | Hospital master, bed/blood type masters, accounts, hospital assignments, modules and permissions |
-| Hospital operator | Own hospital's bed/blood inventory, settings, approvals, arrival, discharge and relevant history |
-| Patient | Own emergency request CRUD, recommendations, reservations and history |
+| Admin | Hospitals, departments, hospital-to-department mappings, bed and blood types, ambulance categories/details, accounts, roles and module assignments |
+| Hospital | Its own beds, blood stock, accepting status, request approvals, severity verification, reservations, patient arrival, discharge and history |
+| Patient | Own emergency profile, request CRUD, hospital recommendations, reservation status and ambulance requests |
+| Driver | Assigned ambulance, availability, foreground location, trip acceptance, pickup, transport and handoff |
 
-Admins do not approve emergency requests or manage patient reservations. Page access, API responses and writes enforce the user's role and hospital/patient ownership.
+Menus come from active `modules` and the admin's saved `module_assigning` records. Role and ownership checks also protect pages, API responses and writes. Admins do not approve clinical requests or manage patient reservations. Hospital users cannot change another hospital's inventory.
 
-## Database
+The dashboard shows role-specific details with cards linking to the relevant assigned pages. Full data lives on separate module pages. Login, favicon and CRUD views follow the application's blue theme and Hospital Master layout.
 
-Existing tables reused:
+Master data uses MVC models and resource controllers. Ambulance records include vehicle number, category, doctor/driver names and contact details, and optional vehicle/doctor/driver photos (JPG, PNG or WebP, up to 2 MB each). Vehicles may belong to a hospital or operate privately. Driver accounts are linked to an active ambulance through account management.
 
-| Table | Use |
+Hospital bed inventory uses individual beds with database-defined care types. Any active bed type can be added; inactive types are rejected. Only available beds can be edited or deleted. Hospital recommendations use stored coordinates, compatible care and availability. Allocation and dispatch use SQL transactions and coordination locks.
+
+## Database structure
+
+The installed database is `colleges` at `localhost:3306`. Existing hospital and account records are reused.
+
+| Tables | Purpose |
 | --- | --- |
-| `hospital_mast` | Real hospital records, contact/address, coordinates and accepting status |
-| `users` | Login accounts, role, enabled status and assigned hospital |
-| `role_mast` | Existing role records |
-| `modules`, `module_assigning` | Stored menus and role/module assignments |
-| `bedding_type` | Care type options for beds and requests |
-| `blood_type` | Blood group options |
-| `blodd_inventory_management` | Blood stock, now with nullable hospital ownership; original spelling retained |
+| `hospital_mast`, `users`, `role_mast` | Hospitals, shared login accounts, roles and hospital assignments |
+| `modules`, `module_assigning` | Admin-managed menus and permissions |
+| `bedding_type`, `blood_type`, `department_mast` | Care types, blood groups and departments |
+| `blodd_inventory_management` | Hospital blood stock; original table spelling retained |
+| `bed_inventory_management` | Preserved legacy aggregate inventory; individual allocations use `care_beds` |
+| `care_beds`, `care_requests`, `care_events`, `care_workflow_lock` | Bed inventory, patient requests, workflow history and allocation coordination |
+| `hospital_department_mapping`, `ambulance_category_mast`, `ambulance_details` | Hospital departments and ambulance masters |
+| `ambulance_drivers`, `patient_emergency_profiles`, `ambulance_trips`, `ambulance_dispatch_lock` | SQL driver assignments, patient profiles, dispatch and trip history |
+| `personal_access_tokens` | Scoped mobile authentication |
 
-New tables:
+Live dispatch uses SQL rather than static driver email mappings or JSON files. Migration 000009 imports eligible legacy JSON profiles/trips and leaves the original file as a backup. Existing unassigned driver accounts need an ambulance assignment. A file adapter remains only for explicitly configured isolated tests.
 
-| Table | Use |
-| --- | --- |
-| `care_beds` | Individual beds, care type, hospital and allocation state |
-| `care_requests` | Patient-owned requests, verification, allocation and expiry |
-| `care_events` | Persistent decision history |
-| `care_workflow_lock` | One internal coordination row for transaction locking |
+## Web setup on XAMPP
 
-The old `bed_inventory_management` table stores aggregate counts without hospital ownership or individual allocation state. Its existing records are preserved; protected emergency allocation uses `care_beds`. Old blood records without a hospital assignment are preserved as unassigned stock. Admin can associate them with a real hospital through Blood Inventory CRUD.
+1. Start Apache and MySQL. Use the existing populated database. For a new installation, import the project's legacy database schema/data first: the original Laravel migrations do not recreate every legacy table.
+2. Install PHP dependencies with `composer install`. Confirm `public/index.php` and `vendor/autoload.php` exist. Old `public.zip`/`vendor.zip` snapshots are recovery material and should not overwrite current application files blindly.
+3. Configure `.env` with your database credentials. Keep the existing `APP_KEY`; generate a key only for a new installation without one.
 
-Foreign keys link new workflow records to hospitals, users and care types. No mock records are imported from the old JSON store. Existing users/passwords and legacy records are preserved.
-
-## First-time workflow
-
-1. Start Apache and MySQL in XAMPP. Open [Login](http://localhost/Hospital/public/login) and use an existing administrator account.
-2. In **Hospital Master**, create/edit actual hospital records. Coordinates are optional.
-3. In **Bed Type Master** and **Blood Type Master**, maintain the types available in dropdowns.
-4. In **Accounts & Hospital Access**, add/edit accounts, select the role, and assign each hospital operator to its actual hospital.
-5. Hospital operators create bed and blood inventory through their own Add/Edit/Delete pages, then configure contact/address and Open/Offline status.
-6. Patients add an emergency request, select a recommended hospital, and request a bed.
-7. The assigned hospital verifies severity, accepts/rejects, records arrival and later discharges the patient.
-
-Previously configured prototype hospital accounts deliberately have no automatic A–E mapping. Until an admin assigns a real hospital, those accounts show an assignment notice and cannot access hospital records. New accounts require an explicitly entered password; there is no default shared password.
-
-## CRUD and MVC
-
-| Controller | Responsibility |
-| --- | --- |
-| `Hospitalcontroller` | Existing hospital master resource CRUD |
-| `AccountController` | Account resource CRUD and hospital assignments |
-| `HospitalInventoryController` | Hospital-owned bed and blood resource CRUD |
-| `HospitalSettingsController` | Read/edit/update the operator's assigned hospital |
-| `EmergencyRequestController` | Patient-owned request resource CRUD |
-| `EmergencyController` | Dashboard/state responses and clinical workflow actions |
-
-Models live in `app/Models/`, controllers in `app/Http/Controllers/`, and Blade forms/lists in `resources/views/`. `RoleAccess` reads accounts and menu assignments from SQL. `EmergencyBedService` contains matching and allocation rules, uses the models, and saves changed records inside database transactions. It has no file persistence or production data seeding.
-
-`config/workflow.php` contains initial module definitions for installation. Runtime menus use `modules` and `module_assigning`; labels, grouping and workspace roles can be edited with Module Master and Role Assignments.
-
-## Allocation rules
-
-- Self-reported severity starts at standard priority. Hospital verification enables Critical/Urgent priority.
-- Compatible, open hospitals with available beds are recommended.
-- Distance is calculated from saved hospital and submitted patient coordinates. Missing coordinates show **Distance not provided**; distance is a straight-line estimate, not a driving route.
-- Pending holds and confirmed reservations expire after the configured interval; occupied beds do not expire.
-- Verified Critical requests may reclaim lower-priority pending holds, but never confirmed reservations or occupied beds.
-- Only Available beds can be edited/deleted. Discharge makes an Occupied bed Available and marks its request Discharged.
-- Allocated/completed patient requests cannot be edited or cancelled. Request deletion cancels an unallocated request while preserving its history.
-- Account deletion disables access and preserves historical records.
-
-## Local setup
-
-PHP 8.2 has been verified locally. The backend uses Laravel 8, MySQL/MariaDB, Blade and Eloquent. Composer dependencies include DomPDF, Intervention Image, Guzzle, Laravel UI and Sanctum. Laravel Mix/Sass/React scaffold is present for asset builds.
-
-Restore dependencies and public assets when absent:
-
-```sh
-composer install
+```dotenv
+APP_URL=http://localhost
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=colleges
+DB_USERNAME=your_database_user
+DB_PASSWORD=your_database_password
 ```
 
-For a fresh checkout using the supplied snapshot archives:
+4. Back up the database, then apply the additive migrations below. Already applied migrations are skipped. Do not use `migrate:fresh` or run all legacy migrations against the populated database.
+
+Run from the project directory in PowerShell:
 
 ```powershell
-Expand-Archive -Path .\public.zip -DestinationPath .
-Expand-Archive -Path .\vendor.zip -DestinationPath .
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2019_12_14_000001_create_personal_access_tokens_table.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000001_create_dynamic_hospital_workflow.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000002_add_dynamic_account_management.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000003_update_dynamic_module_labels.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000004_add_workflow_relationships.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000005_create_hospital_masters.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000006_enable_hospital_master_crud.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000007_create_ambulance_details.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000008_preserve_mobile_driver_accounts.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000009_create_sql_ambulance_dispatch.php
+C:\xampp\php\php.exe artisan optimize:clear
+C:\xampp\php\php.exe artisan storage:link
 ```
 
-Confirm `public/index.php` and `vendor/autoload.php` exist without extra nesting. Avoid overwriting installed local assets. The existing Git configuration ignores `public/`, `vendor/` and `composer.lock`.
+5. Keep `storage` and `bootstrap/cache` writable. Hospital logos use the public storage link; ambulance photos are stored privately and served through authenticated routes.
+6. Open [web login](http://localhost/Hospital/public/login). Hospital bed creation is available at [Add bed](http://localhost/Hospital/public/emergency/inventory/create) after hospital login and module assignment.
 
-Keep the installed `.env`, or configure your actual database, MySQL port and application key for a new environment. Start MySQL and run `php artisan config:clear` after environment changes. Generate a key only for a new environment. Keep `storage/` and `bootstrap/cache/` writable.
+## Optional sample masters and test accounts
 
-The new workflow requires the existing legacy schema. The repository's original Laravel migrations do not recreate all legacy tables. For an installed legacy database, apply the additive workflow migrations in order:
-
-```sh
-php artisan migrate --path=database/migrations/2026_10_12_000001_create_dynamic_hospital_workflow.php
-php artisan migrate --path=database/migrations/2026_10_12_000002_add_dynamic_account_management.php
-php artisan migrate --path=database/migrations/2026_10_12_000003_update_dynamic_module_labels.php
-php artisan migrate --path=database/migrations/2026_10_12_000004_add_workflow_relationships.php
-php artisan migrate --path=database/migrations/2026_10_12_000005_create_hospital_masters.php
-php artisan migrate --path=database/migrations/2026_10_12_000006_enable_hospital_master_crud.php
-php artisan migrate --path=database/migrations/2026_10_12_000007_create_ambulance_details.php
-php artisan migrate --path=database/migrations/2026_10_12_000008_preserve_mobile_driver_accounts.php
-php artisan storage:link
-```
-
-These migrations have already been applied to the current local installation. Explicit paths avoid rerunning original base migrations against a legacy database that lacks their historical migration ledger. The compatibility demo seeder no longer creates users or hospital data.
-
-Use XAMPP Apache at `http://localhost/Hospital/public/login`, or run `php artisan serve` and use its printed URL.
-
-Optional asset build:
-
-```sh
-npm install
-npm run dev
-```
-
-## Verification
-
-```sh
-php tests/emergency-smoke.php
-php tests/database-smoke.php
-php tests/mobile-merge-smoke.php
-php tests/sos-smoke.php
-php tests/sos-api-smoke.php
-php tests/sos-race.php
-```
-
-The first test uses disposable SQLite memory fixtures. The second checks the installed transactional MySQL schema, role ownership, resource forms and persistence inside an outer transaction; test records are rolled back.
-
-For read-only HTTP permissions, provide test account credentials through `CARE_ADMIN_EMAIL/PASSWORD`, `CARE_PATIENT_EMAIL/PASSWORD` and `CARE_HOSPITAL_EMAIL/PASSWORD`, then run with PowerShell 7:
+Run these seeders explicitly when sample data is wanted. They preserve existing operational records and existing account passwords.
 
 ```powershell
-pwsh -File .\tests\demo-page-access.ps1 -BaseUrl http://localhost/Hospital/public
+C:\xampp\php\php.exe artisan db:seed --class=HospitalMasterSampleSeeder
+C:\xampp\php\php.exe artisan db:seed --class=MobileTestAccountsSeeder
 ```
 
-An unassigned hospital account is expected to have only dashboard access. `php artisan test` also exists, but its original PHPUnit examples are not comprehensive coverage.
+The master seeder adds standard departments (including ENT, Ophthalmology and Dentistry), ambulance categories, bed types, blood groups and labelled sample hospitals/mappings. Sample master hospitals have request acceptance disabled.
 
-## Notes
+The test account seeder adds a separate App Test Hospital with three beds, two ambulances (hospital-associated and private), and the following accounts. All five use **`TestCare@2026`** on web and Android.
 
-- Unrecorded inventory stays empty; the application does not invent availability.
-- The dashboard polls every five seconds; external hospital/GPS feeds and WebSockets are not implemented.
-- Legacy ERP routes remain and may depend on missing controllers or data. The legacy external-login/password endpoints require a separate security review before deployment.
-- The original project license is in [LICENSE](LICENSE) (Apache License 2.0).
-# Role menus
+| Login role | User ID / email |
+| --- | --- |
+| Patient | `patient.test@careroute.test` |
+| Hospital | `hospital.test@careroute.test` |
+| Driver 1 | `driver1.test@careroute.test` |
+| Driver 2 | `driver2.test@careroute.test` |
+| Admin | `admin.test@careroute.test` |
 
-The sign-in page uses the shared Hospital branding and blue theme, with responsive desktop/mobile layouts, a password visibility control and accessible login errors. The canonical view is `resources/views/auth/login.blade.php`; styling and behaviour are in `public/assets/css/login.css` and `public/assets/js/login.js`. Existing authentication and role redirects are preserved.
+Dedicated test roles have the needed clinical modules without changing existing role permissions. Save the patient's emergency profile before testing SOS. Test phone numbers are placeholders; replace them with your own test numbers before using call buttons. These credentials are for local testing only.
 
-Dashboard summary cards open their corresponding list/status pages. Bed inventory opens `BedInven`; hospital, department, ambulance, blood and account cards open their respective CRUD lists. Clinical cards link to the appropriate request, approval, reservation or bed-availability page only when it is assigned to the user's role. The sidebar remains the full navigation menu.
+## Android APK and connection
 
-Branding uses a shared favicon/theme-colour partial (`resources/views/branding/meta.blade.php`) and `config/branding.php`. The dashboard matches the app's blue theme and displays database summary counts and role-specific details. Navigation stays in the sidebar. Admins see up to five hospitals and ambulances, subject to their module assignments. Hospital users see their assigned hospital, mapped departments and bed status breakdown. Patients see only their own five latest requests. Detail tables and admin counts are snapshots at page load; clinical counters refresh automatically. Clinical status colours remain distinct for available, held, reserved and occupied beds. Verify isolation with `php tests/dashboard-details-smoke.php`.
+Install [Hospital-Test.apk](deliverables/Hospital-Test.apk). App name: **CareRoute**, version **1.3.0 (4)**. The debug-signed APK supports Android 7.0+ (API 24), ARM32, ARM64 and x86_64; size is approximately 154 MiB.
 
-CRUD pages follow the Hospital Master layout: a title with Add on the right, striped bordered tables with search and pagination, pencil/trash actions, and Cancel/Save form buttons. Shared view partials are in `resources/views/crud`; styling and table setup are in `public/assets/css/crud.css` and `public/assets/js/crud.js`. Table exports appear only when the DataTables Buttons extension is installed.
+Keep Apache/MySQL running and connect phone and PC to the same Wi-Fi. In the app's **Server connection**, set the Laravel API address:
 
-**Ambulance Details** provides CRUD for vehicle number, existing ambulance category, driver name/contact, optional doctor name/contact and owner/operator name/contact. Choose hospital association (hospital required) or private operation (hospital cleared). Upload optional vehicle, doctor and driver photos as JPG, PNG or WebP, up to 2 MB each. Edit can replace or remove photos. Photos are stored locally and served through the authenticated module route. Delete preserves the record using status 9.
+| Device | API address |
+| --- | --- |
+| Physical phone | `http://10.9.4.134/Hospital/public/api/mobile` |
+| Android emulator | `http://10.0.2.2/Hospital/public/api/mobile` |
 
-Install with `php artisan migrate --path=database/migrations/2026_10_12_000007_create_ambulance_details.php`. The migration adds the module to existing admin role assignments; future access is controlled in Role Assignments. Verify with `php tests/ambulance-crud-smoke.php`.
+`10.9.4.134` was the PC's Wi-Fi address when the APK was built; update it if the address changes. Check `/api/mobile/health` in the phone browser before logging in. `localhost` on a phone refers to the phone itself.
 
-Department Master, Ambulance Categories and Hospital Departments use resource controllers and ordinary database CRUD. Department records reuse the existing `Department` model and `department_mast` table name; hospital mappings reference the existing `hospital_mast`. Delete marks records as status 9, and mapped departments cannot be deleted until their mappings are removed.
+The latest bed-type saving fix is on the backend; the existing APK can use it without rebuilding. APK signature and checksum details are in [deliverables/README.md](deliverables/README.md).
 
-Install these masters with `php artisan migrate --path=database/migrations/2026_10_12_000005_create_hospital_masters.php`. Add sample records with `php artisan db:seed --class=HospitalMasterSampleSeeder`. The seeder preserves existing records and can be rerun without duplicates. It supplies 12 departments, five ambulance categories, six bed types, eight blood groups, two labelled sample hospitals and eight sample hospital/department mappings. Sample hospitals do not accept emergency requests. Assign the new modules through **Role Assignments** to display them in the menu. No accounts or role permissions are seeded.
+### Rebuild the test APK
 
-Run `php tests/hospital-masters-smoke.php` to check CRUD, validation, relationships and sample-data repeatability.
+The tested toolchain uses Flutter 3.47.7 / Dart 3.13.5, JDK 17 and Android SDK 36. The helper expects Flutter in `.tools/flutter`, Android SDK in `%LOCALAPPDATA%/Android/Sdk`, and the JDK path recorded in the script; adjust these for another machine.
 
-The follow-up migration `2026_10_12_000006_enable_hospital_master_crud.php` restores the previously deleted Department menu entry and assigns all three master CRUD modules to the existing admin roles. These are normal database assignments that the administrator can change later. Use **Add Department**, **Add Ambulance Category**, or **Add Hospital Department Mapping** on the respective list pages to enter data manually; each record also has Edit and Delete actions.
+```powershell
+.\mobile\careroute\build-test-apk.ps1 -ApiBaseUrl 'http://YOUR-PC-IP/Hospital/public/api/mobile'
+```
 
-The sidebar reads active modules from the logged-in user's role assignments in `module_assigning`. Only assignments with `status = 1` and `view_flag = 1` appear. Module names, icons and groups come from the database; there is no fixed list of modules for admin, hospital or patient menus.
+The output is copied to `deliverables/Hospital-Test.apk`. See [mobile setup](mobile/careroute/README.md) for client development. The local test build allows HTTP; release configuration requires HTTPS. iOS source is present but no iOS build was produced on Windows.
 
-Open **Role Assignments**, select a role, and save its selected modules. Every account with that role uses these selections. Clearing all selections removes its menu access. Editing an account does not automatically grant modules again. Hospital ownership and clinical action checks still apply.
+## Verification and test flow
 
-Verify assignment behaviour with `C:\xampp\php\php.exe tests/menu-permissions-smoke.php`; its database changes are rolled back.
+Verified during implementation: all five actual Apache web/API logins, 50 shared-database API checks, 24 installed-database workflow checks, 40 isolated bed workflow checks, six dynamic bed CRUD checks, Flutter analysis and 12 Flutter UI tests. Installed-database smoke checks roll back their workflow changes; the HTTP login check revokes its issued test tokens.
+
+Useful checks from the project root:
+
+```powershell
+C:\xampp\php\php.exe tests/dynamic-bed-crud-smoke.php
+C:\xampp\php\php.exe tests/database-smoke.php
+C:\xampp\php\php.exe tests/shared-database-api-smoke.php
+.\tests\shared-logins-http.ps1
+```
+
+For manual testing: add an active bed as the hospital, submit a patient request, verify/approve it as the hospital, then confirm reservation, arrival and discharge. For SOS, make a driver available, submit a patient emergency, accept and pick up as the driver, complete hospital acceptance/arrival and handoff. Check both clients for the same updated records.
+
+A physical phone installation has not been tested. GPS runs in the foreground and notifications are in-app; background push and real emergency-provider integration are not implemented. Distance/ETA is an estimate from coordinates, not a road-routing service. Older unrelated school routes remain; a full `artisan route:list` may fail on the missing legacy `FeedbackController`.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| `server.php` cannot find `public/index.php` | Restore the project's public entry point and confirm you are running the correct project directory. |
+| MySQL connection refused / error 2002 | Start XAMPP MySQL; match `.env` host, port and database credentials to the running server, then clear configuration cache. |
+| Bed cannot be added | Use a hospital account linked to an active hospital, grant the inventory module, select an active bed type and review validation messages. |
+| 403 or missing menu | Check the account's role, enabled status, hospital/ambulance assignment and admin-saved module permissions. |
+| 419 on form submission | Refresh the login/form session and check session storage permissions; forms require Laravel's CSRF token. |
+| Phone cannot reach API | Use the PC's current network IP, same Wi-Fi, running Apache and allowed inbound access. Verify the API health URL first. |
+| Driver cannot accept trips | Assign an active ambulance and enable driver availability/location; only eligible or assigned trips are exposed. |
+
+## Further documentation
+
+- [Shared web/app database and architecture](docs/WEB-APP-DATABASE.md)
+- [Test accounts and login flow](docs/TEST-ACCOUNTS.md)
+- [Flutter client](mobile/careroute/README.md)
+- [APK metadata and checksum](deliverables/README.md)
