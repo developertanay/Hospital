@@ -54,6 +54,7 @@ class EmergencyController extends Controller
     {
         $p=RoleAccess::profile();
         if (!$p) return response()->json(['message'=>'Sign in with a demo account.'],401);
+        if ($request->is('api/mobile/*')) return $this->mobileState($p,$service);
         $page = $request->query('page', 'dashboard');
         abort_unless(RoleAccess::canPage($page), 403, 'This data is not assigned to your role.');
         if ($p['role'] === 'admin') {
@@ -97,8 +98,41 @@ class EmergencyController extends Controller
         return response()->json($state + ['operator'=>RoleAccess::operator(),'profile'=>$p, 'csrf_token'=>csrf_token()])->header('Cache-Control', 'no-store, private');
     }
 
+    private function mobileState($p, EmergencyBedService $service)
+    {
+        $base=['profile'=>$p,'operator'=>RoleAccess::operator(),'care_types'=>$service->careTypes(),
+            'requests'=>[],'hospitals'=>[],'events'=>[],'capabilities'=>[]];
+        if (in_array($p['role'],['admin','driver'],true)) return response()->json($base)->header('Cache-Control','no-store, private');
+        $requestAccess=RoleAccess::canPage($p['role']==='hospital'?'approvals':'requests');
+        $reservationAccess=$p['role']==='patient' && RoleAccess::canPage('reservations');
+        $bedAccess=$p['role']==='hospital' && RoleAccess::canPage('beds');
+        $historyAccess=RoleAccess::canPage('history');
+        $s=$service->state();
+        $requests=array_values(array_filter($s['requests'],fn($r)=>$p['role']==='patient'
+            ? ($r['owner_id']??null)===$p['id']
+            : ($p['hospital'] && ($r['status']==='New' || $r['hospital_id']===$p['hospital']))));
+        if ($requestAccess || $reservationAccess) {
+            foreach ($requests as &$r) { unset($r['client'],$r['owner_id']); if (!$requestAccess) unset($r['matches']); }
+            unset($r); $base['requests']=$requests;
+        }
+        if ($bedAccess || ($p['role']==='patient' && $requestAccess)) {
+            $base['hospitals']=array_values(array_filter($s['hospitals'],fn($h)=>$p['role']==='patient' || $h['id']===$p['hospital']));
+            if ($p['role']==='patient') foreach ($base['hospitals'] as &$h) $h['beds']=array_map(fn($b)=>['care'=>$b['care'],'status'=>$b['status']],$h['beds']);
+            unset($h);
+        }
+        if ($historyAccess) {
+            $ids=array_column($requests,'id');
+            $base['events']=array_values(array_filter($s['events'],fn($e)=>in_array($e['request_id']??null,$ids,true)
+                || ($p['role']==='hospital' && $p['hospital'] && ($e['hospital_id']??null)===$p['hospital'])));
+        }
+        $base['capabilities']=array_values(array_filter([$requestAccess?($p['role']==='patient'?'create':'approve'):null,$requestAccess && $p['role']==='patient'?'request':null]));
+        $base['now']=$s['now']; $base['ttl']=$s['ttl'];
+        return response()->json($base)->header('Cache-Control','no-store, private');
+    }
+
     public function mutate(Request $request, EmergencyBedService $service)
     {
+        if (RoleAccess::profile() && RoleAccess::profile()['role']==='driver') return response()->json(['message'=>'Use ambulance dispatch actions.'],403);
         $data = $request->validate(['action'=>'required|in:create,verify,request,accept,reject,arrive']);
         $action = $data['action'];
         $profile=RoleAccess::profile();

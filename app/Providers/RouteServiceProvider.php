@@ -56,6 +56,8 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting()
     {
+        RateLimiter::for('mobile-login', fn (Request $request) => Limit::perMinute(15)->by($request->ip()));
+        RateLimiter::for('mobile-register', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
         });

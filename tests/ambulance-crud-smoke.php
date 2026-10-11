@@ -35,7 +35,8 @@ try {
     $controller = new AmbulanceController;
     $suffix = strtoupper(bin2hex(random_bytes(5)));
     $hospital = Hospital::where('status',1)->firstOrFail();
-    $category = AmbulanceCategory::where('status',1)->firstOrFail();
+    $category = AmbulanceCategory::where('status',1)->first();
+    if (!$category) $category=AmbulanceCategory::create(['name'=>'Transaction fixture category','status'=>1]);
     $data = ['vehicle_number'=>'TEST'.$suffix,'ambulance_category_id'=>$category->id,'operation_type'=>'hospital',
         'hospital_id'=>$hospital->id,'driver_name'=>'Test Driver','driver_contact'=>'+91 9876543210',
         'doctor_name'=>'Test Doctor','doctor_contact'=>'9876543211','operator_name'=>'Test Operator','operator_contact'=>'9876543212','status'=>1];

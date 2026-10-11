@@ -49,6 +49,7 @@ try {
     $department->destroy($row->id);
     $ambulance->destroy($category->id);
     assertMaster($row->fresh()->status===9 && $category->fresh()->status===9,'Soft deletion works');
+    (new Database\Seeders\HospitalMasterSampleSeeder)->run();
     $before = [Department::count(),AmbulanceCategory::count(),HospitalDepartment::count(),App\Models\Hospital::count()];
     (new Database\Seeders\HospitalMasterSampleSeeder)->run();
     assertMaster($before===[Department::count(),AmbulanceCategory::count(),HospitalDepartment::count(),App\Models\Hospital::count()],'Sample seeder does not duplicate existing data');

@@ -2,6 +2,8 @@
 
 A Laravel 8 MVC application with database-backed hospitals, accounts, bed inventory, blood stock, emergency requests, hospital approvals and reservation history.
 
+The Flutter Android/iOS application remains in [mobile/careroute](mobile/careroute/README.md). Mobile authentication and bed requests use the same SQL accounts, hospital assignments and module permissions as the website. SOS dispatch retains its separate demo drivers; it requests hospital care using real SQL hospital IDs and coordinates, not the retired A–E mappings. Admin clinical actions and destructive demo reset are not exposed in mobile.
+
 Hospital names, accounts, care types, blood types, stock, beds and requests come from the database. The application no longer generates A–E hospitals, fixed bed capacities, sample emergencies, published demo passwords or fixed distances. It does not read the old emergency JSON file.
 
 ## Responsibilities
@@ -107,6 +109,10 @@ php artisan migrate --path=database/migrations/2026_10_12_000001_create_dynamic_
 php artisan migrate --path=database/migrations/2026_10_12_000002_add_dynamic_account_management.php
 php artisan migrate --path=database/migrations/2026_10_12_000003_update_dynamic_module_labels.php
 php artisan migrate --path=database/migrations/2026_10_12_000004_add_workflow_relationships.php
+php artisan migrate --path=database/migrations/2026_10_12_000005_create_hospital_masters.php
+php artisan migrate --path=database/migrations/2026_10_12_000006_enable_hospital_master_crud.php
+php artisan migrate --path=database/migrations/2026_10_12_000007_create_ambulance_details.php
+php artisan migrate --path=database/migrations/2026_10_12_000008_preserve_mobile_driver_accounts.php
 php artisan storage:link
 ```
 
@@ -126,6 +132,10 @@ npm run dev
 ```sh
 php tests/emergency-smoke.php
 php tests/database-smoke.php
+php tests/mobile-merge-smoke.php
+php tests/sos-smoke.php
+php tests/sos-api-smoke.php
+php tests/sos-race.php
 ```
 
 The first test uses disposable SQLite memory fixtures. The second checks the installed transactional MySQL schema, role ownership, resource forms and persistence inside an outer transaction; test records are rolled back.

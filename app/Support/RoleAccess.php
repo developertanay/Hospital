@@ -8,9 +8,19 @@ class RoleAccess
 {
     public static function profile()
     {
-        $user = Auth::user();
+        return self::forUser(Auth::user());
+    }
+
+    public static function forUser($user)
+    {
         if (!$user || !$user->care_enabled) return null;
-        if (!in_array($user->care_role, ['admin', 'hospital', 'patient'])) return null;
+        if (!in_array($user->care_role, ['admin', 'hospital', 'patient', 'driver'])) return null;
+        if ($user->care_role === 'driver') {
+            $driver = config('ambulance.drivers')[$user->email] ?? null;
+            return $driver ? ['id'=>$user->id,'name'=>$user->name,'email'=>$user->email,
+                'role'=>'driver','driver'=>$driver['driver'],'hospital'=>null,
+                'role_id'=>$user->role_id,'college_id'=>$user->college_id] : null;
+        }
 
         $hospital = $user->hospital;
         $hospitalId = $hospital && (int) $hospital->status === 1 ? (string) $hospital->id : null;
