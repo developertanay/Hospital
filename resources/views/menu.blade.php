@@ -1,4 +1,4 @@
-@if(\App\Support\DemoAccess::profile())
+@if(\App\Support\RoleAccess::profile())
     @include('demo.menu')
 @else
 <?php 

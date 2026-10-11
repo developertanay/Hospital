@@ -62,6 +62,7 @@ class ModuleMasterController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate(['care_group'=>'nullable|string|max:50','care_roles'=>'nullable|array','care_roles.*'=>'in:admin,hospital,patient']);
         // dd($request);
         $college_id=Auth::user()->college_id;
         $parent_id=!empty($request->parent_id)?$request->parent_id:NULL;
@@ -78,6 +79,8 @@ class ModuleMasterController extends Controller
 
         $myArr = [
             'college_id'=>$college_id,
+            'care_group'=>$request->care_group,
+            'care_roles'=>json_encode($request->input('care_roles',[])),
             'parent_id'=>$parent_id,
             'name'=>$module_name,
             'url'=>$url,
@@ -142,6 +145,7 @@ class ModuleMasterController extends Controller
      */
     public function update($id,Request $request)
     { 
+        $request->validate(['care_group'=>'nullable|string|max:50','care_roles'=>'nullable|array','care_roles.*'=>'in:admin,hospital,patient']);
         // dd($request);
         $decrypted_id = Crypt::decryptString($id);
         $college_id = Auth::user()->college_id;
@@ -156,6 +160,8 @@ class ModuleMasterController extends Controller
 
         $myArr = [
             'college_id' =>$college_id,
+            'care_group'=>$request->care_group,
+            'care_roles'=>json_encode($request->input('care_roles',[])),
             'parent_id'=>$parent_id,
             'name'=>$module_name,
             'url'=>$url,

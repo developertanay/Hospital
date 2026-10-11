@@ -49,6 +49,7 @@ class BedtypeController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate(['bed'=>'required|string|max:30|unique:bedding_type,name','status'=>'required|in:0,1,2']);
         // dd($request);
 
         $name=!empty($request->bed)?$request->bed:NULL;
@@ -132,6 +133,7 @@ class BedtypeController extends Controller
         // dd($request);
         $decrypted_id = Crypt::decryptString($id);
         $name = !empty($request->bed)?$request->bed:NULL;
+        $request->validate(['bed'=>['required','string','max:30',\Illuminate\Validation\Rule::unique('bedding_type','name')->ignore($decrypted_id)],'status'=>'required|in:0,1,2']);
         $status = !empty($request->status)?$request->status:1;
         $sequence = !empty($request->sequence)?$request->sequence:1;
         $updated_at = date('Y-m-d H:i:s');

@@ -1,11 +1,5 @@
 <?php
 return [
-    'accounts' => [
-        'admin@careroute.test' => ['name'=>'Demo Admin','role'=>'admin','hospital'=>null],
-        'hospital.c@careroute.test' => ['name'=>'Hospital C Operator','role'=>'hospital','hospital'=>'C'],
-        'hospital.b@careroute.test' => ['name'=>'Hospital B Operator','role'=>'hospital','hospital'=>'B'],
-        'patient@careroute.test' => ['name'=>'Demo Patient','role'=>'patient','hospital'=>null],
-    ],
     'modules' => [
         'dashboard'=>['name'=>'Dashboard','group'=>'Care coordination','url'=>'emergency','roles'=>['admin','hospital','patient']],
         'request'=>['name'=>'Emergency Requests','group'=>'Care coordination','url'=>'emergency/requests','roles'=>['patient']],
@@ -21,8 +15,8 @@ return [
         'BloodType'=>['name'=>'Blood Type Master','group'=>'Masters','url'=>'BloodType','roles'=>['admin']],
         'BedInven'=>['name'=>'Bed Inventory','group'=>'Inventory','url'=>'BedInven','roles'=>['admin']],
         'BloodInven'=>['name'=>'Blood Inventory','group'=>'Inventory','url'=>'BloodInven','roles'=>['admin']],
-        'modules'=>['name'=>'Modules & Role Assignments','group'=>'Administration','url'=>'demo/modules','roles'=>['admin']],
-        'users'=>['name'=>'Demo Users & Login Guide','group'=>'Administration','url'=>'demo/users','roles'=>['admin']],
+        'modules'=>['name'=>'Modules & Role Access','group'=>'Administration','url'=>'demo/modules','roles'=>['admin']],
+        'users'=>['name'=>'Accounts & Hospital Access','group'=>'Administration','url'=>'Accounts','roles'=>['admin']],
         'ModuleMaster'=>['name'=>'Module Catalogue','group'=>'Administration','url'=>'ModuleMaster','roles'=>['admin']],
         'ModuleAssigning'=>['name'=>'Module Assigning','group'=>'Administration','url'=>'ModuleAssigning','roles'=>['admin']],
         'NewUser'=>['name'=>'User Management','group'=>'Administration','url'=>'NewUser','roles'=>['admin']],

@@ -1,4 +1,4 @@
-@php($demoGroups = collect(\App\Support\DemoAccess::menu())->groupBy('group'))
+@php($demoGroups = collect(\App\Support\RoleAccess::menu())->groupBy('group'))
 @foreach($demoGroups as $group => $items)
 <li class="menu-label">{{ $group }}</li>
 @foreach($items as $item)

@@ -70,7 +70,8 @@ Module
 								<button type="button" onclick="window.location='{{url($current_menu)}}'"  class="btn btn-light px-4">Cancel</button>
 								<button type="submit" style="float: right;" class="btn btn-primary px-4">Submit</button>
 							</div>
-					 	</form>
+    @include('ModuleMaster.access-fields')
+</form>
 					</div>
 				</div>
 			</div>

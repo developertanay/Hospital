@@ -1,5 +1,2 @@
 <?php
-return [
-    'expiry_seconds' => 300,
-    'store' => storage_path('app/emergency-demo.json'),
-];
+return ['expiry_seconds'=>env('RESERVATION_EXPIRY_SECONDS',300)];

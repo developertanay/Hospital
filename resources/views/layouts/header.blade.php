@@ -101,14 +101,20 @@
 				$user_profile_image = $user_profile->photo;
 			}
 			else{
-				$user_profile_image = 'na';	
+                $user_profile_image = config('branding.logo');
 			}
 
 			$college_id = $auth_data->college_id;
 			$company_id = !empty($auth_data->company_id)?$auth_data->company_id:NULL;
 			$register_type = !empty($auth_data->register_type)?$auth_data->register_type:NULL;
 
-			if(!empty($college_id)) {
+            $careProfile = \App\Support\RoleAccess::profile();
+            if ($careProfile) {
+                $college_data = $auth_data->hospital;
+                $logo = $college_data->logo ?? config('branding.logo');
+                $short_name = $college_data->short_name ?? config('app.name', 'Hospital');
+            }
+            elseif(!empty($college_id)) {
 				$college_data = DB::table('hospital_mast')->where('id', $college_id)->first();
 				$logo = !empty($college_data->logo)?$college_data->logo:'';
 				$short_name = !empty($college_data->short_name)?$college_data->short_name:'';

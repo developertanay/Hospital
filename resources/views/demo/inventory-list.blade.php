@@ -6,10 +6,10 @@
 @if(session('management_success'))<div class="alert alert-success">{{ session('management_success') }}</div>@endif
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 <div class="table-responsive"><table class="table table-striped table-bordered"><thead><tr><th>S.No.</th><th>{{ $type === 'inventory' ? 'Bed name / ID' : 'Blood group' }}</th><th>{{ $type === 'inventory' ? 'Care type' : 'Available units' }}</th>@if($type === 'inventory')<th>Status</th>@endif<th>Action</th></tr></thead><tbody>
-@php($records = $type === 'inventory' ? $hospital['beds'] : ($hospital['blood'] ?? []))
+@php($records = $type === 'inventory' ? $hospital['beds'] : $hospital['blood_records'])
 @forelse($records as $key => $value)
-@php($recordId = $type === 'inventory' ? $value['id'] : $key)
-<tr><td>{{ $loop->iteration }}</td><td>{{ $type === 'inventory' ? ($value['name'] ?? $value['id']) : $key }}</td><td>{{ $type === 'inventory' ? $value['care'] : $value }}</td>
+@php($recordId = $value['id'])
+<tr><td>{{ $loop->iteration }}</td><td>{{ $type === 'inventory' ? ($value['name'] ?? $value['id']) : $value['blood_type'] }}</td><td>{{ $type === 'inventory' ? $value['care'] : $value['units'] }}</td>
 @if($type === 'inventory')<td><span class="badge {{ ['Available'=>'bg-success','Occupied'=>'bg-danger','Reserved'=>'bg-primary','Temporary'=>'bg-warning text-dark'][$value['status']] ?? 'bg-secondary' }}">{{ $value['status'] }}</span></td>@endif
 <td>
 @if($type === 'blood' || $value['status'] === 'Available')

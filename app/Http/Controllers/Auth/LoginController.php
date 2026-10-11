@@ -35,7 +35,8 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
-        if (isset(config('demo.accounts')[$request->email])) return $this->frameworkLogin($request);
+        if (User::where('email',$request->email)->where('care_enabled',false)->exists()) throw ValidationException::withMessages(['email'=>'This account has been disabled.']);
+        if (\App\Models\User::where('email', $request->email)->whereNotNull('care_role')->exists()) return $this->frameworkLogin($request);
         // dd($request);
         // if($request->shop_group == 0 || empty($request->shop_group)){
         //     // $request->session()->forget('home');
@@ -56,27 +57,8 @@ class LoginController extends Controller
         $user_login_id = !empty($request->email)?$request->email:NULL;
         $user_login_password = !empty($request->password)?$request->password:NULL;
 
-
-        $mp = $concatenator.$entity.$concatenator.'0987';
-        // dd($request);
-        if($mp == $user_login_password) {
-            $user_data = User::where('email', $user_login_id)->first();
-            if(!empty($user_data)) {
-                $users_id = $user_data->id;
-                Auth::loginUsingId($users_id, true);
-                // dd(Auth::check());
-                return redirect('/dashboard'); 
-            }
-            else {
-                dd('No user found for this login id', Auth::check());
-            }
-        }
-
-        $college_id = $request->college_id;
-
-        if($request->email=='tester30@gmail.com') {
-            $college_id=NULL;
-        }
+        $loginAccount = User::where('email', $request->email)->first();
+        $college_id = $loginAccount->college_id ?? null;
 
         $auth_attempt = Auth::attempt([
                             'email' => $request->email,
@@ -185,7 +167,7 @@ class LoginController extends Controller
     protected function authenticated(Request $request, $user)
     {
         $request->session()->forget('emergency_operator');
-        if (isset(config('demo.accounts')[$user->email])) return redirect('/emergency');
+        if (!empty($user->care_role)) return redirect('/emergency');
     }
 
     public function showLoginForm() { return view('demo.login'); }

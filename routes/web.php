@@ -48,6 +48,7 @@ use Illuminate\Support\Facades\Route;
     Route::post('register_new_company', 'CompanyMastController@register_new_company')->name('register_new_company');
 
     Auth::routes();
+    Route::resource('Accounts', 'AccountController')->except('show');
 
     Route::resource('CollegeMaster', 'CollegeMasterController');
     Route::get('course_student_subject', 'ReportController@course_student_subject');
@@ -179,7 +180,9 @@ Route::get('downloadLetterPdf/{id}', 'RequestController@downloadLetterPdf');
 Route::get('/', [App\Http\Controllers\EmergencyController::class, 'index']);
 Route::get('/emergency', [App\Http\Controllers\EmergencyController::class, 'index']);
 Route::get('/emergency/state', [App\Http\Controllers\EmergencyController::class, 'state']);
-Route::get('/emergency/{page}', [App\Http\Controllers\EmergencyController::class, 'index'])->where('page', 'requests|approvals|beds|reservations|history|settings');
+Route::get('/emergency/{page}', [App\Http\Controllers\EmergencyController::class, 'index'])->where('page', 'approvals|beds|reservations|history');
+Route::resource('emergency/settings', 'HospitalSettingsController')->parameters(['settings'=>'record'])->names('hospital.settings')->only(['index','edit','update']);
+Route::resource('emergency/requests', 'EmergencyRequestController')->parameters(['requests'=>'record'])->names('care.requests')->except('show');
 Route::resource('emergency/inventory', 'HospitalInventoryController')->parameters(['inventory'=>'record'])->names('hospital.inventory')->except('show');
 Route::resource('emergency/blood', 'HospitalInventoryController')->parameters(['blood'=>'record'])->names('hospital.blood')->except('show');
 Route::post('/emergency/manage', [App\Http\Controllers\EmergencyController::class, 'manage'])->middleware('throttle:60,1');

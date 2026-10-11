@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    public function hospital() { return $this->belongsTo(Hospital::class); }
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
@@ -44,5 +45,6 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'care_enabled' => 'boolean',
     ];
 }
