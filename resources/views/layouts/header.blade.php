@@ -28,6 +28,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&amp;display=swap" rel="stylesheet">
 	<link href="{{asset('assets/css/app.css')}}" rel="stylesheet">
 	<link href="{{asset('assets/css/icons.css')}}" rel="stylesheet">
+	<link href="{{asset('assets/css/crud.css')}}" rel="stylesheet">
 	<!-- Theme Style CSS -->
 	<link rel="stylesheet" href="{{asset('assets/css/dark-theme.css')}}" />
 	<link rel="stylesheet" href="{{asset('assets/css/semi-dark.css')}}" />
@@ -556,30 +557,7 @@
 			$('#example').DataTable();
 		  } );
 	</script>
-	<script>
-		$(document).ready(function() {
-			var table = $('#example2').DataTable( {
-				lengthChange: false,
-				buttons: [ 'copy', 'excel', 'pdf', 'print']
-			} );
-		 
-			table.buttons().container()
-				.appendTo( '#example2_wrapper .col-md-6:eq(0)' );
-		} );
-	</script>
-	<script>
-		$(document).ready(function() {
-			var table = $('#example3').DataTable( {
-				bPaginate: false,
-				lengthChange: false,
-				ordering: false,
-				buttons: [ 'copy', 'excel', 'pdf', 'print']
-			} );
-		 
-			table.buttons().container()
-				.appendTo( '#example3_wrapper .col-md-6:eq(0)' );
-		} );
-	</script>
+	<script src="{{asset('assets/js/crud.js')}}"></script>
 	<!--app JS-->
 	<script src="{{asset('assets/js/app.js')}}"></script>
 	<script type="text/javascript">

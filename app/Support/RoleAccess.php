@@ -29,38 +29,27 @@ class RoleAccess
 
     public static function menu()
     {
-        $profile = self::profile();
-        if (!$profile) return [];
+        $user = Auth::user();
+        if (!$user || !$user->care_enabled) return [];
 
         $modules = Modules::join('module_assigning', 'modules.id', '=', 'module_assigning.modules_id')
-            ->where('module_assigning.role_id', $profile['role_id'])
-            ->where('module_assigning.college_id', $profile['college_id'])
+            ->where('module_assigning.role_id', $user->role_id)
+            ->where('module_assigning.college_id', $user->college_id)
             ->where('module_assigning.status', 1)
+            ->where('module_assigning.view_flag', 1)
+            ->where('modules.college_id', $user->college_id)
             ->where('modules.status', 1)
-            ->whereNotNull('modules.care_roles')
             ->select('modules.*')
             ->orderBy('modules.sequence')
             ->get();
 
-        // Clinical duties remain separate from administration, even if a
-        // legacy assignment accidentally grants the wrong module to a role.
-        $clinicalPages = [
-            'emergency/requests' => ['patient'],
-            'emergency/reservations' => ['patient'],
-            'emergency/approvals' => ['hospital'],
-            'emergency/beds' => ['hospital'],
-            'emergency/inventory' => ['hospital'],
-            'emergency/blood' => ['hospital'],
-            'emergency/settings' => ['hospital'],
-            'emergency/history' => ['hospital', 'patient'],
-        ];
-
         $menu = [];
         foreach ($modules as $module) {
-            if ($profile['role'] === 'hospital' && !$profile['hospital'] && $module->url !== 'emergency') continue;
-            if (isset($clinicalPages[$module->url]) && !in_array($profile['role'], $clinicalPages[$module->url])) continue;
-            if (!in_array($profile['role'], json_decode($module->care_roles, true) ?? [])) continue;
-            $menu[$module->url] = ['name' => $module->name, 'url' => $module->url, 'group' => $module->care_group ?? 'Modules'];
+            if (!$module->url || $module->url === '#') continue;
+            $parent = $modules->firstWhere('id', $module->parent_id);
+            $menu[$module->url] = ['name' => $module->name, 'url' => $module->url,
+                'icon' => $module->icon ?: 'bx bx-grid-alt',
+                'group' => $parent ? $parent->name : ($module->care_group ?: 'Modules')];
         }
         return $menu;
     }

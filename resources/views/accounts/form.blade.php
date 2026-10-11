@@ -1,7 +1,7 @@
 @extends('layouts.header')
 @section('title', $account->exists ? 'Edit Account' : 'Add Account')
 @section('content')
-<div class="page-wrapper"><div class="page-content"><div class="card"><div class="card-body p-4"><h5>{{ $account->exists ? 'Edit Account' : 'Add Account' }}</h5>
+<div class="page-wrapper crud-page"><div class="page-content"><div class="card"><div class="card-body p-4"><h5 class="mb-4">{{ $account->exists ? 'Edit Account' : 'Add Account' }}</h5>
 @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <form class="row g-3" method="POST" action="{{ $account->exists ? route('Accounts.update',$account->id) : route('Accounts.store') }}">@csrf @if($account->exists) @method('PUT') @endif
 <div class="col-md-6"><label class="form-label" for="account-name">Name</label><input id="account-name" class="form-control" name="name" required value="{{ old('name',$account->name) }}"></div>
@@ -11,6 +11,6 @@
 <div class="col-md-6"><label class="form-label" for="account-password">Password {{ $account->exists ? '(leave blank to keep current)' : '' }}</label><input id="account-password" class="form-control" type="password" name="password" minlength="8" @if(!$account->exists) required @endif autocomplete="new-password"></div>
 <div class="col-md-6"><label class="form-label" for="account-confirm">Confirm password</label><input id="account-confirm" class="form-control" type="password" name="password_confirmation" autocomplete="new-password"></div>
 <div class="col-md-6"><label class="form-label" for="account-enabled">Status</label><select id="account-enabled" class="form-select" name="care_enabled"><option value="1" @if(old('care_enabled',$account->care_enabled ?? true)) selected @endif>Active</option><option value="0" @if(!old('care_enabled',$account->care_enabled ?? true)) selected @endif>Disabled</option></select></div>
-<div class="col-12"><button class="btn btn-primary">{{ $account->exists ? 'Update' : 'Save' }}</button> <a class="btn btn-outline-secondary" href="{{ route('Accounts.index') }}">Cancel</a></div>
+@include('crud.form-actions',['cancelUrl'=>route('Accounts.index'),'saveLabel'=>$account->exists ? 'Update' : 'Save'])
 </form></div></div></div></div>
 @endsection

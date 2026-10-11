@@ -32,6 +32,11 @@ use Illuminate\Support\Facades\Route;
     Route::resource('BloodInven', 'BloodInvencontroller');
     Route::resource('BedInven', 'BedInvencontroller');
     Route::resource('Hospital', 'Hospitalcontroller');
+    Route::resource('Department', 'DepartmentController')->except('show');
+    Route::resource('AmbulanceCategory', 'AmbulanceCategoryController')->except('show');
+    Route::get('Ambulance/{id}/photo/{kind}', 'AmbulanceController@photo')->name('Ambulance.photo');
+    Route::resource('Ambulance', 'AmbulanceController')->except('show');
+    Route::resource('HospitalDepartment', 'HospitalDepartmentController')->except('show');
 
 
     Route::get('api_login', 'AppLoginController@login');

@@ -144,3 +144,24 @@ An unassigned hospital account is expected to have only dashboard access. `php a
 - The dashboard polls every five seconds; external hospital/GPS feeds and WebSockets are not implemented.
 - Legacy ERP routes remain and may depend on missing controllers or data. The legacy external-login/password endpoints require a separate security review before deployment.
 - The original project license is in [LICENSE](LICENSE) (Apache License 2.0).
+# Role menus
+
+CRUD pages follow the Hospital Master layout: a title with Add on the right, striped bordered tables with search and pagination, pencil/trash actions, and Cancel/Save form buttons. Shared view partials are in `resources/views/crud`; styling and table setup are in `public/assets/css/crud.css` and `public/assets/js/crud.js`. Table exports appear only when the DataTables Buttons extension is installed.
+
+**Ambulance Details** provides CRUD for vehicle number, existing ambulance category, driver name/contact, optional doctor name/contact and owner/operator name/contact. Choose hospital association (hospital required) or private operation (hospital cleared). Upload optional vehicle, doctor and driver photos as JPG, PNG or WebP, up to 2 MB each. Edit can replace or remove photos. Photos are stored locally and served through the authenticated module route. Delete preserves the record using status 9.
+
+Install with `php artisan migrate --path=database/migrations/2026_10_12_000007_create_ambulance_details.php`. The migration adds the module to existing admin role assignments; future access is controlled in Role Assignments. Verify with `php tests/ambulance-crud-smoke.php`.
+
+Department Master, Ambulance Categories and Hospital Departments use resource controllers and ordinary database CRUD. Department records reuse the existing `Department` model and `department_mast` table name; hospital mappings reference the existing `hospital_mast`. Delete marks records as status 9, and mapped departments cannot be deleted until their mappings are removed.
+
+Install these masters with `php artisan migrate --path=database/migrations/2026_10_12_000005_create_hospital_masters.php`. Add sample records with `php artisan db:seed --class=HospitalMasterSampleSeeder`. The seeder preserves existing records and can be rerun without duplicates. It supplies 12 departments, five ambulance categories, six bed types, eight blood groups, two labelled sample hospitals and eight sample hospital/department mappings. Sample hospitals do not accept emergency requests. Assign the new modules through **Role Assignments** to display them in the menu. No accounts or role permissions are seeded.
+
+Run `php tests/hospital-masters-smoke.php` to check CRUD, validation, relationships and sample-data repeatability.
+
+The follow-up migration `2026_10_12_000006_enable_hospital_master_crud.php` restores the previously deleted Department menu entry and assigns all three master CRUD modules to the existing admin roles. These are normal database assignments that the administrator can change later. Use **Add Department**, **Add Ambulance Category**, or **Add Hospital Department Mapping** on the respective list pages to enter data manually; each record also has Edit and Delete actions.
+
+The sidebar reads active modules from the logged-in user's role assignments in `module_assigning`. Only assignments with `status = 1` and `view_flag = 1` appear. Module names, icons and groups come from the database; there is no fixed list of modules for admin, hospital or patient menus.
+
+Open **Role Assignments**, select a role, and save its selected modules. Every account with that role uses these selections. Clearing all selections removes its menu access. Editing an account does not automatically grant modules again. Hospital ownership and clinical action checks still apply.
+
+Verify assignment behaviour with `C:\xampp\php\php.exe tests/menu-permissions-smoke.php`; its database changes are rolled back.

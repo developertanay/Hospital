@@ -9,12 +9,23 @@ class DemoRoleAccess
     {
         if (auth()->check() && !auth()->user()->care_enabled) { auth()->logout(); $request->session()->invalidate(); return redirect('/login'); }
         $first=explode('/',$request->path())[0];
-        $masters=['Hospital','Bedtype','BloodType','BedInven','BloodInven','Module','ModuleMaster','ModuleAssigning','NewUser'];
-        if (in_array($first,$masters) && !auth()->check()) return redirect('/login');
-        if (in_array($first,$masters) && !in_array((int) auth()->user()->role_id, [1, 2], true)) abort(403, 'Administration access required.');
-        $p=RoleAccess::profile();
-        if ($p && in_array($first,$masters) && $p['role']!=='admin') abort(403,'This module is assigned to the admin role.');
-        if ($p && $p['role']!=='admin' && !in_array($first,['','emergency','login','logout','dashboard','home'])) abort(403,'This module is not assigned to your demo role.');
+        // Emergency controllers check the requested page and record ownership.
+        // Other module URLs use the same database assignments as the sidebar.
+        if ($first !== 'emergency') {
+            $path = trim($request->path(), '/');
+            $query = \App\Models\Modules::query();
+            if (auth()->check()) $query->where('college_id', auth()->user()->college_id);
+            $modules = $query->get();
+            $matching = $modules->filter(function ($module) use ($path) {
+                $url = trim((string) $module->url, '/');
+                return $url && $url !== '#' && ($path === $url || strpos($path, $url . '/') === 0);
+            })->sortByDesc(function ($module) { return strlen($module->url); });
+            $module = $matching->first();
+            if ($module) {
+                if (!auth()->check()) return redirect('/login');
+                abort_unless(isset(RoleAccess::menu()[$module->url]), 403, 'This module is not assigned to your role.');
+            }
+        }
         return $next($request);
     }
 }

@@ -6,7 +6,7 @@ USERMAST
 
 @section('content')
 		<!--start page wrapper -->
-		<div class="page-wrapper">
+		<div class="page-wrapper crud-page">
 			<div class="page-content">
 				<!--breadcrumb-->
 

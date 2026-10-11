@@ -1,7 +1,7 @@
 @extends('layouts.header')
 @section('title', ($record ? 'Edit ' : 'Add ').($type === 'inventory' ? 'Bed' : 'Blood Inventory'))
 @section('content')
-<div class="page-wrapper"><div class="page-content"><div class="row"><div class="col-xl-12 mx-auto"><div class="card"><div class="card-body p-4">
+<div class="page-wrapper crud-page"><div class="page-content"><div class="row"><div class="col-xl-12 mx-auto"><div class="card"><div class="card-body p-4">
 <h5 class="mb-4">{{ $record ? 'Edit' : 'Add New' }} {{ $type === 'inventory' ? 'Bed' : 'Blood Inventory' }} · {{ $hospital['name'] }}</h5>
 @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <form class="row g-3" method="POST" action="{{ $record ? route('hospital.'.$type.'.update', $record) : route('hospital.'.$type.'.store') }}">@csrf @if($record) @method('PUT') @endif
@@ -12,6 +12,6 @@
 <div class="col-md-6"><label for="blood-group" class="form-label">Blood group <span class="text-danger">*</span></label><select id="blood-group" name="blood_type" class="form-select" required><option value="">Select blood type</option>@foreach($bloodTypes as $group)<option @if(old('blood_type', $entry['blood_type'] ?? '') === $group) selected @endif>{{ $group }}</option>@endforeach</select></div>
 <div class="col-md-6"><label for="blood-units" class="form-label">Available units <span class="text-danger">*</span></label><input id="blood-units" name="units" type="number" class="form-control" min="0" max="10000" required value="{{ old('units', $entry['units'] ?? '') }}"></div>
 @endif
-<div class="col-12"><button class="btn btn-primary">{{ $record ? 'Update' : 'Save' }}</button> <a class="btn btn-outline-secondary" href="{{ route('hospital.'.$type.'.index') }}">Cancel</a></div>
+@include('crud.form-actions',['cancelUrl'=>route('hospital.'.$type.'.index'),'saveLabel'=>$record ? 'Update' : 'Save'])
 </form></div></div></div></div></div></div>
 @endsection

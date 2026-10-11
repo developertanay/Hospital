@@ -6,7 +6,7 @@ Add Hospital
 
 @section('content')
 <!--start page wrapper -->
-<div class="page-wrapper">
+<div class="page-wrapper crud-page">
 	<div class="page-content">
 		
 		<div class="row">

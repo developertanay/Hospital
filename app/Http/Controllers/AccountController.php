@@ -30,10 +30,6 @@ class AccountController extends Controller
         if (!empty($data['password'])) $account->password=Hash::make($data['password']);
         DB::transaction(function () use ($account) {
             $account->save();
-            foreach (DB::table('modules')->whereNotNull('care_roles')->get() as $module) {
-                if (!in_array($account->care_role,json_decode($module->care_roles,true) ?? [])) continue;
-                DB::table('module_assigning')->updateOrInsert(['college_id'=>$account->college_id,'role_id'=>$account->role_id,'modules_id'=>$module->id],['status'=>1,'view_flag'=>1,'create_flag'=>1,'edit_flag'=>1,'upload_flag'=>0,'download_flag'=>1]);
-            }
         });
         return redirect()->route('Accounts.index')->with('message','Account saved successfully.');
     }
