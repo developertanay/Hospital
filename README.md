@@ -1,3 +1,60 @@
+# CareRoute — Emergency Bed Management MVP
+
+Working hackathon prototype built on the existing Laravel 8 project. No new packages required. The new landing page is the emergency coordination dashboard; legacy hospital CRUD stays available at its existing routes.
+
+## Run locally (XAMPP)
+
+1. Start **Apache and MySQL** in XAMPP. Accounts, modules and masters use the existing `hospitals` database on port `3306`; emergency allocation uses its own JSON mock store.
+2. Restore PHP dependencies: extract the bundled `vendor.zip` in the project root (it contains `vendor/`). Alternatively run `composer install` with a compatible PHP environment; this repository does not include a dependency lockfile.
+3. If `.env` is missing, copy `env (1)` to `.env`. Preserve the existing application key. For a fresh environment without a key, run `php artisan key:generate`.
+4. Ensure `storage/` and `bootstrap/cache/` are writable. Run `php artisan config:clear` and `php artisan view:clear` after setup.
+5. Open **http://localhost/Hospital/public/emergency** (also the project root landing page). An alternative is `php artisan serve`, then http://127.0.0.1:8000/emergency.
+6. Run `php artisan db:seed --class=CareRouteDemoSeeder` to create missing demo users and assignments. Sign in at `/login`; new demo accounts use password **CareRoute@2026**. See [DEMO-LOGIN-FLOW.md](DEMO-LOGIN-FLOW.md) for all accounts and exact instructions.
+
+## Demo and checks
+
+Patient login: submit the accident scenario and request C. Hospital C login: verify Critical and accept. Patient login: check Reserved and submit a second Critical patient. Hospital A is rejected (0 available ICU); C is recommended (8 km, 1 ICU), followed by B (10 km, 2 ICU). A second Critical request goes to B when C is confirmed. See [HACKATHON-DEMO.md](HACKATHON-DEMO.md) for the full 1–2 minute script and optional reclaim scenario.
+
+```powershell
+php tests/emergency-smoke.php
+```
+
+Checks cover matching, confirmation, verified priority, temporary hold reclaim, protected confirmed/occupied beds, expiry, duplicate patients and rate limiting. Tests use their own temporary store and do not modify demo data.
+
+## Seed and architecture
+
+| Hospital | Distance | General free | ICU free | Ventilator free | Status |
+| --- | --- | --- | --- | --- | --- |
+| A | 5 km | 4 | 0 | 0 | Open |
+| B | 10 km | 5 | 2 | 1 | Open |
+| C | 8 km | 3 | 1 | 1 | Open |
+| D | 14 km | 6 | 3 | 2 | Open |
+| E | 3 km | 2 | 1 | 1 | Offline |
+
+Each care category also includes one seeded occupied bed to demonstrate protection. Ventilator beds are a separate care category with a ventilator attached.
+
+`EmergencyController` validates input and gates hospital actions using authenticated Admin/Hospital/Patient roles. `EmergencyBedService` seeds hospitals, ranks compatible hospitals by ascending distance (available capacity breaks ties), and serializes all storage operations through a separate file lock. State persists in `storage/app/emergency-demo.json`, created on first access. `emergency.blade.php` is responsive HTML/CSS with plain JavaScript fetch and 5-second polling.
+
+Queue priority: operator-verified Critical > verified Urgent > Stable/unverified, FIFO within equal priority. Self-declared Critical does not grant elevated priority. Critical requests can reclaim only lower-priority **unconfirmed temporary holds**. Confirmed reservations and occupied beds are protected from priority displacement. Operator acceptance changes a temporary hold into Reserved; arrival changes it to Occupied. Pending and Reserved expire after five minutes; Occupied never expires. Expiry executes on the next read/action, with no worker required. Request Bed is revalidated under the same lock as allocation, preventing stale recommendations from double-allocating beds.
+
+Five submissions per IP per minute, duplicate active patient prevention, account ownership for patient bed requests, failed-login throttling, CSRF protection, and hospital verification demonstrate basic abuse controls. The old operator PIN is disabled. Hospital C/B operators can only accept their own hospital requests; patient sees only their own requests. Distances are fixed mock values relative to Accident Site; the entered location is descriptive. No real APIs, ML, payments, GPS, or complex authentication are included.
+
+Reset via the unlocked Hospital desk restores only the JSON emergency seed, leaving legacy MySQL data untouched. Demo data is ignored by Git.
+
+Known legacy issue: global `php artisan route:list` fails because an existing route references the missing `FeedbackController`. This does not prevent the emergency page or its JSON endpoints from serving. The legacy module repair is outside this MVP.
+
+## Judges: key points
+
+- Required care is checked before proximity, preventing an unsuitable nearest-hospital recommendation.
+- Priority is activated by hospital verification rather than self-declaration.
+- Temporary holds can be reclaimed without evicting occupied or confirmed patients.
+- Rejection reasons, status transitions and an audit-style decision log explain allocation.
+- A complete request → hospital acceptance → reservation → arrival flow works with no external integration.
+
+---
+
+## Original project documentation
+
 ```markdown
 # Hospital Management System with Real-Time Blood Bank & Bed Inventory
 

@@ -53,7 +53,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <img src="http://college.msell.in/public/assets/images/logos/Logo_LBC.png" alt="Logo">
+            <img src="{{ asset(config('branding.logo')) }}" alt="Logo">
         </div>
         <h2>{{$message_top}}</h2>
         <p>{{$message}}</p>

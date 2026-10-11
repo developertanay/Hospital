@@ -3,7 +3,7 @@
     <div style="width:100vw;height:200vh;display:flex;justify-content:center;align-items:center;z-index:22">
         <div class="text-center px-5">
             <div class="d-flex align-items-center mt-4">
-                <img src="{{asset('assets/images/logos/LOgo_RCDU.original.png')}}" style="position:absolute;width:10%; padding:20px 10px;" alt="Ramanujan-Logo">
+                <img src="{{ public_path(config('branding.print_logo')) }}" style="position:absolute;width:10%; padding:20px 10px;" alt="Hospital logo">
                 <br>
                 <h2 class="mt-5 font-weight-bold" style="font-family:ariel;line-height:3px">RAMANUJAN COLLEGE</h2>
                 <h5 class="lh-sm">Acredited Grade 'A++' by NACC <br>(University of Delhi) <br>C.R. Park MAin Road, Block H <br>Kalkaji, New Delhi-110019</h5>

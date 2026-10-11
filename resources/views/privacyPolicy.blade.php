@@ -4,7 +4,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="csrf-token" content="wfhM01YnCwyis3Pz0Se7wYtlhBbzKwXpI5s9lEHv">
 	<!--favicon-->
-	<link rel="icon" href="http://college.msell.in/public/assets/images/favicon-32x32.png" type="image/png">
+	<link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
 	<!--plugins-->
 	<link href="http://college.msell.in/public/assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet">
 	

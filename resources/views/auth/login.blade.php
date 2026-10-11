@@ -6,7 +6,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!--favicon-->
-	<link rel="icon" href="assets/images/favicon-32x32.png" type="image/png" />
+	<link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
 	<!--plugins-->
 	<link href="assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
 	<link href="assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet" />
@@ -81,9 +81,9 @@
 								<div class="p-4">
 									<div class="mb-3 text-center">
 										@if(!empty($hospital_name))
-										<img src="{{asset($college_logo)}}" width="100" height="100" alt="" />
+										<img src="{{ asset(config('branding.logo')) }}" width="100" height="100" alt="Hospital logo" />
 										@else
-										<img src="{{asset($college_logo)}}" width="150" height="" alt="" />
+										<img src="{{ asset(config('branding.logo')) }}" width="150" height="" alt="Hospital logo" />
 										@endif
 									</div>
 									<div class="text-center mb-4">

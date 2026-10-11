@@ -6,7 +6,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!--favicon-->
-	<link rel="icon" href="assets/images/favicon-32x32.png" type="image/png"/>
+	<link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
 	<!--plugins-->
 	<link href="assets/plugins/vectormap/jquery-jvectormap-2.0.2.css" rel="stylesheet"/>
 	<link href="assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
@@ -58,7 +58,7 @@
 			<div class="sidebar-header">
 				{{--
 				<div>
-					<img src="assets/images/logo-icon.png" class="logo-icon" alt="logo icon">
+					<img src="{{ asset(config('branding.logo')) }}" class="logo-icon" alt="Hospital logo">
 				</div>
 				<div>
 					<h4 class="logo-text">LOGO</h4>
@@ -67,7 +67,7 @@
 				</div>
 				--}}
 				<div>
-					<img src="{{asset($logo)}}" class="logo-icon" alt="logo icon">
+					<img src="{{ asset(config('branding.logo')) }}" class="logo-icon" alt="Hospital logo">
 				</div>
 				<div>
 					<h4 class="logo-text" style="color: #3e3f94;">{{strtoupper($short_name)}}</h4>

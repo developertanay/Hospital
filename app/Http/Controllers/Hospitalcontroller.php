@@ -224,6 +224,7 @@ public function update(Request $request, $id)
     public function destroy($id)
     {
           DB::beginTransaction();
+          $decrypted_id=Crypt::decryptString($id);
         $department = Hospital::findOrFail($decrypted_id);
         $department->status = 9; // Assuming 1 represents active and 9 represents deleted
         $department->save();

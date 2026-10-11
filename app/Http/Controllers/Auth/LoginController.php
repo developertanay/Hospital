@@ -30,11 +30,12 @@ class LoginController extends Controller
     |
     */
 
-    use AuthenticatesUsers;
+    use AuthenticatesUsers { login as protected frameworkLogin; }
 
 
     public function login(Request $request)
     {
+        if (isset(config('demo.accounts')[$request->email])) return $this->frameworkLogin($request);
         // dd($request);
         // if($request->shop_group == 0 || empty($request->shop_group)){
         //     // $request->session()->forget('home');
@@ -180,6 +181,14 @@ class LoginController extends Controller
      * @var string
      */
     protected $redirectTo = RouteServiceProvider::HOME;
+
+    protected function authenticated(Request $request, $user)
+    {
+        $request->session()->forget('emergency_operator');
+        if (isset(config('demo.accounts')[$user->email])) return redirect('/emergency');
+    }
+
+    public function showLoginForm() { return view('demo.login'); }
 
     /**
      * Create a new controller instance.
