@@ -1,9 +1,10 @@
 <?php
 require __DIR__.'/../vendor/autoload.php';
 $app=require __DIR__.'/../bootstrap/app.php';$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+require __DIR__.'/support/mobile-sql-fixtures.php'; mobileSqlFixtures();
 $path=storage_path('app/sos-test-api-'.bin2hex(random_bytes(4)).'.json');
 $app->instance(App\Services\AmbulanceService::class,new App\Services\AmbulanceService($path));
-$app->instance(App\Services\EmergencyBedService::class,new App\Services\EmergencyBedService($path.'.beds',300));
+$app->instance(App\Services\EmergencyBedService::class,new App\Services\EmergencyBedService);
 $kernel=$app->make(Illuminate\Contracts\Http\Kernel::class);$tokens=[];$issued=[];$count=0;
 function sosHttp($role,$path,$data=null,$expected=200) {
     global $kernel,$issued,$count;
@@ -35,7 +36,7 @@ try {
     $state=sosHttp('patient','sos/state');if($state['calls'][0]['status']!=='Accepted')throw new RuntimeException('Patient state not updated');
     sosHttp('driver','sos/action',['action'=>'arrive','id'=>$id]);sosHttp('driver','sos/action',['action'=>'pickup','id'=>$id]);
     sosHttp('driver','sos/action',['action'=>'first_aid','id'=>$id]);
-    sosHttp('driver','sos/action',['action'=>'transport','id'=>$id,'care'=>'ICU','hospital_id'=>'C']);
+    sosHttp('driver','sos/action',['action'=>'transport','id'=>$id,'care'=>'ICU','hospital_id'=>'3']);
     $linked=sosHttp('patient','sos/state')['calls'][0]['bed_request_id'];
     sosHttp('driver','sos/action',['action'=>'handoff','id'=>$id],409);
     sosHttp('hospital','action',['action'=>'verify','id'=>$linked,'severity'=>'Critical']);sosHttp('hospital','action',['action'=>'accept','id'=>$linked]);sosHttp('hospital','action',['action'=>'arrive','id'=>$linked]);

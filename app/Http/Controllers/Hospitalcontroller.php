@@ -1,235 +1,49 @@
 <?php
-
 namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
 use App\Models\Hospital;
-use DB;
-use Auth;
-use Session;
-use Crypt;
-
-
+use App\Models\CareBed;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 class Hospitalcontroller extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-     public function __construct() {
-        $this->current_menu = 'Hospital';
-      }
-    public function index()
+    public function index() { $data=Hospital::where('status','!=',9)->get(); $current_menu='Hospital'; return view('Hospital.index',compact('data','current_menu')); }
+    public function create() { return $this->form(); }
+    public function edit($id) { return $this->form(Hospital::findOrFail(Crypt::decryptString($id)),$id); }
+    private function form($data=null,$encid=null)
     {
-        $data = Hospital::where('status', '!=',9)->get();
-        
-        return view($this->current_menu.'/index',[
-            'data' =>$data,
-            'current_menu' => $this->current_menu,
-                ]);
+        $state=DB::table('state_mast')->where('status','!=',9)->pluck('state_name','id');
+        $city=DB::table('city_mast')->where('status','!=',9)->pluck('city_name','id');
+        $current_menu='Hospital'; return view($data ? 'Hospital.edit':'Hospital.create',compact('data','encid','state','city','current_menu'));
     }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function store(Request $request) { return $this->save($request,new Hospital); }
+    public function update(Request $request,$id) { return $this->save($request,Hospital::findOrFail(Crypt::decryptString($id))); }
+    private function save(Request $request,Hospital $hospital)
     {
-        $state = DB::table('state_mast')->where('status', '!=',9)->pluck('state_name', 'id');
-        $city = DB::table('city_mast')->where('status', '!=',9)->pluck('city_name', 'id');
-        // dd($data);
-        return view($this->current_menu.'/create', [
-            'state'=> $state,
-            'city'=> $city,
-            'current_menu' => $this->current_menu,
-        ]);
+        $request->validate(['name'=>'required|string|max:500','short_name'=>'nullable|string|max:20','Registration'=>'nullable|string|max:100','type'=>'nullable|string|max:20','host'=>'nullable|string|max:11','contact_no'=>'nullable|string|max:40','alternate_no'=>'nullable|string|max:40','email'=>'nullable|email|max:50','address'=>'nullable|string|max:600','url'=>'nullable|string|max:100','geo_location'=>'nullable|string|max:100','image'=>'nullable|image|max:2048','latitude'=>'nullable|numeric|between:-90,90|required_with:longitude','longitude'=>'nullable|numeric|between:-180,180|required_with:latitude','status'=>'required|in:0,1']);
+        $fields=['hospital_name'=>'name','short_name'=>'short_name','registration_no'=>'Registration','type'=>'type','host'=>'host','contact_no'=>'contact_no','emergency_no'=>'alternate_no','email_id'=>'email','address'=>'address','website'=>'url','geo_location'=>'geo_location'];
+        foreach ($fields as $column=>$field) $hospital->$column=$request->input($field) ?? '';
+        $hospital->state=(int)$request->input('current_state',0); $hospital->district=(int)$request->input('district',0); $hospital->city=(int)$request->input('city',0); $hospital->pin_code=(int)$request->input('pincode',0);
+        $hospital->status=(int)$request->status; $hospital->latitude=$request->latitude; $hospital->longitude=$request->longitude;
+        if (!$hospital->exists) { $hospital->created_by=auth()->id(); $hospital->logo=''; }
+        $hospital->updated_by=auth()->id();
+        if ($request->hasFile('image')) $hospital->logo='storage/'.$request->file('image')->store('hospital-logos','public');
+        $saved=DB::transaction(function () use ($hospital) {
+            DB::table('care_workflow_lock')->where('id',1)->lockForUpdate()->first();
+            if ($hospital->exists && $hospital->status!==1 && CareBed::where('hospital_id',$hospital->id)->where('status','!=','Available')->exists()) return false;
+            $hospital->save(); return true;
+        });
+        if (!$saved) return back()->withErrors(['hospital'=>'This hospital has protected allocations. Keep it active; use Offline to stop new requests.'])->withInput();
+        return redirect()->route('Hospital.index')->with('message','Hospital saved successfully.');
     }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {   
-       
-        try {
-                    
-            $file = !empty($request->file('image'))?$request->file('image'):null;
-
-        if(!empty($file)) {
-            $extension = $file->getClientOriginalExtension();
-            $fileName = date('YmdHis').rand(10,99).'.'.$extension;
-                
-            $destinationPath_profile = public_path('/images/userprofile');
-            $pathForDB_profile = 'public/images/userprofile/'.$fileName;
-            
-            $file->move($destinationPath_profile, $fileName);
-        }
-        else {
-            $pathForDB_profile = NULL;
-        }
-            // dd($request);
-            // Map form fields to database fields
-        
-        $myArr =[
-            'hospital_name' => $request->name,
-            'short_name' => $request->short_name,
-            'registration_no' => $request->Registration,
-            'type' => $request->type,
-            'host' => $request->host,
-            'contact_no' => $request->contact_no,
-            'emergency_no' => $request->alternate_no,
-            'email_id' => $request->email,
-            'logo' => $pathForDB_profile,
-            'geo_location' => $request->geo_location,
-            'address' => $request->address,
-            'state' => $request->current_state,
-            'pin_code' => $request->pincode,
-            'website' => $request->url,
-            'district' => 0, // Default request if not provided
-            'city' => 0, 
-            'status' => $request->status,
-            'updated_at' => now(),
-            'updated_by' => auth()->id() ?? 1,
-            'created_at' => now(),
-            'created_by' => auth()->id() ?? 1
-            ];
-            // dd($myArr);
-        
-            $hospital = Hospital::create($myArr);
-            
-            return redirect()->route($this->current_menu . '.index')
-                             ->with('success', 'Hospital created successfully!');
-                             
-        } catch (\Exception $e) {
-            return redirect()->back()
-                             ->with('error', 'Failed to create hospital: ' . $e->getMessage())
-                             ->withInput();
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        $decrypted_id = Crypt::decryptString($id);
-        $data =Hospital::getDataFromId($decrypted_id);
-        $state = DB::table('state_mast')->where('status', '!=',9)->pluck('state_name', 'id');
-
-        // $module =Module::pluckActiveParent();
-        // dd($data);
-        
-        return view($this->current_menu.'/edit', [
-            'data'=>$data,
-            'state'=>$state,
-            'current_menu' => $this->current_menu,
-            'encid'=>$id,
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    /**
- * Update the specified hospital in storage.
- */
-public function update(Request $request, $id)
-{
-    $decrypted_id = Crypt::decryptString($id);
-     try {
-                    
-            $file = !empty($request->file('image'))?$request->file('image'):null;
-
-        if(!empty($file)) {
-            $extension = $file->getClientOriginalExtension();
-            $fileName = date('YmdHis').rand(10,99).'.'.$extension;
-                
-            $destinationPath_profile = public_path('/images/userprofile');
-            $pathForDB_profile = 'public/images/userprofile/'.$fileName;
-            
-            $file->move($destinationPath_profile, $fileName);
-        }
-        else {
-            $pathForDB_profile = NULL;
-        }
-            // dd($request);
-            // Map form fields to database fields
-        
-        $myArr =[
-            'hospital_name' => $request->name,
-            'short_name' => $request->short_name,
-            'registration_no' => $request->Registration,
-            'type' => $request->type,
-            'host' => $request->host,
-            'contact_no' => $request->contact_no,
-            'emergency_no' => $request->alternate_no,
-            'email_id' => $request->email,
-            'logo' => $pathForDB_profile,
-            'geo_location' => $request->geo_location,
-            'address' => $request->address,
-            'state' => $request->current_state,
-            'pin_code' => $request->pincode,
-            'website' => $request->url,
-            'district' => 0, // Default request if not provided
-            'city' => 0, 
-            'status' => $request->status,
-            'updated_at' => now(),
-            'updated_by' => auth()->id() ?? 1,
-            'created_at' => now(),
-            'created_by' => auth()->id() ?? 1
-            ];
-            // dd($myArr);
-        
-            $hospital = Hospital::updateDataFromId($decrypted_id, $myArr);
-            
-            return redirect()->route($this->current_menu . '.index')
-                             ->with('success', 'Hospital created successfully!');
-                             
-        } catch (\Exception $e) {
-            return redirect()->back()
-                             ->with('error', 'Failed to create hospital: ' . $e->getMessage())
-                             ->withInput();
-        }
-}
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-          DB::beginTransaction();
-          $decrypted_id=Crypt::decryptString($id);
-        $department = Hospital::findOrFail($decrypted_id);
-        $department->status = 9; // Assuming 1 represents active and 9 represents deleted
-        $department->save();
-        DB::commit();
-
-        return redirect()->route($this->current_menu.'.index');
+        $hospital=Hospital::findOrFail(Crypt::decryptString($id));
+        $removed=DB::transaction(function () use ($hospital) {
+            DB::table('care_workflow_lock')->where('id',1)->lockForUpdate()->first();
+            if (CareBed::where('hospital_id',$hospital->id)->where('status','!=','Available')->exists()) return false;
+            $hospital->status=9; $hospital->save(); return true;
+        });
+        return redirect()->route('Hospital.index')->with($removed ? 'message':'error',$removed ? 'Hospital deleted.':'Protected allocations must be completed before deleting the hospital.');
     }
 }

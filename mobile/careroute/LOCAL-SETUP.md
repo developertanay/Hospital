@@ -1,5 +1,7 @@
 # CareRoute mobile: local setup and complete demo
 
+**After merging the SQL workflow:** hospitals, care types, inventory, accounts and permissions now come from MySQL. Follow the root README's eight additive migrations. Existing passwords remain, but operators need a real hospital assignment through Accounts & Hospital Access. `CareRouteDemoSeeder` is now a no-op; it no longer provisions patient/admin/hospital accounts. Patient signup still works in the app. Existing demo driver accounts are retained by migration 000008; new installations can explicitly run `AmbulanceDemoSeeder` for dispatch-only demo drivers. The older A–E examples below describe the previous prototype and are superseded by the SQL workflow.
+
 For the new SOS + ambulance flow, saved emergency profile and driver accounts, read [SOS-DEMO.md](SOS-DEMO.md).
 
 The Flutter app targets Android and iOS. It connects to the existing Laravel application; it does not contain a separate database or reset emergency data when installed. Patient requests, hospital acceptance, expiry and bed status are shared with the website.

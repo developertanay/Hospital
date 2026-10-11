@@ -1,0 +1,16 @@
+@extends('layouts.header')
+@section('title', $account->exists ? 'Edit Account' : 'Add Account')
+@section('content')
+<div class="page-wrapper crud-page"><div class="page-content"><div class="card"><div class="card-body p-4"><h5 class="mb-4">{{ $account->exists ? 'Edit Account' : 'Add Account' }}</h5>
+@if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<form class="row g-3" method="POST" action="{{ $account->exists ? route('Accounts.update',$account->id) : route('Accounts.store') }}">@csrf @if($account->exists) @method('PUT') @endif
+<div class="col-md-6"><label class="form-label" for="account-name">Name</label><input id="account-name" class="form-control" name="name" required value="{{ old('name',$account->name) }}"></div>
+<div class="col-md-6"><label class="form-label" for="account-email">Login email / ID</label><input id="account-email" class="form-control" name="email" required value="{{ old('email',$account->email) }}"></div>
+<div class="col-md-6"><label class="form-label" for="account-role">Role</label><select id="account-role" name="care_role" class="form-select" required><option value="">Select role</option>@foreach(['admin'=>'Admin','hospital'=>'Hospital Operator','patient'=>'Patient'] as $key=>$label)<option value="{{ $key }}" @if(old('care_role',$account->care_role)===$key) selected @endif>{{ $label }}</option>@endforeach</select></div>
+<div class="col-md-6"><label class="form-label" for="account-hospital">Hospital (required for hospital operators)</label><select id="account-hospital" name="hospital_id" class="form-select"><option value="">Select hospital</option>@foreach($hospitals as $hospital)<option value="{{ $hospital->id }}" @if((string)old('hospital_id',$account->hospital_id)===(string)$hospital->id) selected @endif>{{ $hospital->hospital_name }}</option>@endforeach</select></div>
+<div class="col-md-6"><label class="form-label" for="account-password">Password {{ $account->exists ? '(leave blank to keep current)' : '' }}</label><input id="account-password" class="form-control" type="password" name="password" minlength="8" @if(!$account->exists) required @endif autocomplete="new-password"></div>
+<div class="col-md-6"><label class="form-label" for="account-confirm">Confirm password</label><input id="account-confirm" class="form-control" type="password" name="password_confirmation" autocomplete="new-password"></div>
+<div class="col-md-6"><label class="form-label" for="account-enabled">Status</label><select id="account-enabled" class="form-select" name="care_enabled"><option value="1" @if(old('care_enabled',$account->care_enabled ?? true)) selected @endif>Active</option><option value="0" @if(!old('care_enabled',$account->care_enabled ?? true)) selected @endif>Disabled</option></select></div>
+@include('crud.form-actions',['cancelUrl'=>route('Accounts.index'),'saveLabel'=>$account->exists ? 'Update' : 'Save'])
+</form></div></div></div></div>
+@endsection

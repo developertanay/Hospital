@@ -1,11 +1,12 @@
 <?php
 require __DIR__.'/../vendor/autoload.php';
 $app=require __DIR__.'/../bootstrap/app.php'; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+require __DIR__.'/support/mobile-sql-fixtures.php'; mobileSqlFixtures();
 use App\Services\AmbulanceService;
 use App\Services\EmergencyBedService;
 $path=storage_path('app/sos-test-'.bin2hex(random_bytes(4)).'.json');
 $bedPath=$path.'.beds'; $now=time(); $count=0;
-$s=new AmbulanceService($path,function()use(&$now){return $now;}); $beds=new EmergencyBedService($bedPath,300);
+$s=new AmbulanceService($path,function()use(&$now){return $now;}); $beds=new EmergencyBedService;
 $patient=['id'=>101,'role'=>'patient']; $other=['id'=>102,'role'=>'patient']; $admin=['id'=>1,'role'=>'admin'];
 $d1=['id'=>201,'role'=>'driver','driver'=>'D1']; $d2=['id'=>202,'role'=>'driver','driver'=>'D2']; $d3=['id'=>203,'role'=>'driver','driver'=>'D3'];
 $details=['name'=>'SOS Test Patient','mobile'=>'+919000000001','age'=>30,'emergency_name'=>'Test Contact','emergency_phone'=>'+919000000002'];
@@ -36,16 +37,16 @@ try {
     checkSos(deniedSos(fn()=>$s->action($d3,$id,'pickup')),'Pickup requires arrival');
     $s->action($d3,$id,'arrive'); $s->action($d3,$id,'pickup'); $s->action($d3,$id,'first_aid');
     checkSos(deniedSos(fn()=>$s->action($patient,$id,'cancel')),'Cancellation blocked after pickup');
-    checkSos(deniedSos(fn()=>$s->action($d3,$id,'transport',['care'=>'ICU','hospital_id'=>'A'],$beds)),'Hospital A ICU rejected');
+    checkSos(deniedSos(fn()=>$s->action($d3,$id,'transport',['care'=>'ICU','hospital_id'=>'1'],$beds)),'Full SQL hospital ICU rejected');
     $linked=$s->state($patient)['calls'][0]['bed_request_id']; checkSos((bool)$linked,'Failed allocation preserves linked request for retry');
-    $s->action($d3,$id,'transport',['care'=>'ICU','hospital_id'=>'C'],$beds);
+    $s->action($d3,$id,'transport',['care'=>'ICU','hospital_id'=>'3'],$beds);
     $bed=collect($beds->state()['requests'])->firstWhere('id',$linked);
     checkSos($bed['status']==='Pending' && $bed['owner_id']===101,'Transport creates patient-owned bed request');
     checkSos(!$bed['verified'] && $bed['priority']===1,'SOS cannot self-grant Critical priority');
     checkSos(deniedSos(fn()=>$s->action($d3,$id,'handoff',[],$beds)),'Handoff requires hospital arrival');
-    $beds->verify($linked,'Critical','C'); $beds->action($linked,'accept','C');
+    $beds->verify($linked,'Critical','3'); $beds->action($linked,'accept','3');
     checkSos(deniedSos(fn()=>$s->action($d3,$id,'handoff',[],$beds)),'Reserved is not arrived');
-    $beds->action($linked,'arrive','C'); $s->action($d3,$id,'handoff',[],$beds);
+    $beds->action($linked,'arrive','3'); $s->action($d3,$id,'handoff',[],$beds);
     checkSos($s->state($patient)['calls'][0]['status']==='Completed','Hospital handoff completed');
     $s->action($other,$second,'cancel');
     foreach ([$d1,$d2,$d3] as $d) $s->duty($d,['on_duty'=>false]);

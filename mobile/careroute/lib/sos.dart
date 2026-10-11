@@ -500,7 +500,7 @@ class _SosScreenState extends State<SosScreen> {
         const Text(
           'Hospital must verify severity, accept the bed, and confirm arrival. SOS does not automatically reserve a confirmed bed.',
         ),
-        if (s.role != 'driver')
+        if (s.role == 'patient')
           TextButton(
             onPressed: () => widget.openBed(c['bed_request_id'].toString()),
             child: const Text('Open linked hospital request'),
@@ -682,7 +682,10 @@ Future<void> hospitalDialog(
   Session session,
   Map<String, dynamic> call,
 ) async {
-  String care = call['bed_care']?.toString() ?? 'General';
+  final types = (session.sosState?['care_types'] as List? ?? session.careTypes)
+      .cast<String>();
+  String care =
+      call['bed_care']?.toString() ?? (types.isEmpty ? '' : types.first);
   bool busy = false;
   String? error;
   await showDialog<void>(
@@ -690,12 +693,14 @@ Future<void> hospitalDialog(
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) {
         final hospitals =
-            (session.sosState?['hospitals'] as List? ?? [])
+            (call['hospital_options'] as List? ??
+                    session.sosState?['hospitals'] as List? ??
+                    [])
                 .cast<Map<String, dynamic>>()
                 .toList()
               ..sort(
-                (a, b) =>
-                    (a['distance'] as num).compareTo(b['distance'] as num),
+                (a, b) => ((a['distance'] as num?) ?? double.infinity)
+                    .compareTo((b['distance'] as num?) ?? double.infinity),
               );
         return AlertDialog(
           title: const Text('Request hospital care'),
@@ -706,15 +711,15 @@ Future<void> hospitalDialog(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Hospital distances are seeded demo values. Availability is checked again when you request a bed.',
+                    'Hospital inventory comes from the database. Distance uses hospital and pickup coordinates when provided.',
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    initialValue: care,
+                    initialValue: care.isEmpty ? null : care,
                     decoration: const InputDecoration(
                       labelText: 'Required care',
                     ),
-                    items: ['General', 'ICU', 'Ventilator']
+                    items: types
                         .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                         .toList(),
                     onChanged: busy || call['bed_request_id'] != null
@@ -729,7 +734,9 @@ Future<void> hospitalDialog(
                   for (final h in hospitals)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('${h['name']} • ${h['distance']} km'),
+                      title: Text(
+                        '${h['name']} • ${h['distance'] == null ? 'Distance not provided' : '${h['distance']} km'}',
+                      ),
                       subtitle: Text(
                         h['status'] != 'Open'
                             ? 'Rejected · hospital offline'
@@ -739,7 +746,7 @@ Future<void> hospitalDialog(
                         onPressed:
                             busy ||
                                 h['status'] != 'Open' ||
-                                (h['available'][care] as num) == 0
+                                ((h['available'][care] as num?) ?? 0) == 0
                             ? null
                             : () async {
                                 set(() {

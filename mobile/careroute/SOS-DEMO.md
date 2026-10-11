@@ -1,5 +1,7 @@
 # SOS + ambulance dispatch demo
 
+**SQL merge update:** hospital transfer now uses active SQL hospital records, numeric IDs, real inventory, configured care types and saved coordinates. Admin must assign hospital operators and operators must add available beds first. Choose whichever compatible hospital exists; A/C/E sample comparisons below are historical examples. The former `CareRouteDemoSeeder` no longer creates business accounts. Existing passwords are preserved; `AmbulanceDemoSeeder` explicitly provisions only the three dispatch demo drivers on a new installation. Run the eight additive migrations listed in the root README. Driver accounts migrated from the old app keep their passwords and enabled/disabled status.
+
 Install the updated CareRoute **1.1.0 (build 2)** Android APK over the previous app. Existing patient login and server settings remain. Start Apache + MySQL and use the same local API address described in [LOCAL-SETUP.md](LOCAL-SETUP.md).
 
 If preparing another checkout, run `php artisan config:clear`, `php artisan route:clear`, and `php artisan db:seed --class=CareRouteDemoSeeder`. No new database migration is needed for SOS. Do not reset existing emergency data.

@@ -32,6 +32,11 @@ use Illuminate\Support\Facades\Route;
     Route::resource('BloodInven', 'BloodInvencontroller');
     Route::resource('BedInven', 'BedInvencontroller');
     Route::resource('Hospital', 'Hospitalcontroller');
+    Route::resource('Department', 'DepartmentController')->except('show');
+    Route::resource('AmbulanceCategory', 'AmbulanceCategoryController')->except('show');
+    Route::get('Ambulance/{id}/photo/{kind}', 'AmbulanceController@photo')->name('Ambulance.photo');
+    Route::resource('Ambulance', 'AmbulanceController')->except('show');
+    Route::resource('HospitalDepartment', 'HospitalDepartmentController')->except('show');
 
 
     Route::get('api_login', 'AppLoginController@login');
@@ -48,6 +53,7 @@ use Illuminate\Support\Facades\Route;
     Route::post('register_new_company', 'CompanyMastController@register_new_company')->name('register_new_company');
 
     Auth::routes();
+    Route::resource('Accounts', 'AccountController')->except('show');
 
     Route::resource('CollegeMaster', 'CollegeMasterController');
     Route::get('course_student_subject', 'ReportController@course_student_subject');
@@ -179,5 +185,11 @@ Route::get('downloadLetterPdf/{id}', 'RequestController@downloadLetterPdf');
 Route::get('/', [App\Http\Controllers\EmergencyController::class, 'index']);
 Route::get('/emergency', [App\Http\Controllers\EmergencyController::class, 'index']);
 Route::get('/emergency/state', [App\Http\Controllers\EmergencyController::class, 'state']);
+Route::get('/emergency/{page}', [App\Http\Controllers\EmergencyController::class, 'index'])->where('page', 'approvals|beds|reservations|history');
+Route::resource('emergency/settings', 'HospitalSettingsController')->parameters(['settings'=>'record'])->names('hospital.settings')->only(['index','edit','update']);
+Route::resource('emergency/requests', 'EmergencyRequestController')->parameters(['requests'=>'record'])->names('care.requests')->except('show');
+Route::resource('emergency/inventory', 'HospitalInventoryController')->parameters(['inventory'=>'record'])->names('hospital.inventory')->except('show');
+Route::resource('emergency/blood', 'HospitalInventoryController')->parameters(['blood'=>'record'])->names('hospital.blood')->except('show');
+Route::post('/emergency/manage', [App\Http\Controllers\EmergencyController::class, 'manage'])->middleware('throttle:60,1');
 Route::post('/emergency/action', [App\Http\Controllers\EmergencyController::class, 'mutate'])->middleware('throttle:60,1');
 Route::get('/demo/{page}', [App\Http\Controllers\DemoAdminController::class, 'index'])->where('page','modules|users')->middleware('auth');

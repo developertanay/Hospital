@@ -21,7 +21,15 @@ class AmbulanceService {
             try { $result=$fn($s); } finally {
                 $encoded=json_encode($s,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
                 $temp=$this->path.'.tmp';
-                if (file_put_contents($temp,$encoded)===false || !rename($temp,$this->path)) throw new RuntimeException('Unable to save dispatch store.');
+                if (file_put_contents($temp,$encoded)===false) throw new RuntimeException('Unable to save dispatch store.');
+                // Windows scanners can briefly hold a newly written/read JSON file.
+                // Retry replacement under the same lock; never delete the last good file.
+                $saved=false;
+                for ($attempt=0;$attempt<10;$attempt++) {
+                    if (@rename($temp,$this->path)) { $saved=true; break; }
+                    usleep(50000);
+                }
+                if (!$saved) throw new RuntimeException('Unable to replace dispatch store. Retry shortly.');
             }
             return $result;
         } finally { flock($f,LOCK_UN); fclose($f); }
@@ -124,7 +132,7 @@ class AmbulanceService {
                     if (!in_array($r['status'],['Picked up','First aid','Transporting'],true)) throw new RuntimeException('Pick up the patient before hospital transfer.');
                     if (!$beds) throw new RuntimeException('Hospital service unavailable.');
                     $care=$input['care']; $hospital=$input['hospital_id'];
-                    if (!$r['bed_request_id']) $r['bed_request_id']=$beds->create(['patient'=>$r['patient']['name'].' [SOS '.$r['id'].']','location'=>'SOS GPS '.$r['location']['lat'].', '.$r['location']['lng'],'severity'=>'Critical','care'=>$care],'sos:'.$r['owner_id'],$r['owner_id']);
+                    if (!$r['bed_request_id']) $r['bed_request_id']=$beds->create(['patient'=>$r['patient']['name'].' [SOS '.$r['id'].']','location'=>'SOS GPS '.$r['location']['lat'].', '.$r['location']['lng'],'latitude'=>$r['location']['lat'],'longitude'=>$r['location']['lng'],'severity'=>'Critical','care'=>$care],'sos:'.$r['owner_id'],$r['owner_id']);
                     $record=collect($beds->state()['requests'])->firstWhere('id',$r['bed_request_id']);
                     if ($record['care']!==$care) throw new RuntimeException('Use the original care type for this linked hospital request.');
                     if (in_array($record['status'],['New','Released','Expired','Rejected'],true)) $beds->requestBed($r['bed_request_id'],$hospital,$r['owner_id']);

@@ -399,13 +399,14 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
-    final patient = ['patient', 'admin'].contains(s.role);
+    final patient = s.role == 'patient' && s.can('create');
     final ambulance = ['patient', 'driver', 'admin'].contains(s.role);
     final pages = <Widget>[
       if (ambulance) SosScreen(session: s, openBed: open),
       if (patient) RequestForm(session: s, onCreated: open),
-      if (s.role != 'driver') Queue(session: s, open: open),
-      if (s.role != 'driver') Hospitals(session: s),
+      if (['patient', 'hospital'].contains(s.role))
+        Queue(session: s, open: open),
+      if (['patient', 'hospital'].contains(s.role)) Hospitals(session: s),
       Account(session: s),
     ];
     final destinations = <NavigationDestination>[
@@ -419,12 +420,12 @@ class _HomeState extends State<Home> {
           icon: Icon(Icons.add_circle_outline),
           label: 'Request care',
         ),
-      if (s.role != 'driver')
+      if (['patient', 'hospital'].contains(s.role))
         NavigationDestination(
           icon: const Icon(Icons.receipt_long_outlined),
           label: s.role == 'patient' ? 'My requests' : 'Requests',
         ),
-      if (s.role != 'driver')
+      if (['patient', 'hospital'].contains(s.role))
         const NavigationDestination(
           icon: Icon(Icons.local_hospital_outlined),
           label: 'Beds',
@@ -500,6 +501,11 @@ class _RequestFormState extends State<RequestForm> {
   final form = GlobalKey<FormState>();
   final patient = TextEditingController(), location = TextEditingController();
   String severity = 'Urgent', care = 'ICU';
+  String get selectedCare => widget.session.careTypes.contains(care)
+      ? care
+      : widget.session.careTypes.isEmpty
+      ? ''
+      : widget.session.careTypes.first;
   @override
   void dispose() {
     patient.dispose();
@@ -558,9 +564,9 @@ class _RequestFormState extends State<RequestForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: care,
+              initialValue: selectedCare.isEmpty ? null : selectedCare,
               decoration: const InputDecoration(labelText: 'Required care'),
-              items: ['General', 'ICU', 'Ventilator']
+              items: widget.session.careTypes
                   .map(
                     (v) => DropdownMenuItem(
                       value: v,
@@ -576,7 +582,11 @@ class _RequestFormState extends State<RequestForm> {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: widget.session.busy || !widget.session.online
+              onPressed:
+                  widget.session.busy ||
+                      !widget.session.online ||
+                      selectedCare.isEmpty ||
+                      !widget.session.can('create')
                   ? null
                   : () async {
                       if (!form.currentState!.validate()) return;
@@ -586,7 +596,7 @@ class _RequestFormState extends State<RequestForm> {
                           'patient': patient.text.trim(),
                           'location': location.text.trim(),
                           'severity': severity,
-                          'care': care,
+                          'care': selectedCare,
                         });
                         if (!mounted) return;
                         patient.clear();
@@ -801,8 +811,11 @@ class RequestDetail extends StatelessWidget {
         'Expired',
         'Rejected',
       ].contains(status);
-      final canRequest = session.role != 'hospital' && showRecommendations;
-      final operator = session.role != 'patient';
+      final canRequest =
+          session.role == 'patient' &&
+          session.can('request') &&
+          showRecommendations;
+      final operator = session.role == 'hospital' && session.can('approve');
       final enabled = session.online && !session.busy;
       final seconds = r['expires_at'] is num
           ? ((r['expires_at'] as num) - (session.state?['now'] as num? ?? 0))
@@ -940,7 +953,7 @@ class RequestDetail extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Required care and an open hospital are mandatory. Compatible hospitals are ranked by demo distance.',
+                  'Required care and an open hospital are mandatory. Distance uses saved coordinates when provided.',
                 ),
                 const SizedBox(height: 12),
                 for (final m in (r['matches'] as List))
@@ -961,7 +974,11 @@ class RequestDetail extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              Text('${m['distance']} km'),
+                              Text(
+                                m['distance'] == null
+                                    ? 'Distance not provided'
+                                    : '${m['distance']} km',
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -1074,8 +1091,12 @@ class Hospitals extends StatelessWidget {
                       badge(h['status'].toString()),
                     ],
                   ),
-                  Text('${h['distance']} km • seeded distance'),
-                  for (final care in ['General', 'ICU', 'Ventilator']) ...[
+                  Text(
+                    h['distance'] == null
+                        ? 'Distance not provided'
+                        : '${h['distance']} km',
+                  ),
+                  for (final care in session.careTypes) ...[
                     const SizedBox(height: 16),
                     Text(
                       care == 'General' ? 'General beds' : care,
@@ -1203,41 +1224,6 @@ class Account extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: session.busy || !session.online
-              ? null
-              : () async {
-                  final yes = await showDialog<bool>(
-                    context: context,
-                    builder: (c) => AlertDialog(
-                      title: const Text('Reset emergency demo?'),
-                      content: const Text(
-                        'This removes all emergency requests and restores seeded beds. It affects both the app and website.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(c, false),
-                          child: const Text('Cancel'),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(c, true),
-                          child: const Text('Reset'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (yes != true || !context.mounted) return;
-                  try {
-                    await session.action({'action': 'reset'});
-                    if (context.mounted) notice(context, 'Demo reset.');
-                  } catch (e) {
-                    if (context.mounted) notice(context, e);
-                  }
-                },
-          icon: const Icon(Icons.restart_alt),
-          label: const Text('Reset emergency demo'),
-        ),
       ],
       const SizedBox(height: 18),
       FilledButton.tonalIcon(
@@ -1247,7 +1233,7 @@ class Account extends StatelessWidget {
       ),
       const SizedBox(height: 20),
       const Text(
-        'CareRoute prototype • Hospitals and ambulance drivers are mocked. SOS uses current GPS while the app is open; no real ambulance provider is connected.',
+        'CareRoute • Hospital accounts and inventory come from the database. Ambulance dispatch still uses demo drivers and foreground GPS.',
         textAlign: TextAlign.center,
         style: TextStyle(color: Colors.black54, fontSize: 12),
       ),

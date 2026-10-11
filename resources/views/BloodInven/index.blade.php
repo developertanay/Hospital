@@ -6,7 +6,7 @@ Blood-Inventory
 
 @section('content')
 		<!--start page wrapper -->
-		<div class="page-wrapper">
+		<div class="page-wrapper crud-page">
 			<div class="page-content">
 				
 				<div class="card">
@@ -28,7 +28,8 @@ Blood-Inventory
 									<tr>
 										<th>S.No.</th>
 										<th>Blood Name</th>
-										<th>Blood Count</th>
+                                        <th>Blood Count</th>
+                                        <th>Hospital</th>
 										<th>Status</th>
 										<th>Action</th>
 									</tr>								
@@ -46,7 +47,8 @@ Blood-Inventory
 									<tr>
 										<td>{{++$i}}</td>
 										<td>{{($final[$value->blood_id])?$final[$value->blood_id]:"?"}}</td>
-										<td>{{$value->unit}}</td>
+                                        <td>{{$value->unit}}</td>
+                                        <td>{{ $hospitals[$value->hospital_id] ?? 'Unassigned legacy stock' }}</td>
 										<td>{{($value->status==1)?'Active':'Inactive'}}</td>
 										<td>
 											<a href="{{$current_menu.'/'.$encid.'/edit'}}">

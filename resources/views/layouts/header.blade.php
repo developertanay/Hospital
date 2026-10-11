@@ -28,6 +28,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&amp;display=swap" rel="stylesheet">
 	<link href="{{asset('assets/css/app.css')}}" rel="stylesheet">
 	<link href="{{asset('assets/css/icons.css')}}" rel="stylesheet">
+	<link href="{{asset('assets/css/crud.css')}}" rel="stylesheet">
 	<!-- Theme Style CSS -->
 	<link rel="stylesheet" href="{{asset('assets/css/dark-theme.css')}}" />
 	<link rel="stylesheet" href="{{asset('assets/css/semi-dark.css')}}" />
@@ -101,14 +102,20 @@
 				$user_profile_image = $user_profile->photo;
 			}
 			else{
-				$user_profile_image = 'na';	
+                $user_profile_image = config('branding.logo');
 			}
 
 			$college_id = $auth_data->college_id;
 			$company_id = !empty($auth_data->company_id)?$auth_data->company_id:NULL;
 			$register_type = !empty($auth_data->register_type)?$auth_data->register_type:NULL;
 
-			if(!empty($college_id)) {
+            $careProfile = \App\Support\RoleAccess::profile();
+            if ($careProfile) {
+                $college_data = $auth_data->hospital;
+                $logo = $college_data->logo ?? config('branding.logo');
+                $short_name = $college_data->short_name ?? config('app.name', 'Hospital');
+            }
+            elseif(!empty($college_id)) {
 				$college_data = DB::table('hospital_mast')->where('id', $college_id)->first();
 				$logo = !empty($college_data->logo)?$college_data->logo:'';
 				$short_name = !empty($college_data->short_name)?$college_data->short_name:'';
@@ -550,30 +557,7 @@
 			$('#example').DataTable();
 		  } );
 	</script>
-	<script>
-		$(document).ready(function() {
-			var table = $('#example2').DataTable( {
-				lengthChange: false,
-				buttons: [ 'copy', 'excel', 'pdf', 'print']
-			} );
-		 
-			table.buttons().container()
-				.appendTo( '#example2_wrapper .col-md-6:eq(0)' );
-		} );
-	</script>
-	<script>
-		$(document).ready(function() {
-			var table = $('#example3').DataTable( {
-				bPaginate: false,
-				lengthChange: false,
-				ordering: false,
-				buttons: [ 'copy', 'excel', 'pdf', 'print']
-			} );
-		 
-			table.buttons().container()
-				.appendTo( '#example3_wrapper .col-md-6:eq(0)' );
-		} );
-	</script>
+	<script src="{{asset('assets/js/crud.js')}}"></script>
 	<!--app JS-->
 	<script src="{{asset('assets/js/app.js')}}"></script>
 	<script type="text/javascript">

@@ -6,7 +6,7 @@ Blood-Type
 
 @section('content')
 <!--start page wrapper -->
-<div class="page-wrapper">
+<div class="page-wrapper crud-page">
 	<div class="page-content">
 		<!--breadcrumb-->
 		<div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -27,11 +27,11 @@ Blood-Type
 			            <div class="form-group row" style="margin-top: 10px;">
 			                <div class="col-md-6">
 			                  <label class="form-label">Blood-Type</label>
-			                  <input type="text" name="blood" class="form-control"  placeholder="Enter Blood-Type" maxlength="1000" >
+			                  <input type="text" name="blood" class="form-control"  placeholder="Enter Blood-Type" maxlength="10" >
 			                </div>
 			                <div class="col-md-3">
 								<label for="single-select-clear-field" class="form-label">Status</label>
-								<select class="form-select single-select-clear-field" data-placeholder="Choose Status">
+								<select class="form-select single-select-clear-field" name="status" data-placeholder="Choose Status">
 									<option value="1">Active</option>
 									<option value="2">Inactive</option>
 								</select>
@@ -43,7 +43,7 @@ Blood-Type
 						<button type="button" onclick="window.location='{{url($current_menu)}}'"  class="btn btn-light px-4">Cancel</button>
 						<button type="submit" style="float: right;" class="btn btn-primary px-4">Submit</button>
 					</div>
-			 	</form>
+    @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif</form>
 			</div>
 		</div>
 	</div>

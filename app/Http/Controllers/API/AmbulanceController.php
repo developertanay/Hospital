@@ -3,12 +3,12 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Services\AmbulanceService;
 use App\Services\EmergencyBedService;
-use App\Support\DemoAccess;
+use App\Support\RoleAccess;
 use Illuminate\Http\Request;
 use RuntimeException;
 class AmbulanceController extends Controller {
     public function state(Request $request,AmbulanceService $service,EmergencyBedService $beds) {
-        $p=DemoAccess::profile();
+        $p=RoleAccess::profile();
         if (!$p || !in_array($p['role'],['patient','driver','admin'],true)) return response()->json(['message'=>'Patient, driver or admin account required.'],403);
         if ($p['role']==='driver') $service->heartbeat($p);
         $state=$service->state($p);
@@ -19,13 +19,19 @@ class AmbulanceController extends Controller {
             $call['bed_care']=$record['care']??null;
         } unset($call);
         if (in_array($p['role'],['driver','admin'],true)) $state['hospitals']=array_map(function ($h) {
-            $counts=['General'=>0,'ICU'=>0,'Ventilator'=>0]; foreach ($h['beds'] as $b) if ($b['status']==='Available') $counts[$b['care']]++;
-            return ['id'=>$h['id'],'name'=>$h['name'],'distance'=>$h['distance'],'status'=>$h['status'],'available'=>$counts];
+            $counts=array_fill_keys(app(EmergencyBedService::class)->careTypes(),0); foreach ($h['beds'] as $b) if ($b['status']==='Available') $counts[$b['care']]=($counts[$b['care']]??0)+1;
+            return ['id'=>$h['id'],'name'=>$h['name'],'distance'=>$h['distance'],'latitude'=>$h['latitude'],'longitude'=>$h['longitude'],'status'=>$h['status'],'available'=>$counts];
         },$bedState['hospitals']);
+        $state['care_types']=$beds->careTypes();
+        foreach ($state['calls'] as &$call) {
+            $call['hospital_options']=$state['hospitals']??[];
+            foreach ($call['hospital_options'] as &$h) if (isset($h['latitude'],$h['longitude'])) $h['distance']=round(AmbulanceService::distance($call['location']['lat'],$call['location']['lng'],$h['latitude'],$h['longitude']),1);
+            unset($h);
+        } unset($call);
         return response()->json($state);
     }
     public function action(Request $request,AmbulanceService $service,EmergencyBedService $beds) {
-        $p=DemoAccess::profile(); if (!$p) return response()->json(['message'=>'Sign in first.'],401);
+        $p=RoleAccess::profile(); if (!$p) return response()->json(['message'=>'Sign in first.'],401);
         $action=$request->validate(['action'=>'required|in:profile,sos,location,duty,accept,decline,cancel,arrive,pickup,first_aid,transport,handoff,complete'])['action'];
         $allowed=in_array($action,['profile','sos','location','cancel'],true)?['patient']:['driver'];
         if (!in_array($p['role'],$allowed,true)) return response()->json(['message'=>'This role cannot perform that SOS action.'],403);
@@ -44,7 +50,8 @@ class AmbulanceController extends Controller {
                 return response()->json($service->duty($p,$input));
             }
             $request->validate(['id'=>'required|string|max:32']);
-            $input=$action==='transport'?$request->validate(['care'=>'required|in:General,ICU,Ventilator','hospital_id'=>'required|in:A,B,C,D,E']):[];
+            $input=$action==='transport'?$request->validate(['care'=>['required',\Illuminate\Validation\Rule::in($beds->careTypes())],'hospital_id'=>'required|integer|exists:hospital_mast,id']):[];
+            if ($action==='transport') $input['hospital_id']=(string)$input['hospital_id'];
             return response()->json($service->action($p,$request->id,$action,$input,$beds));
         } catch (RuntimeException $e) { return response()->json(['message'=>$e->getMessage()],409); }
     }

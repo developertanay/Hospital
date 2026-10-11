@@ -39,6 +39,14 @@ class Session extends ChangeNotifier {
       state?['profile'] as Map<String, dynamic>?;
   bool get signedIn => api.token != null;
   String get role => profile?['role']?.toString() ?? 'patient';
+  List<String> get careTypes =>
+      (state?['care_types'] as List? ?? ['General', 'ICU', 'Ventilator'])
+          .cast<String>();
+  bool can(String action) => state?.containsKey('capabilities') == true
+      ? (state!['capabilities'] as List).contains(action)
+      : role == 'patient'
+      ? ['create', 'request'].contains(action)
+      : role == 'hospital' && action == 'approve';
   List<Map<String, dynamic>> get requests =>
       (state?['requests'] as List? ?? []).cast<Map<String, dynamic>>();
   List<Map<String, dynamic>> get hospitals =>

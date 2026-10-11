@@ -1,0 +1,3 @@
+@if($errors->any())<div class="col-12 alert alert-danger">{{ $errors->first() }}</div>@endif
+<div class="col-md-6"><label for="hospital-latitude" class="form-label">Latitude (optional)</label><input id="hospital-latitude" class="form-control" name="latitude" type="number" step="any" min="-90" max="90" value="{{ old('latitude', optional($data ?? null)->latitude) }}"></div>
+<div class="col-md-6"><label for="hospital-longitude" class="form-label">Longitude (optional)</label><input id="hospital-longitude" class="form-control" name="longitude" type="number" step="any" min="-180" max="180" value="{{ old('longitude', optional($data ?? null)->longitude) }}"></div>

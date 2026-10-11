@@ -2,52 +2,131 @@
 namespace App\Services;
 
 use RuntimeException;
+use App\Models\Hospital;
+use App\Models\CareBed;
+use App\Models\CareRequest;
+use App\Models\CareEvent;
+use App\Models\BloodInv;
+use App\Models\bedtype;
+use App\Models\bloodtype;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 
 class EmergencyBedService
 {
-    private $path;
     private $ttl;
 
-    public function __construct($path = null, $ttl = null)
+    public function __construct()
     {
-        $this->path = $path ?: config('emergency.store');
-        $this->ttl = $ttl ?: config('emergency.expiry_seconds');
+        $this->ttl = config('emergency.expiry_seconds', 300);
     }
 
-    private function seed()
+    public function careTypes()
     {
-        $hospitals = [];
-        foreach ([['A',5,4,0,0,'Open'],['B',10,5,2,1,'Open'],['C',8,3,1,1,'Open'],['D',14,6,3,2,'Open'],['E',3,2,1,1,'Offline']] as $row) {
-            [$id,$distance,$general,$icu,$ventilator,$status] = $row;
-            $beds = [];
-            foreach (['General'=>$general,'ICU'=>$icu,'Ventilator'=>$ventilator] as $care=>$count) {
-                for ($i=1; $i<=$count; $i++) $beds[] = ['id'=>"$id-$care-$i",'care'=>$care,'status'=>'Available','request_id'=>null];
-                $beds[] = ['id'=>"$id-$care-O",'care'=>$care,'status'=>'Occupied','request_id'=>null];
-            }
-            $hospitals[] = compact('id','distance','status','beds') + ['name'=>"Hospital $id"];
-        }
-        return ['hospitals'=>$hospitals,'requests'=>[],'limits'=>[],'events'=>[]];
+        return bedtype::where('status', 1)->pluck('name')->all();
     }
 
-    // A separate lock file keeps every read/modify/write serialized, including expiry.
-    private function transaction(callable $fn)
+    public function bloodTypes()
     {
-        $lock = fopen($this->path.'.lock', 'c');
-        if (!$lock || !flock($lock, LOCK_EX)) throw new RuntimeException('Unable to lock demo store.');
-        try {
-            $state = file_exists($this->path) ? json_decode(file_get_contents($this->path), true, 512, JSON_THROW_ON_ERROR) : $this->seed();
+        return bloodtype::where('status', 1)->pluck('blood_type')->all();
+    }
+
+    // One SQL transaction serializes allocation and inventory changes. Business
+    // records are read from models; no JSON files or generated hospitals remain.
+    private function transaction(callable $callback)
+    {
+        return DB::transaction(function () use ($callback) {
+            DB::table('care_workflow_lock')->where('id', 1)->lockForUpdate()->first();
+            $state = $this->loadRecords();
+            $before = $state;
             $this->expire($state);
-            $result = $fn($state);
-            $temp = $this->path.'.tmp';
-            if (file_put_contents($temp, json_encode($state, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)) === false || !rename($temp, $this->path)) throw new RuntimeException('Unable to save demo store.');
+            $result = $callback($state);
+            $this->saveChanges($before, $state);
             return $result;
-        } finally { flock($lock, LOCK_UN); fclose($lock); }
+        }, 3);
+    }
+
+    private function loadRecords()
+    {
+        $state = ['hospitals'=>[], 'requests'=>[], 'events'=>[]];
+        $types = bedtype::pluck('name', 'id');
+        $bloodTypes = bloodtype::pluck('blood_type', 'id');
+        $beds = CareBed::all();
+        $blood = BloodInv::where('status', 1)->whereNotNull('hospital_id')->get();
+        foreach (Hospital::where('status', 1)->get() as $hospital) {
+            $row = ['id'=>(string)$hospital->id, 'name'=>$hospital->hospital_name, 'status'=>$hospital->accepting_requests ? 'Open':'Offline', 'distance'=>null, 'latitude'=>$hospital->latitude, 'longitude'=>$hospital->longitude, 'contact'=>$hospital->contact_no, 'address'=>$hospital->address, 'beds'=>[], 'blood'=>[]];
+            foreach ($beds->where('hospital_id', $hospital->id) as $bed) {
+                $row['beds'][] = ['id'=>$bed->id, 'name'=>$bed->name, 'care'=>$types[$bed->bed_type_id] ?? '', 'status'=>$bed->status, 'request_id'=>$bed->request_id];
+            }
+            foreach ($blood->where('hospital_id', $hospital->id) as $stock) {
+                $group = $bloodTypes[$stock->blood_id] ?? null;
+                if ($group) $row['blood'][$group] = ($row['blood'][$group] ?? 0) + $stock->unit;
+            }
+            $state['hospitals'][] = $row;
+        }
+        foreach (CareRequest::all() as $request) {
+            $row=$request->toArray();
+            $row['care']=$types[$request->bed_type_id] ?? $request->care;
+            $row['hospital_id']=$request->hospital_id ? (string)$request->hospital_id : null;
+            $state['requests'][]=$row;
+        }
+        $state['events']=CareEvent::orderByDesc('id')->get()->toArray();
+        foreach ($state['events'] as &$event) $event['hospital_id']=isset($event['hospital_id']) ? (string)$event['hospital_id'] : null;
+        unset($event);
+        return $state;
+    }
+
+    // Save only changed records; existing legacy inventories are never erased.
+    private function saveChanges($before, $after)
+    {
+        $types=bedtype::pluck('id','name');
+        $bloodTypes=bloodtype::pluck('id','blood_type');
+        foreach ($after['hospitals'] as $hospital) {
+            $old=collect($before['hospitals'])->firstWhere('id',$hospital['id']);
+            $oldBeds=collect($old['beds'])->keyBy('id');
+            foreach ($hospital['beds'] as $bed) {
+                $previous=$oldBeds->get($bed['id']);
+                if ($previous && $previous['request_id']!==$bed['request_id']) CareBed::where('id',$bed['id'])->update(['request_id'=>null]);
+            }
+        }
+        foreach ($after['hospitals'] as $hospital) {
+            $old=collect($before['hospitals'])->firstWhere('id',$hospital['id']);
+            if ($hospital === $old) continue;
+            if ($hospital['status'] !== $old['status'] || $hospital['contact'] !== $old['contact'] || $hospital['address'] !== $old['address'] || $hospital['latitude'] !== $old['latitude'] || $hospital['longitude'] !== $old['longitude']) {
+                Hospital::where('id',$hospital['id'])->update(['accepting_requests'=>$hospital['status']==='Open','contact_no'=>$hospital['contact'],'address'=>$hospital['address'],'latitude'=>$hospital['latitude'],'longitude'=>$hospital['longitude']]);
+            }
+            $oldBeds=collect($old['beds'])->keyBy('id');
+            $newIds=[];
+            foreach ($hospital['beds'] as $bed) {
+                $newIds[]=$bed['id'];
+                if ($oldBeds->get($bed['id']) === $bed) continue;
+                CareBed::updateOrCreate(['id'=>$bed['id']],['hospital_id'=>$hospital['id'],'bed_type_id'=>$types[$bed['care']],'name'=>$bed['name'] ?? $bed['id'],'status'=>$bed['status'],'request_id'=>$bed['request_id']]);
+            }
+            $removed=array_diff(array_keys($oldBeds->all()),$newIds);
+            if ($removed) CareBed::where('hospital_id',$hospital['id'])->whereIn('id',$removed)->delete();
+            foreach ($hospital['blood'] as $group=>$units) {
+                if (array_key_exists($group,$old['blood']) && $old['blood'][$group]===$units) continue;
+                $stock=BloodInv::firstOrNew(['hospital_id'=>$hospital['id'],'blood_id'=>$bloodTypes[$group],'status'=>1]);
+                $stock->unit=$units; $stock->created_by=$stock->created_by ?? auth()->id() ?? 0; $stock->updated_by=auth()->id() ?? 0; $stock->save();
+                BloodInv::where('hospital_id',$hospital['id'])->where('blood_id',$bloodTypes[$group])->where('status',1)->where('id','!=',$stock->id)->update(['status'=>9]);
+            }
+            foreach (array_diff(array_keys($old['blood']),array_keys($hospital['blood'])) as $group) BloodInv::where('hospital_id',$hospital['id'])->where('blood_id',$bloodTypes[$group])->update(['status'=>9]);
+        }
+        $oldRequests=collect($before['requests'])->keyBy('id');
+        foreach ($after['requests'] as $request) {
+            if ($oldRequests->get($request['id']) === $request) continue;
+            CareRequest::updateOrCreate(['id'=>$request['id']],$request);
+        }
+        foreach ($after['events'] as $event) {
+            if (isset($event['id'])) continue;
+            CareEvent::create($event);
+        }
     }
 
     private function event(&$s, $message, $requestId = null)
     {
         array_unshift($s['events'], ['at'=>time(),'message'=>$message,'request_id'=>$requestId]);
-        $s['events'] = array_slice($s['events'],0,30);
+
     }
 
     private function release(&$s, $requestId)
@@ -91,9 +170,16 @@ class EmergencyBedService
                 }
             }
             $reason = $h['status'] !== 'Open' ? 'Hospital offline' : ($available+$reclaimable === 0 ? 'No '.$r['care'].' bed available' : null);
-            $matches[] = ['id'=>$h['id'],'name'=>$h['name'],'distance'=>$h['distance'],'available'=>$available,'reclaimable'=>$reclaimable,'compatible'=>$reason === null,'reason'=>$reason];
+            $distance = null;
+            if (isset($r['latitude'], $r['longitude'], $h['latitude'], $h['longitude'])) {
+                $lat = deg2rad($h['latitude'] - $r['latitude']);
+                $lng = deg2rad($h['longitude'] - $r['longitude']);
+                $a = sin($lat/2) ** 2 + cos(deg2rad($r['latitude'])) * cos(deg2rad($h['latitude'])) * sin($lng/2) ** 2;
+                $distance = round(6371 * 2 * atan2(sqrt($a), sqrt(max(0,1-$a))), 1);
+            }
+            $matches[] = ['id'=>$h['id'],'name'=>$h['name'],'distance'=>$distance,'available'=>$available,'reclaimable'=>$reclaimable,'compatible'=>$reason === null,'reason'=>$reason];
         }
-        usort($matches, function ($a,$b) { return ($b['compatible'] <=> $a['compatible']) ?: ($a['distance'] <=> $b['distance']) ?: ($b['available'] <=> $a['available']); });
+        usort($matches, function ($a,$b) { return ($b['compatible'] <=> $a['compatible']) ?: (($a['distance'] ?? PHP_INT_MAX) <=> ($b['distance'] ?? PHP_INT_MAX)) ?: ($b['available'] <=> $a['available']); });
         return $matches;
     }
 
@@ -113,9 +199,10 @@ class EmergencyBedService
         return $this->transaction(function (&$s) use ($input,$client,$ownerId) {
             $recent = array_values(array_filter($s['limits'][$client] ?? [], function ($t) { return $t > time()-60; }));
             if (count($recent) >= 5) throw new RuntimeException('Rate limit: at most 5 requests per minute. Wait before retrying.');
-            foreach ($s['requests'] as $r) if (strcasecmp($r['patient'],$input['patient']) === 0 && in_array($r['status'],['New','Pending','Reserved','Occupied'])) throw new RuntimeException('This patient already has an active request.');
-            $recent[] = time(); $s['limits'][$client] = $recent;
+            foreach ($s['requests'] as $r) if ($r['owner_id']===$ownerId && strcasecmp($r['patient'],$input['patient']) === 0 && in_array($r['status'],['New','Pending','Reserved','Occupied'])) throw new RuntimeException('This patient already has an active request.');
+            RateLimiter::hit('care-request-'.$ownerId,60);
             $r = $input + ['id'=>bin2hex(random_bytes(6)),'owner_id'=>$ownerId,'verified'=>false,'status'=>'New','created_at'=>time(),'expires_at'=>null,'hospital_id'=>null,'bed_id'=>null];
+            $r['bed_type_id']=bedtype::where('name',$input['care'])->where('status',1)->value('id');
             $s['requests'][] = $r; $this->event($s, $r['patient'].' submitted a '.$r['care'].' request. Severity awaits verification.',$r['id']);
             return $r['id'];
         });
@@ -181,5 +268,89 @@ class EmergencyBedService
         });
     }
 
-    public function reset() { return $this->transaction(function (&$s) { $s = $this->seed(); }); }
+    public function manageHospital($hospitalId, $action, $input)
+    {
+        return $this->transaction(function (&$s) use ($hospitalId, $action, $input) {
+            $index = array_search($hospitalId, array_column($s['hospitals'], 'id'), true);
+            if ($index === false) throw new RuntimeException('Hospital not found.');
+            $h =& $s['hospitals'][$index];
+            if ($action === 'discharge') {
+                $bedIndex = array_search($input['bed_id'], array_column($h['beds'], 'id'), true);
+                if ($bedIndex === false) throw new RuntimeException('This bed does not belong to your hospital.');
+                $bed =& $h['beds'][$bedIndex];
+                if ($bed['status'] !== 'Occupied') throw new RuntimeException('Only occupied beds can be discharged.');
+                $requestId = $bed['request_id'];
+                if ($requestId) {
+                    $rIndex = $this->index($s, $requestId);
+                    if ($s['requests'][$rIndex]['hospital_id'] !== $hospitalId || $s['requests'][$rIndex]['status'] !== 'Occupied') throw new RuntimeException('Patient admission does not match this hospital bed.');
+                    $s['requests'][$rIndex]['status'] = 'Discharged'; $s['requests'][$rIndex]['expires_at'] = null;
+                }
+                $bed['status'] = 'Available'; $bed['request_id'] = null;
+                $this->event($s, $h['name'].' discharged bed '.$bed['id'].'.', $requestId);
+            } elseif ($action === 'settings') {
+                if (!in_array($input['status'], ['Open','Offline'], true)) throw new RuntimeException('Invalid hospital status.');
+                $h['status'] = $input['status']; $h['contact'] = $input['contact'] ?? ''; $h['address'] = $input['address'] ?? '';
+                $h['latitude']=$input['latitude'] ?? null; $h['longitude']=$input['longitude'] ?? null;
+                $this->event($s, $h['name'].' updated its hospital settings.');
+            } else throw new RuntimeException('Unknown hospital management action.');
+            $s['events'][0]['hospital_id'] = $hospitalId;
+        });
+    }
+
+    public function inventoryCrud($hospitalId, $type, $operation, $record, $input)
+    {
+        return $this->transaction(function (&$s) use ($hospitalId, $type, $operation, $record, $input) {
+            $index = array_search($hospitalId, array_column($s['hospitals'], 'id'), true);
+            if ($index === false) throw new RuntimeException('Hospital not found.');
+            if (!in_array($operation, ['create','update','delete'], true)) throw new RuntimeException('Invalid operation.');
+            $h =& $s['hospitals'][$index];
+            if ($type === 'inventory') {
+                if ($operation !== 'delete' && (!in_array($input['care'], ['General','ICU','Ventilator'], true) || empty(trim($input['name'])))) throw new RuntimeException('Invalid bed details.');
+                $bedIndex = array_search($record, array_column($h['beds'], 'id'), true);
+                if ($operation === 'create') {
+                    if (count(array_filter($h['beds'], fn($b)=>$b['care']===$input['care'])) >= 200) throw new RuntimeException('Maximum capacity for this care type reached.');
+                    $h['beds'][] = ['id'=>$hospitalId.'-'.bin2hex(random_bytes(6)), 'name'=>$input['name'], 'care'=>$input['care'], 'status'=>'Available', 'request_id'=>null];
+                } else {
+                    if ($bedIndex === false) throw new RuntimeException('Record not found in your hospital.');
+                    if ($h['beds'][$bedIndex]['status'] !== 'Available') throw new RuntimeException('Only available beds can be edited or deleted. Discharge an occupied patient first.');
+                    if ($operation === 'delete') { unset($h['beds'][$bedIndex]); $h['beds'] = array_values($h['beds']); }
+                    else {
+                        if ($h['beds'][$bedIndex]['care'] !== $input['care'] && count(array_filter($h['beds'], fn($b)=>$b['care']===$input['care'])) >= 200) throw new RuntimeException('Maximum capacity for this care type reached.');
+                        $h['beds'][$bedIndex]['care']=$input['care']; $h['beds'][$bedIndex]['name']=$input['name'];
+                    }
+                }
+            } elseif ($type === 'blood') {
+                if ($operation !== 'create' && !array_key_exists($record, $h['blood'] ?? [])) throw new RuntimeException('Record not found in your hospital.');
+                if ($operation === 'delete') unset($h['blood'][$record]);
+                else {
+                    $group=$input['blood_type'];
+                    if (!in_array($group, ['A+','A-','B+','B-','AB+','AB-','O+','O-'], true) || (int)$input['units'] < 0 || (int)$input['units'] > 10000) throw new RuntimeException('Invalid blood stock.');
+                    if (($operation==='create' || $group!==$record) && array_key_exists($group,$h['blood'] ?? [])) throw new RuntimeException('This blood group already exists. Edit its existing record.');
+                    if ($operation==='update' && $group!==$record) unset($h['blood'][$record]);
+                    $h['blood'][$group]=(int)$input['units'];
+                }
+            } else throw new RuntimeException('Invalid inventory type.');
+            $this->event($s, $h['name'].' '.$operation.'d a '.($type==='inventory'?'bed':'blood inventory').' record.');
+            $s['events'][0]['hospital_id']=$hospitalId;
+        });
+    }
+
+    public function changeRequest($id,$ownerId,$action,$input)
+    {
+        return $this->transaction(function (&$state) use ($id,$ownerId,$action,$input) {
+            $index=$this->index($state,$id);
+            $record =& $state['requests'][$index];
+            if ($record['owner_id']!==$ownerId) throw new RuntimeException('This request belongs to another patient.');
+            if (!in_array($record['status'],['New','Released','Expired','Rejected'])) throw new RuntimeException('Allocated or completed requests cannot be edited or cancelled.');
+            if ($action==='cancel') $record['status']='Cancelled';
+            else {
+                foreach (['patient','location','care','severity','latitude','longitude'] as $field) $record[$field]=$input[$field] ?? null;
+                $record['bed_type_id']=bedtype::where('name',$input['care'])->where('status',1)->value('id');
+                $record['verified']=false;
+            }
+            $this->event($state,$record['patient'].' request '.$action.'d.',$id);
+        });
+    }
+
+
 }

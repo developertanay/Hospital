@@ -6,7 +6,7 @@ Add Hospital
 
 @section('content')
 <!--start page wrapper -->
-<div class="page-wrapper">
+<div class="page-wrapper crud-page">
 	<div class="page-content">
 		
 		<div class="row">
@@ -88,7 +88,7 @@ Add Hospital
 												<label for="single-select-clear-field" class="form-label">Status<font color="red"><b>*</b></font></label>
 												 <select class="form-select single-select-clear-field" name="status"  data-placeholder="Choose Status" required>
 													 <option value="1">Active</option>
-													 <option value="2">Inactive</option>
+													 <option value="0">Inactive</option>
 													 
 												 </select>
 											 </div>
@@ -96,7 +96,8 @@ Add Hospital
 											<button type="button" onclick="window.location='{{url($current_menu)}}'"class="btn btn-light px-4">Cancel</button>
 											<button type="submit" style="float: right;" class="btn btn-primary px-4">Submit</button>
 										</div>
-				</form>
+				@include('Hospital.location-fields')
+</form>
 					</div>
 				</div>
 			</div>

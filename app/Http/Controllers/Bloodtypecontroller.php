@@ -49,6 +49,7 @@ class Bloodtypecontroller extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate(['blood'=>'required|string|max:10|unique:blood_type,blood_type','status'=>'required|in:0,1,2']);
        $name=!empty($request->blood)?$request->blood:NULL;
         $status = !empty($request->status)?$request->status:1;
         $updated_at = date('Y-m-d H:i:s');
@@ -127,6 +128,7 @@ class Bloodtypecontroller extends Controller
     {
         $decrypted_id = Crypt::decryptString($id);
         $name = !empty($request->blood)?$request->blood:NULL;
+        $request->validate(['blood'=>['required','string','max:10',\Illuminate\Validation\Rule::unique('blood_type','blood_type')->ignore($decrypted_id)],'status'=>'required|in:0,1,2']);
         $status = !empty($request->status)?$request->status:1;
         $sequence = !empty($request->sequence)?$request->sequence:1;
         $updated_at = date('Y-m-d H:i:s');
