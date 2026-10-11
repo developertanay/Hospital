@@ -44,6 +44,7 @@ class HomeController extends Controller
      */
     public function index()
     {
+        if (\App\Support\DemoAccess::profile()) return redirect('/emergency');
 
         $auth_data = Auth::user();
         $users_id = $auth_data->id;

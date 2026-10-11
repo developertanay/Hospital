@@ -4,6 +4,9 @@
 /public/student_id_docs
 /storage/*.key
 /vendor
+/.publish-hospital*/
+/storage/app/emergency-demo.json*
+/storage/app/emergency-test-*.json*
 .env
 .env.backup
 .phpunit.result.cache

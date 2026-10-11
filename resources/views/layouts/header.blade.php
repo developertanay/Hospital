@@ -7,7 +7,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="csrf-token" content="{{ csrf_token() }}" />
 	<!--favicon-->
-	<link rel="icon" href="{{asset('assets/images/favicon-32x32.png')}}" type="image/png" />
+	<link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
 	{{--
 	<link rel="icon" href="" type="image/png" />
 	--}}
@@ -147,7 +147,7 @@
 		<div class="sidebar-wrapper" data-simplebar="true">
 			<div class="sidebar-header">
 				<div>
-					<img src="{{asset($logo)}}" class="logo-icon" alt="Org. Logo">
+					<img src="{{ asset(config('branding.logo')) }}" class="logo-icon" alt="Hospital logo">
 				</div>
 				<div>
 					<h4 class="logo-text" style="color: #3e3f94;">{{strtoupper($short_name)}}</h4>

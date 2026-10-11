@@ -7,7 +7,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!--favicon-->
-    <link rel="icon" href="assets/images/favicon-32x32.png" type="image/png" />
+    <link rel="icon" href="{{ asset(config('branding.logo')) }}" type="image/svg+xml" />
     <!--plugins-->
     <link href="assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
     <link href="assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet" />
@@ -79,7 +79,7 @@
                                     <div class="">
                                         <div class="col">
                                             <div class="mb-3 text-center">
-                                            <img src="{{asset('images/app_logo/1.jpeg')}}" width="150" alt="" />
+                                            <img src="{{ asset(config('branding.logo')) }}" width="150" alt="Hospital logo" />
                                         </div>
                                         {{--
                                             <h6 class="mb-0 text-uppercase">Please Fill the following Details</h6>

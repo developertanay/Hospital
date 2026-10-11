@@ -101,7 +101,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <img src="http://college.msell.in/public/assets/images/logos/Logo_LBC.png" alt="Logo">
+            <img src="{{ asset(config('branding.logo')) }}" alt="Logo">
         </div>
         <h1 style="text-align:center; color: #3f3f97;">FEEDBACK</h1>
         <h3 style="text-align:center; margin-top:-1rem; color: #3f3f97;">(New College Portal Workshop 22 Nov. 2023)</h3>

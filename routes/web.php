@@ -86,7 +86,7 @@ use Illuminate\Support\Facades\Route;
 
         Route::group(['middleware' => ['module_assigning']], function () {
 
-            Route::get('/', function () {
+            Route::get('/legacy-home', function () {
                 return redirect('dashboard');
             });
 
@@ -174,3 +174,10 @@ Route::get('stepform', function() {
     return view('Stepform/create');
 });
 Route::get('downloadLetterPdf/{id}', 'RequestController@downloadLetterPdf');
+
+// Focused, seeded hackathon prototype; legacy modules remain accessible.
+Route::get('/', [App\Http\Controllers\EmergencyController::class, 'index']);
+Route::get('/emergency', [App\Http\Controllers\EmergencyController::class, 'index']);
+Route::get('/emergency/state', [App\Http\Controllers\EmergencyController::class, 'state']);
+Route::post('/emergency/action', [App\Http\Controllers\EmergencyController::class, 'mutate'])->middleware('throttle:60,1');
+Route::get('/demo/{page}', [App\Http\Controllers\DemoAdminController::class, 'index'])->where('page','modules|users')->middleware('auth');

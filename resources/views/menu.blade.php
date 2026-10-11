@@ -1,5 +1,7 @@
+@if(\App\Support\DemoAccess::profile())
+    @include('demo.menu')
+@else
 <?php 
-	use App\Models\Modules;
 
 	$auth_data = Auth::user();
 
@@ -7,7 +9,7 @@
     $college_id = !empty($auth_data->college_id)?$auth_data->college_id:NULL;
     $register_type = !empty($auth_data->register_type)?$auth_data->register_type:NULL;
 
-	$module_arr = Modules::getAssignedModules($college_id, $role_id, $register_type);
+	$module_arr = \App\Models\Modules::getAssignedModules($college_id, $role_id, $register_type);
 	// dd($module_arr,12121212);
 	$parent_arr = $module_arr['parent'];
 	$child_arr = $module_arr['child'];
@@ -34,3 +36,4 @@
 		@endif
 	</li>
 @endforeach
+@endif

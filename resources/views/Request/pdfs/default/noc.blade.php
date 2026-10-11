@@ -4,7 +4,7 @@
         <div class="text-center px-5">
             <div class="d-flex align-items-center mt-4">
                 {{--
-                <img src="{{asset('assets/images/logos/Logo_RCDU.original.png')}}" style="position:absolute;width:120px; height: 120px; padding-top:45px;" alt="Ramanujan-Logo">
+                <img src="{{ public_path(config('branding.print_logo')) }}" style="position:absolute;width:120px; height: 120px; padding-top:45px;" alt="Hospital logo">
                 --}}
                 <br>
                 <h2 class="mt-5 font-weight-bold" style="font-family:ariel;line-height:3px">RAMANUJAN COLLEGE</h2>
