@@ -37,7 +37,7 @@ class _SosScreenState extends State<SosScreen> {
   @override
   void initState() {
     super.initState();
-    demo = s.role == 'driver';
+    demo = false;
     s.addListener(alerts);
     WidgetsBinding.instance.addPostFrameCallback((_) => alerts());
     tracking = Timer.periodic(
@@ -78,7 +78,7 @@ class _SosScreenState extends State<SosScreen> {
               builder: (ctx) => AlertDialog(
                 title: const Text('Start receiving SOS pickups'),
                 content: const Text(
-                  'Demo mode places a simulated ambulance near each pickup, including real GPS pickups. Keep this driver app open on another device or browser.',
+                  'Use live GPS and go on duty to appear in nearby available ambulances. Keep the driver app open for pickup alerts. Demo mode is only for simulated SOS testing.',
                 ),
                 actions: [
                   TextButton(
@@ -305,7 +305,7 @@ class _SosScreenState extends State<SosScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Demo ambulance service • foreground alerts only',
+              'Ambulance service • foreground location and alerts',
               style: TextStyle(color: _red, fontWeight: FontWeight.bold),
             ),
           ]),
@@ -502,7 +502,9 @@ class _SosScreenState extends State<SosScreen> {
           Expanded(
             child: Text(
               status == 'Searching' && !isDriver
-                  ? 'Finding your driver…'
+                  ? c['requested_driver_id'] != null
+                        ? 'Ambulance booked · awaiting confirmation'
+                        : 'Finding your driver…'
                   : status == 'Accepted' && !isDriver
                   ? 'Driver is on the way'
                   : status.toString(),
@@ -516,6 +518,10 @@ class _SosScreenState extends State<SosScreen> {
         ],
       ),
       Text('SOS ${c['id']} • ${p['name']} • ${p['age']} years'),
+      if ((c['description'] ?? '').toString().isNotEmpty)
+        Text(c['description'].toString()),
+      if (c['care_request_id'] != null)
+        Text('Care request: ${c['care_request_id']} • ${c['problem_type']}'),
       Text(
         'Pickup: ${l['lat']}, ${l['lng']} • ${l['mode'] == 'demo' ? 'DEMO LOCATION' : 'GPS'}',
       ),

@@ -53,8 +53,10 @@ class EmergencyBedService
         $bloodTypes = bloodtype::pluck('blood_type', 'id');
         $beds = CareBed::all();
         $blood = BloodInv::where('status', 1)->whereNotNull('hospital_id')->get();
+        $departments=\Illuminate\Support\Facades\Schema::hasTable('hospital_department_mapping') ? \App\Models\HospitalDepartment::with('department')->where('status',1)->whereHas('department',fn($q)=>$q->where('status',1))->get()->groupBy('hospital_id') : collect();
         foreach (Hospital::where('status', 1)->get() as $hospital) {
             $row = ['id'=>(string)$hospital->id, 'name'=>$hospital->hospital_name, 'status'=>$hospital->accepting_requests ? 'Open':'Offline', 'distance'=>null, 'latitude'=>$hospital->latitude, 'longitude'=>$hospital->longitude, 'contact'=>$hospital->contact_no, 'address'=>$hospital->address, 'beds'=>[], 'blood'=>[]];
+            $row['departments']=($departments->get($hospital->id) ?? collect())->map(fn($mapping)=>['id'=>$mapping->department_id,'name'=>$mapping->department->department_name])->values()->all();
             foreach ($beds->where('hospital_id', $hospital->id) as $bed) {
                 $row['beds'][] = ['id'=>$bed->id, 'name'=>$bed->name, 'care'=>$types[$bed->bed_type_id] ?? '', 'status'=>$bed->status, 'request_id'=>$bed->request_id];
             }
@@ -170,6 +172,7 @@ class EmergencyBedService
                 }
             }
             $reason = $h['status'] !== 'Open' ? 'Hospital offline' : ($available+$reclaimable === 0 ? 'No '.$r['care'].' bed available' : null);
+            if (!empty($r['department_id']) && !in_array((int)$r['department_id'],array_column($h['departments'],'id'),true)) $reason='Required service is not available';
             $distance = null;
             if (isset($r['latitude'], $r['longitude'], $h['latitude'], $h['longitude'])) {
                 $lat = deg2rad($h['latitude'] - $r['latitude']);
@@ -177,9 +180,9 @@ class EmergencyBedService
                 $a = sin($lat/2) ** 2 + cos(deg2rad($r['latitude'])) * cos(deg2rad($h['latitude'])) * sin($lng/2) ** 2;
                 $distance = round(6371 * 2 * atan2(sqrt($a), sqrt(max(0,1-$a))), 1);
             }
-            $matches[] = ['id'=>$h['id'],'name'=>$h['name'],'distance'=>$distance,'available'=>$available,'reclaimable'=>$reclaimable,'compatible'=>$reason === null,'reason'=>$reason];
+            $matches[] = ['preferred'=>isset($r['preferred_hospital_id']) && (string)$r['preferred_hospital_id']===$h['id'],'id'=>$h['id'],'name'=>$h['name'],'distance'=>$distance,'available'=>$available,'reclaimable'=>$reclaimable,'compatible'=>$reason === null,'reason'=>$reason];
         }
-        usort($matches, function ($a,$b) { return ($b['compatible'] <=> $a['compatible']) ?: (($a['distance'] ?? PHP_INT_MAX) <=> ($b['distance'] ?? PHP_INT_MAX)) ?: ($b['available'] <=> $a['available']); });
+        usort($matches, function ($a,$b) { return ($b['compatible'] <=> $a['compatible']) ?: ($b['preferred'] <=> $a['preferred']) ?: (($a['distance'] ?? PHP_INT_MAX) <=> ($b['distance'] ?? PHP_INT_MAX)) ?: ($b['available'] <=> $a['available']); });
         return $matches;
     }
 
@@ -196,6 +199,8 @@ class EmergencyBedService
 
     public function create($input, $client, $ownerId = null)
     {
+        if (!empty($input['problem_type']) && empty($input['assistance_preference'])) $input['assistance_preference']=$input['problem_type']==='Internal'?'Ambulance':'Hospital';
+        if (($input['assistance_preference'] ?? null)==='Ambulance') $input['preferred_hospital_id']=null;
         return $this->transaction(function (&$s) use ($input,$client,$ownerId) {
             $recent = array_values(array_filter($s['limits'][$client] ?? [], function ($t) { return $t > time()-60; }));
             if (count($recent) >= 5) throw new RuntimeException('Rate limit: at most 5 requests per minute. Wait before retrying.');
@@ -228,6 +233,7 @@ class EmergencyBedService
             $hi = null;
             foreach ($s['hospitals'] as $key=>$h) if ($h['id'] === $hospitalId) $hi = $key;
             if ($hi === null || $s['hospitals'][$hi]['status'] !== 'Open') throw new RuntimeException('Hospital unavailable.');
+            if (!empty($r['department_id']) && !in_array((int)$r['department_id'],array_column($s['hospitals'][$hi]['departments'],'id'),true)) throw new RuntimeException('This hospital does not provide the required service.');
             $bi = null;
             foreach ($s['hospitals'][$hi]['beds'] as $key=>$b) if ($b['care'] === $r['care'] && $b['status'] === 'Available') { $bi = $key; break; }
             if ($bi === null && $this->priority($r) === 3) {
@@ -264,7 +270,7 @@ class EmergencyBedService
                 $r['status'] = $action === 'accept' ? 'Reserved' : 'Occupied';
                 $r['expires_at'] = $action === 'accept' ? time()+$this->ttl : null;
             }
-            $this->event($s, $r['patient'].' → '.$r['status'].'.',$id);
+            $this->event($s, $r['patient'].' â†’ '.$r['status'].'.',$id);
         });
     }
 
@@ -345,10 +351,23 @@ class EmergencyBedService
             if ($action==='cancel') $record['status']='Cancelled';
             else {
                 foreach (['patient','location','care','severity','latitude','longitude'] as $field) $record[$field]=$input[$field] ?? null;
+                foreach (['problem_type','assistance_preference','description','preferred_hospital_id','location_captured_at','department_id'] as $field) if (array_key_exists($field,$input)) $record[$field]=$input[$field];
+                if (($record['assistance_preference'] ?? null)==='Ambulance') $record['preferred_hospital_id']=null;
                 $record['bed_type_id']=bedtype::where('name',$input['care'])->where('status',1)->value('id');
                 $record['verified']=false;
             }
             $this->event($state,$record['patient'].' request '.$action.'d.',$id);
+        });
+    }
+
+    public function updatePatientLocation($id,$ownerId,$location)
+    {
+        return $this->transaction(function(&$state) use($id,$ownerId,$location) {
+            $index=$this->index($state,$id);
+            if($state['requests'][$index]['owner_id']!==$ownerId) throw new RuntimeException('This request belongs to another patient.');
+            $state['requests'][$index]['latitude']=$location['lat'];
+            $state['requests'][$index]['longitude']=$location['lng'];
+            $state['requests'][$index]['location_captured_at']=$location['captured_at'];
         });
     }
 

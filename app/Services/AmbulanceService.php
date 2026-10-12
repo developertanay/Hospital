@@ -56,6 +56,7 @@ class AmbulanceService {
                 $this->event($r,'No driver confirmed within 10 minutes.'); continue;
             }
             if ($r['driver_id']) $busy[$r['driver_id']]=true;
+            if (!empty($r['requested_driver_id'])) $busy[$r['requested_driver_id']]=$r['id'];
         } unset($r);
         foreach ($s['calls'] as &$r) {
             if ($r['status']!=='Searching') { $r['offers']=[]; continue; }
@@ -63,7 +64,8 @@ class AmbulanceService {
             // Only an accepted trip claims a driver, under the shared exclusive lock.
             $offers=[];
             foreach ($s['drivers'] as $d) {
-                if (!$d['on_duty'] || $d['seen_at']<=$now-90 || isset($busy[$d['id']]) || in_array($d['id'],$r['skipped'],true)) continue;
+                if (!$d['on_duty'] || $d['seen_at']<=$now-90 || (isset($busy[$d['id']]) && $busy[$d['id']]!==$r['id']) || in_array($d['id'],$r['skipped'],true)) continue;
+                if (!empty($r['requested_driver_id']) && $r['requested_driver_id']!==$d['id']) continue;
                 $simulated=($d['location_mode']==='demo' && ($d['follow_pickup']??false));
                 if (!$simulated && $d['location_mode']!==$r['location']['mode']) continue;
                 if ($d['location_mode']==='gps' && ($d['location_at']??0)<=$now-120) continue;
@@ -72,7 +74,7 @@ class AmbulanceService {
                 if ($distance<=25) $offers[]=['driver_id'=>$d['id'],'distance_km'=>round($distance,2),'eta_minutes'=>$this->eta($distance),'until'=>$r['search_until'],'simulated'=>$simulated];
             }
             usort($offers,fn($a,$b)=>($a['eta_minutes']<=>$b['eta_minutes']) ?: ($a['distance_km']<=>$b['distance_km']) ?: strcmp($a['driver_id'],$b['driver_id']));
-            if (!$r['offers'] && $offers) $this->event($r,'Pickup broadcast to nearby available drivers. First confirmed acceptance wins.');
+            if (!$r['offers'] && $offers) $this->event($r,!empty($r['requested_driver_id'])?'Pickup sent to the selected ambulance driver.':'Pickup broadcast to nearby available drivers. First confirmed acceptance wins.');
             $r['offers']=$offers;
             // Compatibility fields for older clients; authorization uses the whole offer list.
             $r['offer_driver']=$offers[0]['driver_id']??null;
@@ -123,8 +125,15 @@ class AmbulanceService {
                     $r['tracking_simulated']=$r['driver']['location_mode']==='demo';
                     $r['driver_location_stale']=$r['driver']['location_mode']==='gps' && ($r['driver']['location_at']??0)<=$this->now()-120;
                 }
+                elseif (!empty($r['requested_driver_id']) && $own) {
+                    $r['driver']=$this->driver($s,$r['requested_driver_id']);
+                    $r['distance_km']=round(self::distance($r['location']['lat'],$r['location']['lng'],$r['driver']['lat'],$r['driver']['lng']),2);
+                    $r['eta_minutes']=$this->eta($r['distance_km']);
+                    $r['driver_location_stale']=($r['driver']['location_at']??0)<=$this->now()-120;
+                    $r['driver_available']=$r['driver']['on_duty'] && $r['driver']['seen_at']>$this->now()-90;
+                }
                 unset($r['offers']);
-                if ($p['role']==='driver' && !$r['driver_id']) $r['patient']=['name'=>'Emergency pickup','age'=>$r['patient']['age']];
+                if ($p['role']==='driver' && !$r['driver_id'] && empty($r['requested_driver_id'])) $r['patient']=['name'=>'Emergency pickup','age'=>$r['patient']['age']];
                 $calls[]=$r;
             }
             $drivers=$p['role']==='admin'?$s['drivers']:($p['role']==='driver'?[$this->driver($s,$p['driver'])]:[]);
@@ -159,13 +168,61 @@ class AmbulanceService {
             return ['id'=>$id,'message'=>'SOS sent. Waiting for driver confirmation.'];
         });
     }
+    private function idleOptions($s,$location) {
+        $busy=[]; $now=$this->now();
+        foreach ($s['calls'] as $call) if ($this->active($call)) {
+            if ($call['driver_id']) $busy[$call['driver_id']]=true;
+            if (!empty($call['requested_driver_id'])) $busy[$call['requested_driver_id']]=true;
+        }
+        $options=[];
+        foreach ($s['drivers'] as $driver) {
+            if (!$driver['on_duty'] || $driver['seen_at']<=$now-90 || isset($busy[$driver['id']]) || $driver['location_mode']!=='gps' || ($driver['location_at']??0)<=$now-120) continue;
+            $distance=self::distance($location['lat'],$location['lng'],$driver['lat'],$driver['lng']);
+            if ($distance>25) continue;
+            $options[]=['driver_id'=>$driver['id'],'vehicle'=>$driver['vehicle'],'category'=>$driver['category']??'',
+                'doctor_name'=>$driver['doctor_name']??'','distance_km'=>round($distance,2),'eta_minutes'=>$this->eta($distance)];
+        }
+        usort($options,fn($a,$b)=>($a['distance_km']<=>$b['distance_km']));
+        return $options;
+    }
+    public function nearby($location) {
+        return $this->transaction(function(&$s)use($location){
+            $options=$this->idleOptions($s,$location);
+            $online=array_filter($s['drivers'],fn($d)=>$d['on_duty'] && $d['seen_at']>$this->now()-90);
+            $gps=array_filter($online,fn($d)=>$d['location_mode']==='gps' && ($d['location_at']??0)>$this->now()-120);
+            return ['ambulances'=>$options,'now'=>$this->now(),'availability_message'=>$options?null:(!$online?'No drivers are on duty right now.':(!$gps?'On-duty drivers have not shared fresh live GPS. Use my GPS must be enabled in the driver app; demo vehicles cannot be booked here.':'No idle ambulance with fresh GPS is available within 25 km.'))];
+        });
+    }
+    public function book($p,$request,$driverId,$location) {
+        return $this->transaction(function(&$s) use($p,$request,$driverId,$location) {
+            if ($request->owner_id!==$p['id']) throw new RuntimeException('This care request belongs to another patient.');
+            if (in_array($request->status,['Cancelled','Occupied','Discharged'],true)) throw new RuntimeException('This care request is no longer bookable.');
+            if (abs($this->now()-$location['captured_at'])>120 || $location['mode']!=='gps') throw new RuntimeException('Get a fresh GPS location before booking.');
+            foreach($s['calls'] as $call) if($call['owner_id']===$p['id'] && $this->active($call)) throw new RuntimeException('You already have an active ambulance booking. Track or cancel it first.');
+            $profile=$s['profiles'][(string)$p['id']]??[];
+            if(!$this->completeProfile($profile)) throw new RuntimeException('Save emergency contact details before booking an ambulance.');
+            if(!in_array($driverId,array_column($this->idleOptions($s,$location),'driver_id'),true)) throw new RuntimeException('This ambulance is no longer idle or nearby. Refresh available ambulances.');
+            $id=bin2hex(random_bytes(6));
+            $call=['id'=>$id,'owner_id'=>$p['id'],'patient'=>$profile,'location'=>$location,'status'=>'Searching',
+                'created_at'=>$this->now(),'search_until'=>$this->now()+600,'offer_driver'=>null,'offer_until'=>null,'driver_id'=>null,
+                'requested_driver_id'=>$driverId,'care_request_id'=>$request->id,'description'=>$request->description,
+                'problem_type'=>$request->problem_type,'department_id'=>$request->department_id,
+                'distance_km'=>null,'skipped'=>[],'retry_at'=>$this->now()+60,'bed_request_id'=>null,'hospital_id'=>$request->hospital_id?(string)$request->hospital_id:null,'offers'=>[],'events'=>[]];
+            $this->event($call,'Selected ambulance booked. Waiting for its driver to confirm pickup.');
+            app(EmergencyBedService::class)->updatePatientLocation($request->id,$p['id'],$location);
+            $s['calls'][]=$call; $this->dispatch($s);
+            return ['id'=>$id,'message'=>'Ambulance booked. Driver confirmation pending.'];
+        });
+    }
     public function location($p,$id,$location) {
         return $this->transaction(function (&$s) use ($p,$id,$location) {
             $i=$this->index($s,$id); $r=&$s['calls'][$i];
             if ($r['owner_id']!==$p['id'] || !in_array($r['status'],['Searching','Accepted','At pickup'],true)) throw new RuntimeException('Pickup location is locked after pickup.');
             if (abs($this->now()-$location['captured_at'])>120 || $location['mode']!==$r['location']['mode']) throw new RuntimeException('Invalid pickup location update.');
             if ($r['status']==='Searching' && self::distance($r['location']['lat'],$r['location']['lng'],$location['lat'],$location['lng'])>0.1) { $r['offer_driver']=null; $r['skipped']=[]; }
-            $r['location']=$location; unset($r); $this->dispatch($s); return ['message'=>'Pickup location updated.'];
+            $r['location']=$location;
+            if(!empty($r['care_request_id'])) app(EmergencyBedService::class)->updatePatientLocation($r['care_request_id'],$p['id'],$location);
+            unset($r); $this->dispatch($s); return ['message'=>'Pickup location updated.'];
         });
     }
     public function action($p,$id,$action,$input=[],EmergencyBedService $beds=null) {
@@ -176,7 +233,7 @@ class AmbulanceService {
                 $r['status']='Cancelled'; $r['offer_driver']=null; $this->event($r,'Patient cancelled SOS.');
             } elseif (in_array($action,['accept','decline'],true)) {
                 if ($p['role']!=='driver' || $r['status']!=='Searching' || !in_array($p['driver'],array_column($r['offers'],'driver_id'),true) || $r['offer_until']<=$this->now()) throw new RuntimeException('Offer expired or belongs to another driver.');
-                if ($action==='decline') { $r['skipped'][]=$p['driver']; $r['offer_driver']=null; $this->event($r,'A driver declined. Other nearby drivers can still accept.'); }
+                if ($action==='decline') { $r['skipped'][]=$p['driver']; $r['offer_driver']=null; if(!empty($r['requested_driver_id'])) { $r['status']='Cancelled'; $this->event($r,'Selected driver declined. Choose another available ambulance.'); } else $this->event($r,'A driver declined. Other nearby drivers can still accept.'); }
                 else { $d=$this->position($this->driver($s,$p['driver']),$r); $r['driver_start']=['lat'=>$d['lat'],'lng'=>$d['lng']]; $r['accepted_at']=$this->now(); $r['pickup_eta_minutes']=$this->eta(self::distance($r['location']['lat'],$r['location']['lng'],$d['lat'],$d['lng'])); $r['driver_id']=$p['driver']; $r['offer_driver']=null; $r['status']='Accepted'; $this->event($r,'Driver accepted. Contact details shared with assigned driver.'); }
             } else {
                 if ($p['role']!=='driver' || $r['driver_id']!==$p['driver']) throw new RuntimeException('Only the assigned driver can update this trip.');
@@ -185,6 +242,7 @@ class AmbulanceService {
                     if (!in_array($r['status'],['Picked up','First aid','Transporting'],true)) throw new RuntimeException('Pick up the patient before hospital transfer.');
                     if (!$beds) throw new RuntimeException('Hospital service unavailable.');
                     $care=$input['care']; $hospital=$input['hospital_id'];
+                    if (!$r['bed_request_id'] && !empty($r['care_request_id'])) $r['bed_request_id']=$r['care_request_id'];
                     if (!$r['bed_request_id']) $r['bed_request_id']=$beds->create(['patient'=>$r['patient']['name'].' [SOS '.$r['id'].']','location'=>'SOS GPS '.$r['location']['lat'].', '.$r['location']['lng'],'latitude'=>$r['location']['lat'],'longitude'=>$r['location']['lng'],'severity'=>'Critical','care'=>$care],'sos:'.$r['owner_id'],$r['owner_id']);
                     $record=collect($beds->state()['requests'])->firstWhere('id',$r['bed_request_id']);
                     if ($record['care']!==$care) throw new RuntimeException('Use the original care type for this linked hospital request.');

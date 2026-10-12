@@ -9,10 +9,12 @@ import 'package:http/testing.dart';
 import 'package:careroute/api.dart';
 import 'package:careroute/app.dart';
 import 'package:careroute/session.dart';
+import 'package:careroute/care_choices.dart';
 
 class FakeSession extends Session {
   Map<String, dynamic>? submitted;
-  FakeSession() : super(api: CareApi('http://localhost/api/mobile')) {
+  FakeSession({CareApi? api})
+    : super(api: api ?? CareApi('http://localhost/api/mobile')) {
     online = true;
     loading = false;
   }
@@ -24,6 +26,188 @@ class FakeSession extends Session {
 }
 
 void main() {
+  testWidgets(
+    'Internal request exposes choose ambulance even when patient GPS is missing',
+    (tester) async {
+      final api = CareApi(
+        'http://localhost/api/mobile',
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode({
+              'ambulances': [],
+              'availability_message':
+                  'On-duty drivers have not shared fresh live GPS.',
+            }),
+            200,
+          ),
+        ),
+      )..token = 'test-token';
+      final session = FakeSession(api: api);
+      session.state = {
+        'profile': {'role': 'patient'},
+        'capabilities': ['create', 'request'],
+        'requests': [
+          {
+            'id': 'internal-no-gps',
+            'patient': 'Patient',
+            'problem_type': 'Internal',
+            'assistance_preference': 'Ambulance',
+            'status': 'New',
+            'location': 'Home',
+            'care': 'General',
+            'severity': 'Urgent',
+            'priority': 1,
+            'verified': false,
+            'matches': [],
+          },
+        ],
+        'events': [],
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RequestDetail(session: session, id: 'internal-no-gps'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Choose ambulance'), findsOneWidget);
+      await tester.tap(find.text('Choose ambulance'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Use current location to find ambulances'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('On-duty drivers have not shared fresh live GPS.'),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+      api.client.close();
+    },
+  );
+  testWidgets(
+    'Ambulance choices load when the previous action stops being busy',
+    (tester) async {
+      var requests = 0;
+      final api = CareApi(
+        'http://localhost/api/mobile',
+        client: MockClient((request) async {
+          requests++;
+          return http.Response(jsonEncode({'ambulances': []}), 200);
+        }),
+      );
+      final session = FakeSession(api: api)..busy = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AmbulanceChoices(
+              session: session,
+              request: {'id': 'care', 'problem_type': 'Internal'},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(requests, 0);
+      session.busy = false;
+      session.notifyListeners();
+      await tester.pumpAndSettle();
+      expect(requests, 1);
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+      api.client.close();
+    },
+  );
+  testWidgets(
+    'Idle ambulance choices show vehicle, distance and ETA before booking',
+    (tester) async {
+      final api = CareApi(
+        'http://localhost/api/mobile',
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode({
+              'ambulances': [
+                {
+                  'driver_id': 'driver-1',
+                  'vehicle': 'TESTAMB001',
+                  'category': 'Basic Life Support',
+                  'doctor_name': 'Test Doctor',
+                  'distance_km': 1.2,
+                  'eta_minutes': 4,
+                },
+              ],
+            }),
+            200,
+          ),
+        ),
+      );
+      final session = FakeSession(api: api);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: AmbulanceChoices(
+                session: session,
+                request: {'id': 'care-1', 'problem_type': 'Internal'},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Ambulance · recommended first'), findsOneWidget);
+      expect(find.text('TESTAMB001'), findsOneWidget);
+      expect(find.text('1.2 km · estimated arrival 4 min'), findsOneWidget);
+      expect(find.text('Doctor: Test Doctor'), findsOneWidget);
+      expect(find.text('Book this ambulance'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+      api.client.close();
+    },
+  );
+  testWidgets(
+    'External problems suggest hospital and allow changing to ambulance',
+    (tester) async {
+      final session = FakeSession();
+      session.state = {
+        'profile': {'role': 'patient'},
+        'care_types': ['ICU'],
+        'capabilities': ['create', 'request'],
+        'hospitals': [
+          {'id': '1', 'name': 'Test Hospital'},
+        ],
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RequestForm(session: session, onCreated: (_) {}),
+          ),
+        ),
+      );
+      final problem = find.byType(DropdownButtonFormField<String>).at(0);
+      await tester.ensureVisible(problem);
+      await tester.tap(problem);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('External — accident, injury').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Preferred hospital'), findsOneWidget);
+      final assistance = find.byType(DropdownButtonFormField<String>).at(1);
+      await tester.ensureVisible(assistance);
+      await tester.tap(assistance);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ambulance').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Preferred hospital'), findsNothing);
+      expect(
+        find.text(
+          'Next: compare nearby idle ambulances and hospitals that provide your required service. Both options remain available.',
+        ),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+    },
+  );
   testWidgets(
     'Confirmed requests show the assigned bed instead of rejecting their own held bed',
     (tester) async {
@@ -188,22 +372,38 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: RequestForm(session: session, onCreated: (id) => created = id),
+          body: RequestForm(
+            session: session,
+            onCreated: (id) => created = id,
+            locationProvider: () async => {
+              'lat': 28.6,
+              'lng': 77.2,
+              'accuracy': 5,
+              'captured_at': 1000,
+              'mode': 'gps',
+            },
+          ),
         ),
       ),
     );
-    await tester.ensureVisible(find.text('Submit emergency request'));
+    await tester.ensureVisible(find.text('Continue to ambulance selection'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Submit emergency request'));
+    await tester.tap(find.text('Continue to ambulance selection'));
     await tester.pump();
     expect(session.submitted, isNull);
     expect(find.text('Enter the patient name or ID'), findsOneWidget);
     expect(find.text('Enter the current location'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField).at(0), 'Daniel');
     await tester.enterText(find.byType(TextFormField).at(1), 'Accident Site');
-    await tester.ensureVisible(find.text('Submit emergency request'));
+    await tester.enterText(
+      find.byType(TextFormField).at(2),
+      'Pain started this morning',
+    );
+    tester.testTextInput.hide();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Submit emergency request'));
+    await tester.ensureVisible(find.text('Continue to ambulance selection'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue to ambulance selection'));
     await tester.pump();
     expect(session.submitted, {
       'action': 'create',
@@ -211,6 +411,14 @@ void main() {
       'location': 'Accident Site',
       'severity': 'Urgent',
       'care': 'ICU',
+      'problem_type': 'Internal',
+      'assistance_preference': 'Ambulance',
+      'description': 'Pain started this morning',
+      'preferred_hospital_id': null,
+      'department_id': null,
+      'latitude': 28.6,
+      'longitude': 77.2,
+      'location_captured_at': 1000,
     });
     expect(created, 'test-request');
     await tester.pumpWidget(const SizedBox());
@@ -226,7 +434,7 @@ void main() {
       ),
     );
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Submit emergency request'),
+      find.widgetWithText(FilledButton, 'Continue to ambulance selection'),
     );
     expect(button.onPressed, isNull);
     await tester.pumpWidget(const SizedBox());

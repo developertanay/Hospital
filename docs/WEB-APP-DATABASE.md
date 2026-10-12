@@ -2,6 +2,8 @@
 
 The running backend is Laravel 8/PHP in XAMPP, using the existing MySQL `colleges` database at `localhost:3306`. Its configuration stays in `.env`; database credentials are never built into Android. The Flutter app calls Laravel's `/api/mobile` API. Web sessions and mobile Sanctum tokens authenticate against the same `users` rows and hashed passwords.
 
+Request Care saves `problem_type` (Internal/External), `assistance_preference`, `preferred_hospital_id`, `department_id`, `description` and `location_captured_at` alongside coordinates. Apply migrations 000010 and 000011 on other installations. Internal requests show nearest idle ambulance booking first; External requests show service-compatible hospital beds first. Both options remain available. Selected ambulance bookings reserve one driver under the SQL dispatch lock until acceptance, cancellation, decline, completion or expiry. The booking's `care_request_id` is stored in the existing SQL trip payload, and transport reuses that request. Only the chosen driver receives a selected booking, and only the chosen hospital sees a bed booking. Live pickup updates also refresh linked care coordinates. See [the demo guide](CARE-BOOKING-DEMO.md).
+
 ## Data and responsibilities
 
 | Area | Shared SQL tables | Access |

@@ -68,7 +68,7 @@ class EmergencyController extends Controller
         }
         if ($p['role']==='hospital') {
             $state['hospitals']=array_values(array_filter($state['hospitals'],fn($h)=>$h['id']===$p['hospital']));
-            $state['requests']= $p['hospital'] ? array_values(array_filter($state['requests'],fn($r)=>($page==='approvals' && $r['status']==='New') || $r['hospital_id']===$p['hospital'])) : [];
+            $state['requests']= $p['hospital'] ? array_values(array_filter($state['requests'],fn($r)=>$r['hospital_id']===$p['hospital'])) : [];
         }
         if ($p['role']!=='admin') {
             $visibleIds=array_column($state['requests'],'id');
@@ -102,6 +102,7 @@ class EmergencyController extends Controller
     private function mobileState($p, EmergencyBedService $service)
     {
         $base=['profile'=>$p,'operator'=>RoleAccess::operator(),'care_types'=>$service->careTypes(),
+            'departments'=>\App\Models\Department::where('status',1)->orderBy('department_name')->get(['id','department_name'])->toArray(),
             'requests'=>[],'hospitals'=>[],'events'=>[],'capabilities'=>[]];
         if (in_array($p['role'],['admin','driver'],true)) return response()->json($base)->header('Cache-Control','no-store, private');
         $requestAccess=RoleAccess::canPage($p['role']==='hospital'?'approvals':'requests');
@@ -111,7 +112,7 @@ class EmergencyController extends Controller
         $s=$service->state();
         $requests=array_values(array_filter($s['requests'],fn($r)=>$p['role']==='patient'
             ? ($r['owner_id']??null)===$p['id']
-            : ($p['hospital'] && ($r['status']==='New' || $r['hospital_id']===$p['hospital']))));
+            : ($p['hospital'] && $r['hospital_id']===$p['hospital'])));
         if ($requestAccess || $reservationAccess) {
             foreach ($requests as &$r) { unset($r['client'],$r['owner_id']); if (!$requestAccess) unset($r['matches']); }
             unset($r); $base['requests']=$requests;
@@ -143,7 +144,7 @@ class EmergencyController extends Controller
         try {
             if ($action === 'create') {
                 if ($profile['role']==='hospital') return response()->json(['message'=>'Use the Patient login to submit emergencies.'],403);
-                $input = $request->validate(['patient'=>'required|string|max:80','location'=>'required|string|max:120','severity'=>'required|in:Critical,Urgent,Stable','care'=>['required',\Illuminate\Validation\Rule::in($service->careTypes())], 'latitude'=>'nullable|numeric|between:-90,90|required_with:longitude','longitude'=>'nullable|numeric|between:-180,180|required_with:latitude']);
+                $input = $request->validate(['patient'=>'required|string|max:80','location'=>'required|string|max:120','severity'=>'required|in:Critical,Urgent,Stable','care'=>['required',\Illuminate\Validation\Rule::in($service->careTypes())], 'latitude'=>'nullable|numeric|between:-90,90|required_with:longitude','longitude'=>'nullable|numeric|between:-180,180|required_with:latitude'] + \App\Models\CareRequest::detailRules());
                 $id = $service->create($input, hash('sha256',$request->ip()),$profile['id']);
                 return response()->json(['id'=>$id,'message'=>'Request created. Operator verification required for elevated priority.']);
             } elseif ($action === 'request') {
@@ -158,7 +159,7 @@ class EmergencyController extends Controller
                     $request->validate(['id'=>'required|string|max:32']);
                     $record=collect($service->state()['requests'])->firstWhere('id',$request->id);
                     if (!$record) return response()->json(['message'=>'Request not found.'],404);
-                    if ($profile['role']==='hospital' && !(($action==='verify' && $record['status']==='New') || $record['hospital_id']===$profile['hospital'])) return response()->json(['message'=>'This request belongs to another hospital.'],403);
+                    if ($profile['role']==='hospital' && $record['hospital_id']!==$profile['hospital']) return response()->json(['message'=>'This request belongs to another hospital.'],403);
                     if ($action === 'verify') { $request->validate(['severity'=>'required|in:Critical,Urgent,Stable']); $service->verify($request->id,$request->severity,$profile['hospital']); }
                     else $service->action($request->id,$action,$profile['hospital']);
                 }

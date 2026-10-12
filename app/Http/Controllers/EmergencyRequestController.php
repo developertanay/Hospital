@@ -13,10 +13,10 @@ class EmergencyRequestController extends Controller
     public function index() { return app(EmergencyController::class)->index('requests'); }
     public function create() { return $this->form(new CareRequest); }
     public function edit($id) { return $this->form(CareRequest::where('owner_id',auth()->id())->findOrFail($id)); }
-    private function form($record) { if ($record->exists) $record->care=$record->type->name ?? $record->care; $careTypes=app(EmergencyBedService::class)->careTypes(); return view('requests.form',compact('record','careTypes')); }
+    private function form($record) { if ($record->exists) $record->care=$record->type->name ?? $record->care; $careTypes=app(EmergencyBedService::class)->careTypes(); $hospitals=\App\Models\Hospital::where('status',1)->orderBy('hospital_name')->get(); return view('requests.form',compact('record','careTypes','hospitals')); }
     private function validateInput(Request $request)
     {
-        return $request->validate(['patient'=>'required|string|max:80','location'=>'required|string|max:120','severity'=>'required|in:Critical,Urgent,Stable','care'=>['required',Rule::in(app(EmergencyBedService::class)->careTypes())],'latitude'=>'nullable|numeric|between:-90,90|required_with:longitude','longitude'=>'nullable|numeric|between:-180,180|required_with:latitude']);
+        return $request->validate(['patient'=>'required|string|max:80','location'=>'required|string|max:120','severity'=>'required|in:Critical,Urgent,Stable','care'=>['required',Rule::in(app(EmergencyBedService::class)->careTypes())],'latitude'=>'nullable|numeric|between:-90,90|required_with:longitude','longitude'=>'nullable|numeric|between:-180,180|required_with:latitude'] + \App\Models\CareRequest::detailRules());
     }
     public function store(Request $request)
     {

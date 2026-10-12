@@ -1,3 +1,11 @@
+import 'care_choices.dart';
+
+import 'dart:async';
+
+import 'package:geolocator/geolocator.dart';
+
+import 'location.dart';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -408,7 +416,12 @@ class _HomeState extends State<Home> {
     final ambulance = ['patient', 'driver', 'admin'].contains(s.role);
     final pages = <Widget>[
       if (ambulance) SosScreen(session: s, openBed: open),
-      if (patient) RequestForm(session: s, onCreated: open),
+      if (patient)
+        RequestForm(
+          session: s,
+          onCreated: open,
+          onAmbulance: () => setState(() => tab = 0),
+        ),
       if (['patient', 'hospital'].contains(s.role))
         Queue(session: s, open: open),
       if (['patient', 'hospital'].contains(s.role)) Hospitals(session: s),
@@ -493,10 +506,14 @@ class _HomeState extends State<Home> {
 class RequestForm extends StatefulWidget {
   final Session session;
   final void Function(String) onCreated;
+  final VoidCallback? onAmbulance;
+  final Future<Map<String, dynamic>> Function()? locationProvider;
   const RequestForm({
     super.key,
     required this.session,
     required this.onCreated,
+    this.onAmbulance,
+    this.locationProvider,
   });
   @override
   State<RequestForm> createState() => _RequestFormState();
@@ -504,7 +521,82 @@ class RequestForm extends StatefulWidget {
 
 class _RequestFormState extends State<RequestForm> {
   final form = GlobalKey<FormState>();
-  final patient = TextEditingController(), location = TextEditingController();
+  final patient = TextEditingController(),
+      location = TextEditingController(),
+      description = TextEditingController();
+  String problemType = 'Internal', assistance = 'Ambulance';
+  String? preferredHospital, department;
+  Map<String, dynamic>? gps;
+  StreamSubscription<Position>? locationStream;
+  String locationStatus = 'Share live GPS while this form is open.';
+  bool locating = false;
+  bool gpsLabel = false;
+  Future<void> shareLocation() async {
+    setState(() {
+      locating = true;
+      locationStatus = 'Getting live GPS…';
+    });
+    try {
+      final current =
+          await (widget.locationProvider?.call() ?? PickupLocation.current());
+      if (!mounted) return;
+      setState(() {
+        gps = current;
+        locationStatus = 'Live GPS captured';
+        gpsLabel = location.text.isEmpty || gpsLabel;
+        if (gpsLabel) {
+          location.text = 'GPS ${current['lat']}, ${current['lng']}';
+        }
+      });
+      if (widget.locationProvider != null) return;
+      await locationStream?.cancel();
+      locationStream =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5,
+            ),
+          ).listen(
+            (position) {
+              if (!mounted) return;
+              if (position.accuracy > 200) return;
+              setState(() {
+                gps = {
+                  'lat': position.latitude,
+                  'lng': position.longitude,
+                  'captured_at':
+                      position.timestamp.millisecondsSinceEpoch ~/ 1000,
+                };
+                locationStatus =
+                    'Live GPS updated ${position.timestamp.toLocal()}';
+                if (gpsLabel) {
+                  location.text =
+                      'GPS ${position.latitude}, ${position.longitude}';
+                }
+              });
+            },
+            onError: (Object error) {
+              if (mounted) {
+                setState(() {
+                  gps = null;
+                  locationStatus =
+                      'GPS unavailable. Retry or enter location manually.';
+                });
+              }
+            },
+          );
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          gps = null;
+          locationStatus = error.toString();
+        });
+      }
+    } finally {
+      if (mounted) setState(() => locating = false);
+    }
+  }
+
   String severity = 'Urgent', care = 'ICU';
   String get selectedCare => widget.session.careTypes.contains(care)
       ? care
@@ -515,6 +607,8 @@ class _RequestFormState extends State<RequestForm> {
   void dispose() {
     patient.dispose();
     location.dispose();
+    description.dispose();
+    locationStream?.cancel();
     super.dispose();
   }
 
@@ -547,6 +641,7 @@ class _RequestFormState extends State<RequestForm> {
             const SizedBox(height: 10),
             TextFormField(
               controller: location,
+              onChanged: (_) => gpsLabel = false,
               maxLength: 120,
               decoration: const InputDecoration(
                 labelText: 'Current location',
@@ -557,6 +652,125 @@ class _RequestFormState extends State<RequestForm> {
                   v!.trim().isEmpty ? 'Enter the current location' : null,
             ),
             const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: problemType,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Problem type'),
+              items: const [
+                DropdownMenuItem(
+                  value: 'Internal',
+                  child: Text('Internal — appendix, heart problems'),
+                ),
+                DropdownMenuItem(
+                  value: 'External',
+                  child: Text('External — accident, injury'),
+                ),
+              ],
+              onChanged: (value) => setState(() {
+                problemType = value!;
+                assistance = value == 'Internal' ? 'Ambulance' : 'Hospital';
+              }),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              key: ValueKey(assistance),
+              isExpanded: true,
+              initialValue: assistance,
+              decoration: const InputDecoration(
+                labelText: 'Preferred assistance (change if needed)',
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Ambulance', child: Text('Ambulance')),
+                DropdownMenuItem(value: 'Hospital', child: Text('Hospital')),
+              ],
+              onChanged: (value) => setState(() => assistance = value!),
+            ),
+            if (assistance == 'Hospital') ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: preferredHospital,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Preferred hospital',
+                ),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Recommend a suitable hospital'),
+                  ),
+                  ...widget.session.hospitals
+                      .where(
+                        (h) =>
+                            h['status'] == 'Open' &&
+                            (department == null ||
+                                (h['departments'] as List? ?? []).any(
+                                  (d) => d['id'].toString() == department,
+                                )) &&
+                            (h['beds'] as List? ?? []).any(
+                              (b) =>
+                                  b['care'] == selectedCare &&
+                                  b['status'] == 'Available',
+                            ),
+                      )
+                      .map(
+                        (h) => DropdownMenuItem(
+                          value: h['id'].toString(),
+                          child: Text(h['name'].toString()),
+                        ),
+                      ),
+                ],
+                onChanged: (value) => setState(() => preferredHospital = value),
+              ),
+              const Text(
+                'You can choose another hospital in recommendations. This does not reserve a bed.',
+              ),
+            ],
+            const SizedBox(height: 12),
+            const Text(
+              'Next: compare nearby idle ambulances and hospitals that provide your required service. Both options remain available.',
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: description,
+              maxLength: 2000,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Problem description',
+                hintText: 'Symptoms or injuries and when they started',
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: locating ? null : shareLocation,
+              icon: const Icon(Icons.my_location),
+              label: const Text('Share live location'),
+            ),
+            Text(locationStatus),
+            const SizedBox(height: 16),
+            if ((widget.session.state?['departments'] as List? ?? [])
+                .isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                initialValue: department,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Required service / department',
+                ),
+                items: (widget.session.state!['departments'] as List)
+                    .map(
+                      (d) => DropdownMenuItem(
+                        value: d['id'].toString(),
+                        child: Text(d['department_name'].toString()),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() {
+                  department = value;
+                  preferredHospital = null;
+                }),
+                validator: (value) =>
+                    value == null ? 'Select the service you need' : null,
+              ),
+              const SizedBox(height: 16),
+            ],
             DropdownButtonFormField<String>(
               initialValue: severity,
               decoration: const InputDecoration(labelText: 'Severity'),
@@ -596,23 +810,47 @@ class _RequestFormState extends State<RequestForm> {
                   : () async {
                       if (!form.currentState!.validate()) return;
                       try {
+                        if (gps == null) await shareLocation();
+                        if (!mounted || !context.mounted) return;
+                        if (gps == null) {
+                          notice(context, locationStatus);
+                          return;
+                        }
                         final result = await widget.session.action({
                           'action': 'create',
                           'patient': patient.text.trim(),
                           'location': location.text.trim(),
                           'severity': severity,
                           'care': selectedCare,
+                          'problem_type': problemType,
+                          'department_id': department,
+                          'assistance_preference': assistance,
+                          'description': description.text.trim(),
+                          'preferred_hospital_id': assistance == 'Hospital'
+                              ? preferredHospital
+                              : null,
+                          if (gps != null) 'latitude': gps!['lat'],
+                          if (gps != null) 'longitude': gps!['lng'],
+                          if (gps != null)
+                            'location_captured_at': gps!['captured_at'],
                         });
                         if (!mounted) return;
                         patient.clear();
                         location.clear();
+                        description.clear();
+                        await locationStream?.cancel();
+                        gps = null;
                         widget.onCreated(result['id'] as String);
                       } catch (e) {
                         if (context.mounted) notice(context, e);
                       }
                     },
               icon: const Icon(Icons.send_outlined),
-              label: const Text('Submit emergency request'),
+              label: Text(
+                problemType == 'Internal'
+                    ? 'Continue to ambulance selection'
+                    : 'Continue to hospital options',
+              ),
             ),
           ],
         ),
@@ -740,6 +978,11 @@ class Queue extends StatelessWidget {
                       ],
                     ),
                     Text('${r['care']} • ${r['location']}'),
+                    Text(
+                      '${r['problem_type'] ?? 'Not specified'} • Preferred: ${r['assistance_preference'] ?? 'Hospital'}',
+                    ),
+                    if ((r['description'] ?? '').toString().isNotEmpty)
+                      Text(r['description'].toString()),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -847,6 +1090,37 @@ class RequestDetail extends StatelessWidget {
                 subtitle: '${r['location']}\n${r['care']} care • Request #$id',
                 icon: Icons.medical_information_outlined,
               ),
+              if (session.role == 'patient' &&
+                  (r['problem_type'] == 'Internal' ||
+                      r['assistance_preference'] == 'Ambulance') &&
+                  ![
+                    'Cancelled',
+                    'Discharged',
+                    'Occupied',
+                  ].contains(status)) ...[
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: const Text('Choose ambulance')),
+                        body: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            AmbulanceChoices(session: session, request: r),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.emergency_outlined),
+                  label: const Text('Choose ambulance'),
+                ),
+                const Text(
+                  'Recommended for Internal cases. See nearest available vehicles, estimated arrival and booking here.',
+                ),
+              ],
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
@@ -856,6 +1130,13 @@ class RequestDetail extends StatelessWidget {
                   badge('Priority ${r['priority']}'),
                 ],
               ),
+              Text(
+                '${r['problem_type'] ?? 'Not specified'} • Preferred: ${r['assistance_preference'] ?? 'Hospital'}',
+              ),
+              if ((r['description'] ?? '').toString().isNotEmpty)
+                Text(r['description'].toString()),
+              if (r['latitude'] != null && r['longitude'] != null)
+                Text('Patient GPS: ${r['latitude']}, ${r['longitude']}'),
               Text(
                 r['verified'] == true
                     ? 'Severity verified by a hospital operator.'
@@ -948,8 +1229,10 @@ class RequestDetail extends StatelessWidget {
                 ),
               const Divider(height: 32),
               if (showRecommendations) ...[
-                const Text(
-                  'Hospital recommendations',
+                Text(
+                  r['problem_type'] == 'Internal'
+                      ? 'Hospital bed · another option'
+                      : 'Hospital recommendations',
                   style: TextStyle(
                     fontSize: 21,
                     color: navy,
@@ -961,7 +1244,15 @@ class RequestDetail extends StatelessWidget {
                   'Required care and an open hospital are mandatory. Distance uses saved coordinates when provided.',
                 ),
                 const SizedBox(height: 12),
-                for (final m in (r['matches'] as List))
+                if ((r['matches'] as List)
+                    .where((m) => m['compatible'] == true)
+                    .isEmpty)
+                  const Text(
+                    'No hospital currently has the required service and available bed. Try ambulance assistance or refresh.',
+                  ),
+                for (final m in (r['matches'] as List).where(
+                  (m) => m['compatible'] == true,
+                ))
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -987,6 +1278,8 @@ class RequestDetail extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          if (m['preferred'] == true)
+                            const Text('Your preferred hospital'),
                           Text(
                             '${r['care']}: ${m['available']} available${m['reclaimable'] != 0 ? ' • ${m['reclaimable']} temporary holds eligible for reassignment' : ''}',
                           ),
@@ -1019,6 +1312,14 @@ class RequestDetail extends StatelessWidget {
                   ),
                 const Divider(height: 32),
               ],
+              if (session.role == 'patient' &&
+                  r['problem_type'] == 'External' &&
+                  !['Cancelled', 'Discharged', 'Occupied'].contains(status))
+                AmbulanceChoices(
+                  key: ValueKey('ambulance-$id'),
+                  session: session,
+                  request: r,
+                ),
               const Text(
                 'Request activity',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

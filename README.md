@@ -19,6 +19,12 @@ Master data uses MVC models and resource controllers. Ambulance records include 
 
 Hospital bed inventory uses individual beds with database-defined care types. Any active bed type can be added; inactive types are rejected. Only available beds can be edited or deleted. Hospital recommendations use stored coordinates, compatible care and availability. Allocation and dispatch use SQL transactions and coordination locks.
 
+Request Care captures the Internal/External problem type, description, required service/department and foreground GPS. After submission, Internal requests show ambulance booking first and hospital beds as another option; External requests show hospital beds first and ambulance pickup as another option. Both can be booked on the same care request.
+
+The ambulance list shows only on-duty drivers with fresh real GPS, within 25 km, without an accepted trip or selected pending booking. It is ordered by distance and shows vehicle, category, available doctor information and estimated arrival. Selecting **Book this ambulance** reserves that driver atomically and notifies only that driver; driver confirmation is still required. Patient and driver share booking status and pickup GPS, and the patient sees driver contact, distance and ETA. Declining, cancelling, completing or expiring a booking releases the ambulance. Test/demo GPS drivers do not appear in this real-GPS list.
+
+Hospital options require an active service mapping, accepting hospital and compatible available bed. Incompatible hospitals are hidden in the app and rejected by the backend even if a crafted request names them. Booking reaches only the selected hospital, which verifies severity and accepts the reservation. A driver transporting a patient reuses the patient's existing care/bed request. Saving an unbooked form does not broadcast patient details to hospitals. Browser GPS requires localhost or HTTPS and location permission.
+
 ## Database structure
 
 The installed database is `colleges` at `localhost:3306`. Existing hospital and account records are reused.
@@ -68,6 +74,8 @@ C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_00000
 C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000007_create_ambulance_details.php
 C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000008_preserve_mobile_driver_accounts.php
 C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000009_create_sql_ambulance_dispatch.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000010_add_request_care_details.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000011_add_care_request_department.php
 C:\xampp\php\php.exe artisan optimize:clear
 C:\xampp\php\php.exe artisan storage:link
 ```
@@ -100,7 +108,7 @@ Dedicated test roles have the needed clinical modules without changing existing 
 
 ## Android APK and connection
 
-Install [Hospital-Test.apk](deliverables/Hospital-Test.apk). App name: **CareRoute**, version **1.3.0 (4)**. The debug-signed APK supports Android 7.0+ (API 24), ARM32, ARM64 and x86_64; size is approximately 154 MiB.
+Install [Hospital-Test.apk](deliverables/Hospital-Test.apk). App name: **CareRoute**, version **1.4.1 (7)**. The debug-signed APK supports Android 7.0+ (API 24), ARM32, ARM64 and x86_64; size is approximately 154 MiB.
 
 Keep Apache/MySQL running and connect phone and PC to the same Wi-Fi. In the app's **Server connection**, set the Laravel API address:
 
@@ -111,7 +119,7 @@ Keep Apache/MySQL running and connect phone and PC to the same Wi-Fi. In the app
 
 `10.9.4.134` was the PC's Wi-Fi address when the APK was built; update it if the address changes. Check `/api/mobile/health` in the phone browser before logging in. `localhost` on a phone refers to the phone itself.
 
-The latest bed-type saving fix is on the backend; the existing APK can use it without rebuilding. APK signature and checksum details are in [deliverables/README.md](deliverables/README.md).
+Version 1.4.1 includes nearest idle ambulance booking, driver details/ETA, pickup tracking and hospital options filtered by the required service. Install this updated APK and follow [the booking demo guide](docs/CARE-BOOKING-DEMO.md). APK signature and checksum details are in [deliverables/README.md](deliverables/README.md).
 
 ### Rebuild the test APK
 
@@ -125,12 +133,14 @@ The output is copied to `deliverables/Hospital-Test.apk`. See [mobile setup](mob
 
 ## Verification and test flow
 
-Verified during implementation: all five actual Apache web/API logins, 50 shared-database API checks, 24 installed-database workflow checks, 40 isolated bed workflow checks, six dynamic bed CRUD checks, Flutter analysis and 12 Flutter UI tests. Installed-database smoke checks roll back their workflow changes; the HTTP login check revokes its issued test tokens.
+Verified during implementation: all five actual Apache web/API logins, 50 shared-database API checks, 24 installed-database workflow checks, 40 isolated bed workflow checks, six dynamic bed CRUD checks, 13 Request Care detail checks, 30 care booking checks, Flutter analysis and 16 Flutter UI tests. Installed-database smoke checks roll back their workflow changes; the HTTP login check revokes its issued test tokens.
 
 Useful checks from the project root:
 
 ```powershell
 C:\xampp\php\php.exe tests/dynamic-bed-crud-smoke.php
+C:\xampp\php\php.exe tests/request-care-details-smoke.php
+C:\xampp\php\php.exe tests/care-booking-flow-smoke.php
 C:\xampp\php\php.exe tests/database-smoke.php
 C:\xampp\php\php.exe tests/shared-database-api-smoke.php
 .\tests\shared-logins-http.ps1
@@ -156,5 +166,6 @@ A physical phone installation has not been tested. GPS runs in the foreground an
 
 - [Shared web/app database and architecture](docs/WEB-APP-DATABASE.md)
 - [Test accounts and login flow](docs/TEST-ACCOUNTS.md)
+- [Internal/External booking demonstration](docs/CARE-BOOKING-DEMO.md)
 - [Flutter client](mobile/careroute/README.md)
 - [APK metadata and checksum](deliverables/README.md)

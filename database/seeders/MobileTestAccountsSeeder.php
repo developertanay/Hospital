@@ -23,6 +23,10 @@ class MobileTestAccountsSeeder extends Seeder
                 'latitude'=>28.6139,'longitude'=>77.2090,
             ]);
             $roles=[];
+            foreach(['General Medicine','Emergency Medicine'] as $name) {
+                $department=\App\Models\Department::firstOrCreate(['department_name'=>$name],['status'=>1,'college_id'=>1]);
+                \App\Models\HospitalDepartment::firstOrCreate(['hospital_id'=>$hospital->id,'department_id'=>$department->id],['status'=>1]);
+            }
             foreach (['patient'=>'Patient Test','hospital'=>'Hospital Test','driver'=>'Driver Test'] as $type=>$name) {
                 $role=DB::table('role_mast')->where('name',$name)->where('college_id',1)->first();
                 $roles[$type]=$role ? $role->id : DB::table('role_mast')->insertGetId(['name'=>$name,'college_id'=>1,'status'=>1,'sequence'=>30]);

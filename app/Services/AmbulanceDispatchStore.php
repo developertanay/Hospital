@@ -20,6 +20,8 @@ class AmbulanceDispatchStore
                 $enabled=$driver->user && $driver->user->care_enabled && $driver->user->care_role==='driver' && $ambulance && $ambulance->status==1;
                 $drivers[]=['id'=>$driver->id,'name'=>$ambulance->driver_name ?? $driver->user->name,
                     'phone'=>$ambulance->driver_contact ?? '', 'vehicle'=>$ambulance->vehicle_number ?? 'Not assigned',
+                    'doctor_name'=>$ambulance->doctor_name ?? '', 'doctor_contact'=>$ambulance->doctor_contact ?? '',
+                    'category'=>$ambulance && $ambulance->category ? $ambulance->category->name : '',
                     'lat'=>(float)$driver->latitude,'lng'=>(float)$driver->longitude,
                     'on_duty'=>$enabled && $driver->on_duty,'seen_at'=>$driver->seen_at,'location_at'=>$driver->location_at,
                     'location_mode'=>$driver->location_mode,'follow_pickup'=>$driver->follow_pickup];

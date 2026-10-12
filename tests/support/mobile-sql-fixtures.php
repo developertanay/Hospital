@@ -11,6 +11,8 @@ function mobileSqlFixtures() {
     $db=Illuminate\Support\Facades\DB::connection();
     $db->unprepared('CREATE TABLE hospital_mast (id INTEGER PRIMARY KEY,hospital_name TEXT,status INTEGER,accepting_requests INTEGER,latitude REAL,longitude REAL,contact_no TEXT,address TEXT,created_at TEXT,updated_at TEXT);
 CREATE TABLE bedding_type (id INTEGER PRIMARY KEY,name TEXT,status INTEGER);
+CREATE TABLE department_mast (id INTEGER PRIMARY KEY,department_name TEXT,status INTEGER);
+CREATE TABLE hospital_department_mapping (id INTEGER PRIMARY KEY,hospital_id INTEGER,department_id INTEGER,status INTEGER);
 CREATE TABLE blood_type (id INTEGER PRIMARY KEY,blood_type TEXT,status INTEGER);
 CREATE TABLE blodd_inventory_management (id INTEGER PRIMARY KEY AUTOINCREMENT,hospital_id INTEGER,blood_id INTEGER,unit INTEGER,status INTEGER,created_by INTEGER,updated_by INTEGER,created_at TEXT,updated_at TEXT);
 CREATE TABLE care_beds (id TEXT PRIMARY KEY,hospital_id INTEGER,bed_type_id INTEGER,name TEXT,status TEXT,request_id TEXT UNIQUE);
