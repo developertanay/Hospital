@@ -37,6 +37,11 @@ Route::prefix('mobile')->group(function () {
         Route::post('action', [App\Http\Controllers\EmergencyController::class,'mutate']);
         Route::get('sos/state', [App\Http\Controllers\API\AmbulanceController::class,'state']);
         Route::post('sos/action', [App\Http\Controllers\API\AmbulanceController::class,'action']);
+        Route::get('portfolio',[App\Http\Controllers\API\PatientPortfolioController::class,'index']);
+        Route::post('coverage/review',[App\Http\Controllers\API\PatientPortfolioController::class,'review']);
+        Route::get('coverages/{id}/card',[App\Http\Controllers\API\PatientPortfolioController::class,'card']);
+        Route::apiResource('dependents','API\PatientPortfolioController')->except(['show','index']);
+        Route::apiResource('coverages','API\PatientPortfolioController')->except(['show','index']);
         Route::post('logout', [App\Http\Controllers\API\MobileController::class,'logout']);
     });
 });

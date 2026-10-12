@@ -67,7 +67,7 @@ class AmbulanceService {
                 if (!$d['on_duty'] || $d['seen_at']<=$now-90 || (isset($busy[$d['id']]) && $busy[$d['id']]!==$r['id']) || in_array($d['id'],$r['skipped'],true)) continue;
                 if (!empty($r['requested_driver_id']) && $r['requested_driver_id']!==$d['id']) continue;
                 $simulated=($d['location_mode']==='demo' && ($d['follow_pickup']??false));
-                if (!$simulated && $d['location_mode']!==$r['location']['mode']) continue;
+                if (!$simulated && $d['location_mode']!==($r['location']['mode']==='manual'?'gps':$r['location']['mode'])) continue;
                 if ($d['location_mode']==='gps' && ($d['location_at']??0)<=$now-120) continue;
                 $position=$this->position($d,$r);
                 $distance=self::distance($r['location']['lat'],$r['location']['lng'],$position['lat'],$position['lng']);
@@ -133,7 +133,8 @@ class AmbulanceService {
                     $r['driver_available']=$r['driver']['on_duty'] && $r['driver']['seen_at']>$this->now()-90;
                 }
                 unset($r['offers']);
-                if ($p['role']==='driver' && !$r['driver_id'] && empty($r['requested_driver_id'])) $r['patient']=['name'=>'Emergency pickup','age'=>$r['patient']['age']];
+                if($p['role']==='driver')unset($r['coverage']);
+                if ($p['role']==='driver' && !$r['driver_id'] && empty($r['requested_driver_id'])) { $r['patient']=['name'=>'Emergency pickup','age'=>$r['patient']['age']];unset($r['reporter']); }
                 $calls[]=$r;
             }
             $drivers=$p['role']==='admin'?$s['drivers']:($p['role']==='driver'?[$this->driver($s,$p['driver'])]:[]);
@@ -155,15 +156,18 @@ class AmbulanceService {
     public function heartbeat($p) {
         return $this->transaction(function (&$s) use ($p) { foreach ($s['drivers'] as &$d) if ($d['id']===$p['driver']) $d['seen_at']=$this->now(); unset($d); $this->dispatch($s); return ['message'=>'Online.']; });
     }
-    public function create($p,$location) {
-        return $this->transaction(function (&$s) use ($p,$location) {
-            $profile=$s['profiles'][(string)$p['id']]??null; if (!$profile || !$this->completeProfile($profile)) throw new RuntimeException('Save your emergency details before using SOS.');
+    public function create($p,$location,$recipient=[]) {
+        return $this->transaction(function (&$s) use ($p,$location,$recipient) {
+            $profile=$s['profiles'][(string)$p['id']]??null; if (($recipient['reported_for']??'Self')==='Self' && (!$profile || !$this->completeProfile($profile))) throw new RuntimeException('Save your emergency details before using SOS.');
+            $context=$recipient?app(SosRecipientService::class)->resolve($p,$recipient,$profile):[];
+            $profile=$context['patient']??$profile;
             if (abs($this->now()-$location['captured_at'])>120) throw new RuntimeException('Location is stale. Get a fresh GPS fix and retry.');
             foreach ($s['calls'] as $r) if ($r['owner_id']===$p['id'] && $this->active($r)) return ['id'=>$r['id'],'message'=>'Your existing SOS is still active.'];
             $recent=array_filter($s['calls'],fn($r)=>$r['owner_id']===$p['id'] && $r['created_at']>$this->now()-600);
             if (count($recent)>=3) throw new RuntimeException('Too many SOS requests. Please wait before retrying.');
             $id=bin2hex(random_bytes(6));
             $r=['id'=>$id,'owner_id'=>$p['id'],'patient'=>$profile,'location'=>$location,'status'=>'Searching','created_at'=>$this->now(),'search_until'=>$this->now()+600,'offer_driver'=>null,'offer_until'=>null,'driver_id'=>null,'distance_km'=>null,'skipped'=>[],'retry_at'=>$this->now()+60,'bed_request_id'=>null,'hospital_id'=>null,'offers'=>[],'events'=>[]];
+            $r=array_merge($r,$context);
             $this->event($r,'SOS received. Searching for an on-duty ambulance within 25 km.'); $s['calls'][]=$r; $this->dispatch($s);
             return ['id'=>$id,'message'=>'SOS sent. Waiting for driver confirmation.'];
         });
@@ -201,6 +205,11 @@ class AmbulanceService {
             foreach($s['calls'] as $call) if($call['owner_id']===$p['id'] && $this->active($call)) throw new RuntimeException('You already have an active ambulance booking. Track or cancel it first.');
             $profile=$s['profiles'][(string)$p['id']]??[];
             if(!$this->completeProfile($profile)) throw new RuntimeException('Save emergency contact details before booking an ambulance.');
+            $reporter=['name'=>$profile['name'],'phone'=>$profile['mobile'],'with_patient'=>$request->reporter_with_patient===null?true:(bool)$request->reporter_with_patient];
+            $coverageSummary=null;
+            if($request->coverage_id){$coverage=app(PatientCoverageService::class)->select($p['id'],$request->coverage_id,$request->dependent_id);$coverageSummary=$coverage->only(['id','organisation_id','tpa_id','policy_number','member_id','valid_from','valid_until']);$coverageSummary['organisation']=$coverage->organisation->name;}
+            $profile['name']=$request->patient;
+            if($request->dependent_id){$dependent=\App\Models\PatientDependent::where('owner_id',$p['id'])->findOrFail($request->dependent_id);$profile['age']=$dependent->age;$profile['mobile']=$dependent->mobile??'';$profile['emergency_name']=$reporter['name'];$profile['emergency_phone']=$reporter['phone'];}
             if(!in_array($driverId,array_column($this->idleOptions($s,$location),'driver_id'),true)) throw new RuntimeException('This ambulance is no longer idle or nearby. Refresh available ambulances.');
             $id=bin2hex(random_bytes(6));
             $call=['id'=>$id,'owner_id'=>$p['id'],'patient'=>$profile,'location'=>$location,'status'=>'Searching',
@@ -209,6 +218,7 @@ class AmbulanceService {
                 'problem_type'=>$request->problem_type,'department_id'=>$request->department_id,
                 'distance_km'=>null,'skipped'=>[],'retry_at'=>$this->now()+60,'bed_request_id'=>null,'hospital_id'=>$request->hospital_id?(string)$request->hospital_id:null,'offers'=>[],'events'=>[]];
             $this->event($call,'Selected ambulance booked. Waiting for its driver to confirm pickup.');
+            $call['reporter']=$reporter;$call['reported_for']=$request->reported_for??($request->dependent_id?'Family':'Self');$call['dependent_id']=$request->dependent_id;$call['coverage_id']=$request->coverage_id;$call['coverage']=$coverageSummary;
             app(EmergencyBedService::class)->updatePatientLocation($request->id,$p['id'],$location);
             $s['calls'][]=$call; $this->dispatch($s);
             return ['id'=>$id,'message'=>'Ambulance booked. Driver confirmation pending.'];
@@ -243,7 +253,16 @@ class AmbulanceService {
                     if (!$beds) throw new RuntimeException('Hospital service unavailable.');
                     $care=$input['care']; $hospital=$input['hospital_id'];
                     if (!$r['bed_request_id'] && !empty($r['care_request_id'])) $r['bed_request_id']=$r['care_request_id'];
-                    if (!$r['bed_request_id']) $r['bed_request_id']=$beds->create(['patient'=>$r['patient']['name'].' [SOS '.$r['id'].']','location'=>'SOS GPS '.$r['location']['lat'].', '.$r['location']['lng'],'latitude'=>$r['location']['lat'],'longitude'=>$r['location']['lng'],'severity'=>'Critical','care'=>$care],'sos:'.$r['owner_id'],$r['owner_id']);
+                    if (!$r['bed_request_id']) {
+                        $careInput=['patient'=>$r['patient']['name'].' [SOS '.$r['id'].']','location'=>$r['pickup_address']??('SOS pickup '.$r['location']['lat'].', '.$r['location']['lng']),'latitude'=>$r['location']['lat'],'longitude'=>$r['location']['lng'],'severity'=>'Critical','care'=>$care];
+                        if(!empty($r['reported_for'])) {
+                            $dependent=$r['dependent_id']??null;$coverage=$r['coverage_id']??null;
+                            if($dependent && !\App\Models\PatientDependent::where('owner_id',$r['owner_id'])->where('status',1)->where('id',$dependent)->exists()){$dependent=null;$coverage=null;}
+                            if($coverage && !\App\Models\PatientCoverage::where('owner_id',$r['owner_id'])->where('status',1)->where('id',$coverage)->exists())$coverage=null;
+                            $careInput+=['coverage_id'=>$coverage,'dependent_id'=>$dependent,'reported_for'=>$r['reported_for'],'reporter_name'=>$r['reporter']['name']??null,'reporter_phone'=>$r['reporter']['phone']??null,'reporter_with_patient'=>$r['reporter']['with_patient']??true,'description'=>$r['description']??null];
+                        }
+                        $r['bed_request_id']=$beds->create($careInput,'sos:'.$r['owner_id'],$r['owner_id']);
+                    }
                     $record=collect($beds->state()['requests'])->firstWhere('id',$r['bed_request_id']);
                     if ($record['care']!==$care) throw new RuntimeException('Use the original care type for this linked hospital request.');
                     if (in_array($record['status'],['New','Released','Expired','Rejected'],true)) $beds->requestBed($r['bed_request_id'],$hospital,$r['owner_id']);

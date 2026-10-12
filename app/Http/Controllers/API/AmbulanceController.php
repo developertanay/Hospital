@@ -12,6 +12,7 @@ class AmbulanceController extends Controller {
         if (!$p || !in_array($p['role'],['patient','driver','admin'],true)) return response()->json(['message'=>'Patient, driver or admin account required.'],403);
         if ($p['role']==='driver') $service->heartbeat($p);
         $state=$service->state($p);
+        if($p['role']==='patient' && \Illuminate\Support\Facades\Schema::hasTable('patient_coverages')) $state+=app(\App\Services\PatientCoverageService::class)->state($p['id']);
         $bedState=$beds->state();
         foreach ($state['calls'] as &$call) if ($call['bed_request_id'] || !empty($call['care_request_id'])) {
             $record=collect($bedState['requests'])->firstWhere('id',$call['bed_request_id'] ?: $call['care_request_id']);
@@ -63,9 +64,11 @@ class AmbulanceController extends Controller {
                 return response()->json($service->profile($p,$input));
             }
             if (in_array($action,['sos','location'],true)) {
-                $input=$request->validate(['lat'=>'required|numeric|between:-90,90','lng'=>'required|numeric|between:-180,180','accuracy'=>'required|numeric|between:0,200','captured_at'=>'required|integer','mode'=>'required|in:gps,demo']);
+                $input=$request->validate(['lat'=>'required|numeric|between:-90,90','lng'=>'required|numeric|between:-180,180','accuracy'=>'required|numeric|between:0,200','captured_at'=>'required|integer','mode'=>'required|in:gps,demo,manual']);
                 if ($action==='location') { $request->validate(['id'=>'required|string|max:32']); return response()->json($service->location($p,$request->id,$input)); }
-                return response()->json($service->create($p,$input),201);
+                $recipient=$request->validate(\App\Services\SosRecipientService::rules());
+                if($input['mode']==='manual' && (($recipient['reported_for']??'Self')==='Self' || ($recipient['reporter_with_patient']??true))) throw new RuntimeException('A manual pin is only for a patient at a different location.');
+                return response()->json($service->create($p,$input,$recipient),201);
             }
             if ($action==='duty') {
                 $input=$request->validate(['follow_pickup'=>'nullable|boolean','on_duty'=>'required|boolean','lat'=>'required_if:on_duty,true|numeric|between:-90,90','lng'=>'required_with:lat|numeric|between:-180,180','mode'=>'required_with:lat|in:gps,demo']);

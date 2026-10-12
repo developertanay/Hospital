@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'session.dart';
+import 'managed_dialog.dart';
 import 'location.dart';
+import 'recipient.dart';
 
 const _red = Color(0xFFC6283D);
 const _navy = Color(0xFF102C46);
@@ -20,6 +22,17 @@ class SosScreen extends StatefulWidget {
 
 class _SosScreenState extends State<SosScreen> {
   bool demo = false, locating = false;
+  String? selfCoverage;
+  Future<void> sendForSomeone() async {
+    final input = await chooseSosRecipient(context, s);
+    if (input == null || !mounted) return;
+    if (input['reported_for'] == 'Self' && !profileReady) {
+      await editProfile(context, s);
+      if (!mounted || !profileReady) return;
+    }
+    await run({'action': 'sos', ...input});
+  }
+
   bool setupShown = false;
   String? locationError;
   Timer? tracking;
@@ -66,7 +79,9 @@ class _SosScreenState extends State<SosScreen> {
     if (!mounted) return;
     if (!setupShown && s.sosState != null && s.online) {
       setupShown = true;
-      if ((s.role == 'patient' && !profileReady) ||
+      if ((s.role == 'patient' &&
+              !profileReady &&
+              !calls.any((c) => !terminal(c))) ||
           (s.role == 'driver' && driver?['on_duty'] != true)) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (!mounted) return;
@@ -162,7 +177,14 @@ class _SosScreenState extends State<SosScreen> {
     try {
       final fix = await locate();
       if (!mounted || epochToken != s.api.token) return;
-      await s.sosAction({'action': 'sos', ...fix});
+      await s.sosAction({
+        'action': 'sos',
+        if (selfCoverage != null) ...{
+          'reported_for': 'Self',
+          'coverage_id': selfCoverage,
+        },
+        ...fix,
+      });
     } catch (e) {
       if (mounted) setState(() => locationError = e.toString());
     } finally {
@@ -341,6 +363,38 @@ class _SosScreenState extends State<SosScreen> {
                     : 'Uses current GPS and your saved emergency details.',
               ),
               const Text('Pickup is confirmed only after a driver accepts.'),
+              if ((s.sosState?['coverages'] as List? ?? []).isNotEmpty)
+                DropdownButtonFormField<String>(
+                  initialValue: selfCoverage,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'My insurance / panel (optional)',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('No coverage / provide later'),
+                    ),
+                    ...(s.sosState!['coverages'] as List)
+                        .where((c) => c['dependent_id'] == null)
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c['id'].toString(),
+                            child: Text(
+                              (c['organisation'] as Map?)?['name']
+                                      ?.toString() ??
+                                  'Coverage',
+                            ),
+                          ),
+                        ),
+                  ],
+                  onChanged: (v) => setState(() => selfCoverage = v),
+                ),
+              OutlinedButton.icon(
+                onPressed: enabled ? sendForSomeone : null,
+                icon: const Icon(Icons.group_outlined),
+                label: const Text('SOS for family / another person'),
+              ),
             ]),
           for (final c in calls.where((c) => !terminal(c))) trip(c),
           if (patient)
@@ -517,22 +571,49 @@ class _SosScreenState extends State<SosScreen> {
           ),
         ],
       ),
-      Text('SOS ${c['id']} • ${p['name']} • ${p['age']} years'),
+      Text(
+        'SOS ${c['id']} • ${p['name']} • ${p['age'] == null ? 'Age unknown' : '${p['age']} years'}',
+      ),
+      if (c['reporter'] is Map) ...[
+        Text(
+          'Raised by: ${(c['reporter'] as Map)['name']} • ${(c['reporter'] as Map)['phone']}',
+        ),
+        Text(
+          (c['reporter'] as Map)['with_patient'] == true
+              ? 'Reporter is with the patient'
+              : 'Patient is at a separate pickup location',
+        ),
+      ],
+      if ((c['pickup_address'] ?? '').toString().isNotEmpty)
+        Text('Patient pickup: ${c['pickup_address']}'),
+      if (!isDriver && c['coverage'] is Map)
+        Text(
+          'Coverage: ${(c['coverage'] as Map)['organisation']} • verification pending',
+        ),
       if ((c['description'] ?? '').toString().isNotEmpty)
         Text(c['description'].toString()),
       if (c['care_request_id'] != null)
         Text('Care request: ${c['care_request_id']} • ${c['problem_type']}'),
       Text(
-        'Pickup: ${l['lat']}, ${l['lng']} • ${l['mode'] == 'demo' ? 'DEMO LOCATION' : 'GPS'}',
+        'Pickup: ${l['lat']}, ${l['lng']} • ${l['mode'] == 'demo'
+            ? 'DEMO LOCATION'
+            : l['mode'] == 'manual'
+            ? 'PATIENT PICKUP PIN'
+            : 'GPS'}',
       ),
       if (l['mode'] == 'gps')
         Text(
           'Pickup location updated ${((now - (l['captured_at'] as num).toInt()).clamp(0, 99999))} seconds ago',
         ),
-      if (!terminal(c) &&
+      if (l['mode'] == 'gps' &&
+          !terminal(c) &&
           ['Searching', 'Accepted', 'At pickup'].contains(status))
         Text(
           'Location accuracy: ${l['accuracy']} m • updates while patient app is open',
+        ),
+      if (l['mode'] == 'manual')
+        const Text(
+          'Patient-provided pickup pin. This is not live GPS and is not replaced by the reporter’s location.',
         ),
       OutlinedButton.icon(
         onPressed: () => external(
@@ -765,7 +846,7 @@ Future<void> editDriverContact(
   final form = GlobalKey<FormState>();
   bool busy = false;
   String? error;
-  await showDialog<void>(
+  await showManagedDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) => AlertDialog(
@@ -848,7 +929,7 @@ Future<void> editProfile(BuildContext context, Session session) async {
   final form = GlobalKey<FormState>();
   bool busy = false;
   String? error;
-  await showDialog<void>(
+  await showManagedDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
@@ -964,7 +1045,7 @@ Future<void> hospitalDialog(
       call['bed_care']?.toString() ?? (types.isEmpty ? '' : types.first);
   bool busy = false;
   String? error;
-  await showDialog<void>(
+  await showManagedDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) {

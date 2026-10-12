@@ -2,9 +2,13 @@
 
 The running backend is Laravel 8/PHP in XAMPP, using the existing MySQL `colleges` database at `localhost:3306`. Its configuration stays in `.env`; database credentials are never built into Android. The Flutter app calls Laravel's `/api/mobile` API. Web sessions and mobile Sanctum tokens authenticate against the same `users` rows and hashed passwords.
 
+The local backend now uses Laravel's configuration cache so Apache requests consistently use the configured database and existing application key. After editing `.env`, run `C:\xampp\php\php.exe artisan config:cache` from the project folder to refresh that cache. Version 1.5.1 also fixes the server dialog and provides **Current test server** to replace a saved address from an earlier build.
+
 Request Care saves `problem_type` (Internal/External), `assistance_preference`, `preferred_hospital_id`, `department_id`, `description` and `location_captured_at` alongside coordinates. Apply migrations 000010 and 000011 on other installations. Internal requests show nearest idle ambulance booking first; External requests show service-compatible hospital beds first. Both options remain available. Selected ambulance bookings reserve one driver under the SQL dispatch lock until acceptance, cancellation, decline, completion or expiry. The booking's `care_request_id` is stored in the existing SQL trip payload, and transport reuses that request. Only the chosen driver receives a selected booking, and only the chosen hospital sees a bed booking. Live pickup updates also refresh linked care coordinates. See [the demo guide](CARE-BOOKING-DEMO.md).
 
 ## Data and responsibilities
+
+Insurance/family support uses the additive migration 000012, shared organisation/hospital mapping masters and owner-scoped `patient_dependents`/`patient_coverages` CRUD. Card uploads remain private and require owner or booked-hospital access. SOS separates its patient snapshot from reporter contact and supports a remote manual pickup pin. Linked care requests carry coverage verification and cashless decisions independently of bed status. See [INSURANCE-FAMILY-SOS.md](INSURANCE-FAMILY-SOS.md).
 
 | Area | Shared SQL tables | Access |
 |---|---|---|
@@ -30,10 +34,12 @@ C:\xampp\php\php.exe artisan db:seed --class=MobileTestAccountsSeeder --force
 
 The test seeder creates separate patient, hospital, two driver and admin accounts, a labelled test hospital with three beds, and two test ambulances. It preserves existing accounts, passwords and operational records. Test vehicles include one hospital-associated and one private ambulance. Clinical modules are assigned to dedicated test roles; existing role permissions are preserved.
 
-On the phone, use **Server connection** to enter `http://10.9.4.134/Hospital/public/api/mobile`. This is the PC's Wi-Fi address at build time; update it if the address changes. Phone and PC must share the network. Open the API `/health` address in the phone browser first. Android emulator uses `http://10.0.2.2/Hospital/public/api/mobile`. The web login is `http://localhost/Hospital/public/login` on the PC.
+On the phone, use **Server connection** to enter `http://10.9.4.210/Hospital/public/api/mobile`. This is the PC's Wi-Fi address at build time; update it if the address changes. Phone and PC must share the network. Open the API `/health` address in the phone browser first. Android emulator uses `http://10.0.2.2/Hospital/public/api/mobile`. The web login is `http://localhost/Hospital/public/login` on the PC.
 
 The APK is a debug-signed local test build with HTTP allowed. Its release configuration still requires HTTPS. GPS is foreground-only; background dispatch/push notifications are not implemented. No real phone was attached during automated checks.
 
 ## Verification
 
 `tests/shared-database-api-smoke.php` checks installed MySQL logins and a complete patient SOS → driver acceptance → pickup → hospital verification/acceptance/arrival → handoff flow inside a rolled-back transaction. `tests/shared-logins-http.ps1` checks actual Apache web/API logins for every test role, then revokes issued test tokens. Flutter analysis and widget tests cover the Android client. Older unrelated legacy school routes remain in the repository and are not used by the new app.
+
+`tests/login-http-smoke.php` checks all five API logins through Apache and deletes only its own issued tokens, preserving driver availability. Pass an API base address as its first argument to check the phone's network endpoint. Version 1.5.1 passes 23 Flutter tests, including four server-connection regression checks.

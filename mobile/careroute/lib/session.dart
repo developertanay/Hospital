@@ -8,6 +8,7 @@ import 'api.dart';
 class Session extends ChangeNotifier {
   final FlutterSecureStorage storage;
   final CareApi api;
+  late final String bundledServer;
   Map<String, dynamic>? state;
   Map<String, dynamic>? sosState;
   String? sosError;
@@ -34,7 +35,9 @@ class Session extends ChangeNotifier {
                   : 'http://10.0.2.2/Hospital/public/api/mobile',
             ),
           ),
-      storage = storage ?? const FlutterSecureStorage();
+      storage = storage ?? const FlutterSecureStorage() {
+    bundledServer = this.api.base;
+  }
   Map<String, dynamic>? get profile =>
       state?['profile'] as Map<String, dynamic>?;
   bool get signedIn => api.token != null;

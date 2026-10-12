@@ -105,6 +105,7 @@ class EmergencyController extends Controller
             'departments'=>\App\Models\Department::where('status',1)->orderBy('department_name')->get(['id','department_name'])->toArray(),
             'requests'=>[],'hospitals'=>[],'events'=>[],'capabilities'=>[]];
         if (in_array($p['role'],['admin','driver'],true)) return response()->json($base)->header('Cache-Control','no-store, private');
+        if($p['role']==='patient' && \Illuminate\Support\Facades\Schema::hasTable('patient_coverages')) $base+=app(\App\Services\PatientCoverageService::class)->state($p['id']);
         $requestAccess=RoleAccess::canPage($p['role']==='hospital'?'approvals':'requests');
         $reservationAccess=$p['role']==='patient' && RoleAccess::canPage('reservations');
         $bedAccess=$p['role']==='hospital' && RoleAccess::canPage('beds');
@@ -114,7 +115,13 @@ class EmergencyController extends Controller
             ? ($r['owner_id']??null)===$p['id']
             : ($p['hospital'] && $r['hospital_id']===$p['hospital'])));
         if ($requestAccess || $reservationAccess) {
-            foreach ($requests as &$r) { unset($r['client'],$r['owner_id']); if (!$requestAccess) unset($r['matches']); }
+            foreach ($requests as &$r) {
+                if(!empty($r['coverage_id'])) {
+                    $coverage=\App\Models\PatientCoverage::with(['organisation','tpa'])->find($r['coverage_id']);
+                    if($coverage){$r['coverage_details']=$coverage->toArray();$r['coverage_details']['has_card']=(bool)$coverage->card_path;unset($r['coverage_details']['card_path']);}
+                }
+                unset($r['client'],$r['owner_id']); if (!$requestAccess) unset($r['matches']);
+            }
             unset($r); $base['requests']=$requests;
         }
         if ($bedAccess || ($p['role']==='patient' && $requestAccess)) {

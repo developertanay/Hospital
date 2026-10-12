@@ -36,7 +36,12 @@ class CareApi {
   Future<Map<String, dynamic>> call(
     String path, [
     Map<String, dynamic>? body,
-  ]) async {
+  ]) => request(path, body);
+  Future<Map<String, dynamic>> request(
+    String path,
+    Map<String, dynamic>? body, {
+    String? method,
+  }) async {
     try {
       final uri = Uri.parse('$base/$path');
       if (kReleaseMode && !kIsWeb && uri.scheme != 'https') {
@@ -50,7 +55,11 @@ class CareApi {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final response =
-          await (body == null
+          await (method == 'PUT'
+                  ? client.put(uri, headers: headers, body: jsonEncode(body))
+                  : method == 'DELETE'
+                  ? client.delete(uri, headers: headers, body: jsonEncode(body))
+                  : body == null
                   ? client.get(uri, headers: headers)
                   : client.post(uri, headers: headers, body: jsonEncode(body)))
               .timeout(const Duration(seconds: 15));

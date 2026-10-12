@@ -2,6 +2,7 @@
 require __DIR__.'/../vendor/autoload.php';
 $app=require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+require __DIR__.'/support/sql-test-account.php';
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
@@ -42,6 +43,7 @@ try {
         sharedApi($role,'state');
     }
     sharedApi('anonymous','login',['email'=>$emails['patient'],'password'=>'IncorrectTestPassword'],401);
+    foreach(['patient','driver','driver2'] as $role){$users[$role]=isolatedSqlAccount($emails[$role]);$tokens[$role]=$users[$role]->createToken('shared-flow-fixture',['careroute-mobile'])->plainTextToken;}
     sharedApi('hospital','sos/state',null,403);
     $users['patient']->care_enabled=false; $users['patient']->save();
     sharedApi('patient','state',null,401);

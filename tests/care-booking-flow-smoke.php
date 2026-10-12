@@ -2,6 +2,7 @@
 require __DIR__.'/../vendor/autoload.php';
 $app=require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+require __DIR__.'/support/sql-test-account.php';
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\CareRequest;
@@ -42,7 +43,7 @@ try{
     flowReject(fn()=>$beds->requestBed($requests[0]->id,(string)$hospital->id,$patients[0]->id),'Wrong service cannot be booked through crafted request');
     CareRequest::where('id',$requests[0]->id)->update(['department_id'=>$department->id]);
     $drivers=[];
-    foreach([1,2] as $n){$user=User::where('email','driver'.$n.'.test@careroute.test')->firstOrFail();$driver=AmbulanceDriver::where('user_id',$user->id)->firstOrFail();$driver->update(['on_duty'=>true,'seen_at'=>time(),'location_at'=>time(),'location_mode'=>'gps','follow_pickup'=>false,'latitude'=>28.6139+$n*.001,'longitude'=>77.209]);$drivers[]=['id'=>$user->id,'role'=>'driver','driver'=>$driver->id];}
+    foreach([1,2] as $n){$user=isolatedSqlAccount('driver'.$n.'.test@careroute.test');$driver=AmbulanceDriver::where('user_id',$user->id)->firstOrFail();$driver->update(['on_duty'=>true,'seen_at'=>time(),'location_at'=>time(),'location_mode'=>'gps','follow_pickup'=>false,'latitude'=>28.6139+$n*.001,'longitude'=>77.209]);$drivers[]=['id'=>$user->id,'role'=>'driver','driver'=>$driver->id];}
     $location=['lat'=>28.6139,'lng'=>77.209,'accuracy'=>5,'captured_at'=>time(),'mode'=>'gps'];
     $requests[0]->update(['latitude'=>null,'longitude'=>null]);
     flowApi($patients[0],['action'=>'nearby','request_id'=>$requests[0]->id],409);

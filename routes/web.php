@@ -37,6 +37,8 @@ use Illuminate\Support\Facades\Route;
     Route::get('Ambulance/{id}/photo/{kind}', 'AmbulanceController@photo')->name('Ambulance.photo');
     Route::resource('Ambulance', 'AmbulanceController')->except('show');
     Route::resource('HospitalDepartment', 'HospitalDepartmentController')->except('show');
+    Route::resource('CoverageOrganisation','CoverageMasterController')->except('show');
+    Route::resource('HospitalCoverage','CoverageMasterController')->except('show');
     Route::middleware(['auth',App\Http\Middleware\DriverDispatchAccess::class])->group(function () {
         Route::get('emergency/dispatch','DriverDispatchController@index');
         Route::get('emergency/dispatch/state',[App\Http\Controllers\API\AmbulanceController::class,'state']);
@@ -197,4 +199,6 @@ Route::resource('emergency/inventory', 'HospitalInventoryController')->parameter
 Route::resource('emergency/blood', 'HospitalInventoryController')->parameters(['blood'=>'record'])->names('hospital.blood')->except('show');
 Route::post('/emergency/manage', [App\Http\Controllers\EmergencyController::class, 'manage'])->middleware('throttle:60,1');
 Route::post('/emergency/action', [App\Http\Controllers\EmergencyController::class, 'mutate'])->middleware('throttle:60,1');
+Route::get('emergency/coverages/{id}/card',[App\Http\Controllers\API\PatientPortfolioController::class,'card'])->middleware('auth');
+Route::resource('emergency/coverage-review','HospitalCoverageReviewController')->only(['edit','update'])->names('hospital.coverage-review');
 Route::get('/demo/{page}', [App\Http\Controllers\DemoAdminController::class, 'index'])->where('page','modules|users')->middleware('auth');

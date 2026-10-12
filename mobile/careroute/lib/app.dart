@@ -1,4 +1,7 @@
 import 'care_choices.dart';
+import 'portfolio.dart';
+import 'recipient.dart';
+import 'managed_dialog.dart';
 
 import 'dart:async';
 
@@ -96,93 +99,104 @@ Future<void> serverDialog(BuildContext context, Session session) async {
   final controller = TextEditingController(text: session.api.base);
   bool busy = false;
   String? error;
-  await showDialog<void>(
+  await showManagedDialog<void>(
     context: context,
+    barrierDismissible: false,
     builder: (dialogContext) => StatefulBuilder(
-      builder: (context, set) => AlertDialog(
-        title: const Text('Connect to your server'),
-        content: SizedBox(
-          width: 450,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Keep Apache and MySQL running. For a real phone, use your PC’s Wi-Fi IPv4 address. Both devices must be on the same network.',
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Mobile API address',
-                    hintText: 'http://PC-IP/Hospital/public/api/mobile',
+      builder: (context, set) => PopScope(
+        canPop: !busy,
+        child: AlertDialog(
+          title: const Text('Connect to your server'),
+          content: SizedBox(
+            width: 450,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Keep Apache and MySQL running. For a real phone, use your PC’s Wi-Fi IPv4 address. Both devices must be on the same network.',
                   ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    ActionChip(
-                      label: const Text('Android emulator'),
-                      onPressed: busy
-                          ? null
-                          : () => controller.text =
-                                'http://10.0.2.2/Hospital/public/api/mobile',
-                    ),
-                    ActionChip(
-                      label: const Text('This PC / iOS simulator'),
-                      onPressed: busy
-                          ? null
-                          : () => controller.text =
-                                'http://localhost/Hospital/public/api/mobile',
-                    ),
-                  ],
-                ),
-                if (error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(
-                      error!,
-                      style: const TextStyle(color: Colors.red),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    decoration: const InputDecoration(
+                      labelText: 'Mobile API address',
+                      hintText: 'http://PC-IP/Hospital/public/api/mobile',
                     ),
                   ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Changing servers signs you out. The API address is saved on this device.',
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ActionChip(
+                        label: const Text('Current test server'),
+                        onPressed: busy
+                            ? null
+                            : () => controller.text = session.bundledServer,
+                      ),
+                      ActionChip(
+                        label: const Text('Android emulator'),
+                        onPressed: busy
+                            ? null
+                            : () => controller.text =
+                                  'http://10.0.2.2/Hospital/public/api/mobile',
+                      ),
+                      ActionChip(
+                        label: const Text('This PC / iOS simulator'),
+                        onPressed: busy
+                            ? null
+                            : () => controller.text =
+                                  'http://localhost/Hospital/public/api/mobile',
+                      ),
+                    ],
+                  ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        error!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Changing servers signs you out. The API address is saved on this device.',
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: busy ? null : () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: busy
-                ? null
-                : () async {
-                    set(() {
-                      busy = true;
-                      error = null;
-                    });
-                    try {
-                      await session.server(controller.text);
-                      if (dialogContext.mounted) Navigator.pop(dialogContext);
-                    } catch (e) {
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: busy
+                  ? null
+                  : () async {
                       set(() {
-                        error = e.toString();
-                        busy = false;
+                        busy = true;
+                        error = null;
                       });
-                    }
-                  },
-            child: Text(busy ? 'Checking…' : 'Test & save'),
-          ),
-        ],
+                      try {
+                        await session.server(controller.text);
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      } catch (e) {
+                        if (!dialogContext.mounted) return;
+                        set(() {
+                          error = e.toString();
+                          busy = false;
+                        });
+                      }
+                    },
+              child: Text(busy ? 'Checking…' : 'Test & save'),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -377,6 +391,15 @@ class _AuthScreenState extends State<AuthScreen> {
                       icon: const Icon(Icons.dns_outlined),
                       label: const Text('Server connection'),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Server: ${widget.session.api.base}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'Prototype • Seeded hospital data\nSeverity is verified by a hospital before elevated priority applies.',
@@ -525,7 +548,7 @@ class _RequestFormState extends State<RequestForm> {
       location = TextEditingController(),
       description = TextEditingController();
   String problemType = 'Internal', assistance = 'Ambulance';
-  String? preferredHospital, department;
+  String? preferredHospital, department, coveredPatient, coverage;
   Map<String, dynamic>? gps;
   StreamSubscription<Position>? locationStream;
   String locationStatus = 'Share live GPS while this form is open.';
@@ -627,6 +650,66 @@ class _RequestFormState extends State<RequestForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if ((widget.session.state?['dependents'] as List? ?? []).isNotEmpty)
+              DropdownButtonFormField<String>(
+                initialValue: coveredPatient,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Patient profile'),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Myself / enter patient details'),
+                  ),
+                  ...(widget.session.state!['dependents'] as List).map(
+                    (d) => DropdownMenuItem(
+                      value: d['id'].toString(),
+                      child: Text(d['name'].toString()),
+                    ),
+                  ),
+                ],
+                onChanged: (v) => setState(() {
+                  coveredPatient = v;
+                  coverage = null;
+                  if (v != null) {
+                    patient.text = (widget.session.state!['dependents'] as List)
+                        .firstWhere((d) => d['id'].toString() == v)['name']
+                        .toString();
+                  }
+                }),
+              ),
+            if ((widget.session.state?['coverages'] as List? ?? []).isNotEmpty)
+              DropdownButtonFormField<String>(
+                key: ValueKey(coveredPatient),
+                initialValue: coverage,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Insurance / panel (optional)',
+                ),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('No coverage / provide later'),
+                  ),
+                  ...(widget.session.state!['coverages'] as List)
+                      .where(
+                        (c) => coveredPatient == null
+                            ? c['dependent_id'] == null
+                            : c['dependent_id']?.toString() == coveredPatient ||
+                                  (c['dependent_id'] == null &&
+                                      c['covers_family'] == true),
+                      )
+                      .map(
+                        (c) => DropdownMenuItem(
+                          value: c['id'].toString(),
+                          child: Text(
+                            (c['organisation'] as Map?)?['name']?.toString() ??
+                                'Coverage',
+                          ),
+                        ),
+                      ),
+                ],
+                onChanged: (v) => setState(() => coverage = v),
+              ),
             TextFormField(
               controller: patient,
               maxLength: 80,
@@ -822,6 +905,9 @@ class _RequestFormState extends State<RequestForm> {
                           'location': location.text.trim(),
                           'severity': severity,
                           'care': selectedCare,
+                          if (coverage != null) 'coverage_id': coverage,
+                          if (coveredPatient != null)
+                            'dependent_id': coveredPatient,
                           'problem_type': problemType,
                           'department_id': department,
                           'assistance_preference': assistance,
@@ -1135,6 +1221,10 @@ class RequestDetail extends StatelessWidget {
               ),
               if ((r['description'] ?? '').toString().isNotEmpty)
                 Text(r['description'].toString()),
+              if ((r['reporter_name'] ?? '').toString().isNotEmpty)
+                Text(
+                  'Raised by: ${r['reporter_name']} • ${r['reporter_phone'] ?? 'Contact not supplied'}',
+                ),
               if (r['latitude'] != null && r['longitude'] != null)
                 Text('Patient GPS: ${r['latitude']}, ${r['longitude']}'),
               Text(
@@ -1142,6 +1232,56 @@ class RequestDetail extends StatelessWidget {
                     ? 'Severity verified by a hospital operator.'
                     : 'Severity awaits hospital verification. Elevated priority is not active yet.',
               ),
+              if (r['coverage_id'] != null) ...[
+                Text(
+                  'Coverage: ${r['insurance_status']} • Cashless: ${r['cashless_status']}',
+                ),
+                if (r['coverage_details'] is Map) ...[
+                  Text(
+                    'Organisation: ${((r['coverage_details'] as Map)['organisation'] as Map?)?['name'] ?? 'Unavailable'}',
+                  ),
+                  Text(
+                    'Policy: ${(r['coverage_details'] as Map)['policy_number'] ?? 'Not supplied'} • Member: ${(r['coverage_details'] as Map)['member_id'] ?? 'Not supplied'}',
+                  ),
+                  Text(
+                    'Validity: ${(r['coverage_details'] as Map)['valid_from'] ?? 'Not supplied'} to ${(r['coverage_details'] as Map)['valid_until'] ?? 'Not supplied'}',
+                  ),
+                  if ((r['coverage_details'] as Map)['has_card'] == true)
+                    TextButton(
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Insurance card'),
+                          content: Image.network(
+                            '${session.api.base}/coverages/${r['coverage_id']}/card',
+                            headers: {
+                              'Authorization': 'Bearer ${session.api.token}',
+                            },
+                            errorBuilder: (_, _, _) =>
+                                const Text('Card unavailable.'),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      child: const Text('View insurance card'),
+                    ),
+                ],
+                if ((r['insurance_note'] ?? '').toString().isNotEmpty)
+                  Text(r['insurance_note'].toString()),
+                if (operator)
+                  OutlinedButton.icon(
+                    onPressed: enabled
+                        ? () => reviewInsurance(context, session, r)
+                        : null,
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text('Review insurance / panel'),
+                  ),
+              ],
               if (r['hospital_id'] != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1278,6 +1418,10 @@ class RequestDetail extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          if (m['coverage'] != null)
+                            Text(
+                              'Insurance / panel: ${(m['coverage'] as Map)['status']} • Cashless not automatically approved',
+                            ),
                           if (m['preferred'] == true)
                             const Text('Your preferred hospital'),
                           Text(
@@ -1532,6 +1676,20 @@ class Account extends StatelessWidget {
         ),
       ],
       const SizedBox(height: 18),
+      if (session.role == 'patient')
+        OutlinedButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Family & insurance')),
+                body: PatientPortfolio(session: session),
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.shield_outlined),
+          label: const Text('Family & insurance'),
+        ),
       FilledButton.tonalIcon(
         onPressed: session.signOut,
         icon: const Icon(Icons.logout),

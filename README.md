@@ -27,6 +27,8 @@ Hospital options require an active service mapping, accepting hospital and compa
 
 ## Database structure
 
+Insurance and panel support adds `coverage_organisations`, `hospital_coverage_mapping`, `patient_dependents` and `patient_coverages`, plus reporting-person and insurance/cashless status fields on `care_requests`. Android **Account → Family & insurance** manages private family records, memberships and card uploads. SOS supports self, family and other/unknown patients, with patient pickup separate from reporter GPS. Hospital verification and cashless decisions remain separate from bed acceptance. See [the complete insurance/family flow](docs/INSURANCE-FAMILY-SOS.md).
+
 The installed database is `colleges` at `localhost:3306`. Existing hospital and account records are reused.
 
 | Tables | Purpose |
@@ -76,6 +78,7 @@ C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_00000
 C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000009_create_sql_ambulance_dispatch.php
 C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000010_add_request_care_details.php
 C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000011_add_care_request_department.php
+C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000012_add_insurance_and_dependents.php
 C:\xampp\php\php.exe artisan optimize:clear
 C:\xampp\php\php.exe artisan storage:link
 ```
@@ -90,6 +93,7 @@ Run these seeders explicitly when sample data is wanted. They preserve existing 
 ```powershell
 C:\xampp\php\php.exe artisan db:seed --class=HospitalMasterSampleSeeder
 C:\xampp\php\php.exe artisan db:seed --class=MobileTestAccountsSeeder
+C:\xampp\php\php.exe artisan db:seed --class=CoverageSampleSeeder
 ```
 
 The master seeder adds standard departments (including ENT, Ophthalmology and Dentistry), ambulance categories, bed types, blood groups and labelled sample hospitals/mappings. Sample master hospitals have request acceptance disabled.
@@ -108,18 +112,22 @@ Dedicated test roles have the needed clinical modules without changing existing 
 
 ## Android APK and connection
 
-Install [Hospital-Test.apk](deliverables/Hospital-Test.apk). App name: **CareRoute**, version **1.4.1 (7)**. The debug-signed APK supports Android 7.0+ (API 24), ARM32, ARM64 and x86_64; size is approximately 154 MiB.
+Install [Hospital-Test.apk](deliverables/Hospital-Test.apk). App name: **CareRoute**, version **1.5.1 (9)**. The debug-signed APK supports Android 7.0+ (API 24), ARM32, ARM64 and x86_64; size is approximately 155 MiB.
 
 Keep Apache/MySQL running and connect phone and PC to the same Wi-Fi. In the app's **Server connection**, set the Laravel API address:
 
 | Device | API address |
 | --- | --- |
-| Physical phone | `http://10.9.4.134/Hospital/public/api/mobile` |
+| Physical phone | `http://10.9.4.210/Hospital/public/api/mobile` |
 | Android emulator | `http://10.0.2.2/Hospital/public/api/mobile` |
 
-`10.9.4.134` was the PC's Wi-Fi address when the APK was built; update it if the address changes. Check `/api/mobile/health` in the phone browser before logging in. `localhost` on a phone refers to the phone itself.
+`10.9.4.210` was the PC's Wi-Fi address when the APK was built; update it if the address changes. Check `/api/mobile/health` in the phone browser before logging in. `localhost` on a phone refers to the phone itself.
 
-Version 1.4.1 includes nearest idle ambulance booking, driver details/ETA, pickup tracking and hospital options filtered by the required service. Install this updated APK and follow [the booking demo guide](docs/CARE-BOOKING-DEMO.md). APK signature and checksum details are in [deliverables/README.md](deliverables/README.md).
+Version 1.5.1 fixes the server connection dialog and updates the bundled address after the PC's IP changed. If an installed app remembers the old address, open **Server connection → Current test server → Test & save**. The login screen displays the selected server address; credentials stay the same.
+
+The local backend's database and application-key configuration are cached for consistent Apache requests. Refresh the cache with `C:\xampp\php\php.exe artisan config:cache` after editing `.env`.
+
+Version 1.5.0 adds family/insurance records, private card uploads and SOS for another patient to the existing ambulance booking, tracking and service-based hospital flow. Install this updated APK and follow [the booking demo guide](docs/CARE-BOOKING-DEMO.md). APK signature and checksum details are in [deliverables/README.md](deliverables/README.md).
 
 ### Rebuild the test APK
 
@@ -133,7 +141,7 @@ The output is copied to `deliverables/Hospital-Test.apk`. See [mobile setup](mob
 
 ## Verification and test flow
 
-Verified during implementation: all five actual Apache web/API logins, 50 shared-database API checks, 24 installed-database workflow checks, 40 isolated bed workflow checks, six dynamic bed CRUD checks, 13 Request Care detail checks, 30 care booking checks, Flutter analysis and 16 Flutter UI tests. Installed-database smoke checks roll back their workflow changes; the HTTP login check revokes its issued test tokens.
+Verified during implementation: all five actual Apache web/API logins, 50 shared-database API checks, 24 installed-database workflow checks, 40 isolated bed workflow checks, six dynamic bed CRUD checks, 13 Request Care detail checks, 30 care booking checks, 44 insurance/family/SOS checks, Flutter analysis and 23 Flutter UI tests. Installed-database smoke checks roll back their workflow changes; the HTTP login check revokes its issued test tokens.
 
 Useful checks from the project root:
 
@@ -141,8 +149,10 @@ Useful checks from the project root:
 C:\xampp\php\php.exe tests/dynamic-bed-crud-smoke.php
 C:\xampp\php\php.exe tests/request-care-details-smoke.php
 C:\xampp\php\php.exe tests/care-booking-flow-smoke.php
+C:\xampp\php\php.exe tests/insurance-sos-smoke.php
 C:\xampp\php\php.exe tests/database-smoke.php
 C:\xampp\php\php.exe tests/shared-database-api-smoke.php
+C:\xampp\php\php.exe tests/login-http-smoke.php
 .\tests\shared-logins-http.ps1
 ```
 
@@ -167,5 +177,6 @@ A physical phone installation has not been tested. GPS runs in the foreground an
 - [Shared web/app database and architecture](docs/WEB-APP-DATABASE.md)
 - [Test accounts and login flow](docs/TEST-ACCOUNTS.md)
 - [Internal/External booking demonstration](docs/CARE-BOOKING-DEMO.md)
+- [Insurance, panel memberships and SOS for another patient](docs/INSURANCE-FAMILY-SOS.md)
 - [Flutter client](mobile/careroute/README.md)
 - [APK metadata and checksum](deliverables/README.md)

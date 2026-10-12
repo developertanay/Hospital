@@ -183,6 +183,7 @@ class EmergencyBedService
             $matches[] = ['preferred'=>isset($r['preferred_hospital_id']) && (string)$r['preferred_hospital_id']===$h['id'],'id'=>$h['id'],'name'=>$h['name'],'distance'=>$distance,'available'=>$available,'reclaimable'=>$reclaimable,'compatible'=>$reason === null,'reason'=>$reason];
         }
         usort($matches, function ($a,$b) { return ($b['compatible'] <=> $a['compatible']) ?: ($b['preferred'] <=> $a['preferred']) ?: (($a['distance'] ?? PHP_INT_MAX) <=> ($b['distance'] ?? PHP_INT_MAX)) ?: ($b['available'] <=> $a['available']); });
+        foreach($matches as &$match)$match['coverage']=app(PatientCoverageService::class)->compatibility($r['coverage_id']??null,$match['id']);unset($match);
         return $matches;
     }
 
@@ -201,6 +202,15 @@ class EmergencyBedService
     {
         if (!empty($input['problem_type']) && empty($input['assistance_preference'])) $input['assistance_preference']=$input['problem_type']==='Internal'?'Ambulance':'Hospital';
         if (($input['assistance_preference'] ?? null)==='Ambulance') $input['preferred_hospital_id']=null;
+        if(array_key_exists('coverage_id',$input) || !empty($input['dependent_id'])) {
+            app(PatientCoverageService::class)->select($ownerId,$input['coverage_id']??null,$input['dependent_id']??null);
+            if(($input['reported_for']??null)==='Other' && !empty($input['coverage_id']))throw new RuntimeException('Your coverage cannot be used for an unrelated patient.');
+            $input['insurance_status']=empty($input['coverage_id'])?'NotSubmitted':'Pending';$input['cashless_status']='NotRequested';
+            if(!empty($input['dependent_id'])){
+                $input['reported_for']='Family';$input['patient']=\App\Models\PatientDependent::find($input['dependent_id'])->name;
+                $reporter=\App\Models\PatientEmergencyProfile::find($ownerId);$input['reporter_name']=$input['reporter_name']??($reporter->name??\App\Models\User::find($ownerId)->name);$input['reporter_phone']=$input['reporter_phone']??($reporter->mobile??null);
+            }
+        }
         return $this->transaction(function (&$s) use ($input,$client,$ownerId) {
             $recent = array_values(array_filter($s['limits'][$client] ?? [], function ($t) { return $t > time()-60; }));
             if (count($recent) >= 5) throw new RuntimeException('Rate limit: at most 5 requests per minute. Wait before retrying.');
@@ -351,7 +361,8 @@ class EmergencyBedService
             if ($action==='cancel') $record['status']='Cancelled';
             else {
                 foreach (['patient','location','care','severity','latitude','longitude'] as $field) $record[$field]=$input[$field] ?? null;
-                foreach (['problem_type','assistance_preference','description','preferred_hospital_id','location_captured_at','department_id'] as $field) if (array_key_exists($field,$input)) $record[$field]=$input[$field];
+                if(array_key_exists('coverage_id',$input) || array_key_exists('dependent_id',$input)) { app(PatientCoverageService::class)->select($ownerId,$input['coverage_id']??null,$input['dependent_id']??null);$record['insurance_status']=empty($input['coverage_id'])?'NotSubmitted':'Pending';$record['cashless_status']='NotRequested'; }
+                foreach (['coverage_id','dependent_id','reported_for','reporter_name','reporter_phone','reporter_with_patient','problem_type','assistance_preference','description','preferred_hospital_id','location_captured_at','department_id'] as $field) if (array_key_exists($field,$input)) $record[$field]=$input[$field];
                 if (($record['assistance_preference'] ?? null)==='Ambulance') $record['preferred_hospital_id']=null;
                 $record['bed_type_id']=bedtype::where('name',$input['care'])->where('status',1)->value('id');
                 $record['verified']=false;
@@ -372,4 +383,15 @@ class EmergencyBedService
     }
 
 
+    public function reviewCoverage($id,$hospital,$data) {
+        return $this->transaction(function(&$state)use($id,$hospital,$data){
+            $index=$this->index($state,$id);$r=&$state['requests'][$index];
+            if($r['hospital_id']!==$hospital || empty($r['coverage_id']))throw new RuntimeException('Insurance review requires a booking at your hospital.');
+            if($data['insurance_status']==='Verified')app(PatientCoverageService::class)->select($r['owner_id'],$r['coverage_id'],$r['dependent_id']??null);
+            if($data['cashless_status']==='Approved' && $data['insurance_status']!=='Verified')throw new RuntimeException('Verify coverage before recording cashless approval.');
+            if($data['cashless_status']==='Approved'){$compatibility=app(PatientCoverageService::class)->compatibility($r['coverage_id'],$hospital);if(($compatibility['settlement_mode']??null)!=='Cashless' || strpos($compatibility['status'],'Empanelled')!==0)throw new RuntimeException('A valid cashless hospital arrangement is required.');}
+            foreach(['insurance_status','cashless_status','insurance_note'] as $key)$r[$key]=$data[$key];
+            $this->event($state,'Hospital recorded coverage '.$data['insurance_status'].'; cashless '.$data['cashless_status'].'. Reference: '.$data['insurance_note'],$id);
+        });
+    }
 }
