@@ -44,3 +44,5 @@ C:\xampp\php\php.exe tests/login-http-smoke.php
 ```
 
 From `mobile/careroute`, run `flutter analyze` and `flutter test`. Android compilation, app tests and server checks do not replace physical phone camera/microphone testing.
+
+[System flow & jury pitch](SYSTEM-FLOW-AND-PITCH.md) · [Project overview](../README.md)

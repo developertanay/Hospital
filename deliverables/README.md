@@ -33,3 +33,5 @@ The dedicated test accounts still use `TestCare@2026`; see [the account list](..
 Physical phone camera/microphone capture, GPS and installation remain device checks. Follow [the two-phone test](../docs/SOS-PHOTO.md).
 
 SHA-256: `AB897C9E32BB82C513161403C3A4E357E0C59917440B9831CCC6D198F520D2D4`.
+
+[System flow & jury pitch](../docs/SYSTEM-FLOW-AND-PITCH.md) · [Project overview](../README.md)

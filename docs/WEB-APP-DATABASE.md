@@ -1,45 +1,65 @@
-# Web and Android use one database
+# Shared database and MVC architecture
 
-The running backend is Laravel 8/PHP in XAMPP, using the existing MySQL `colleges` database at `localhost:3306`. Its configuration stays in `.env`; database credentials are never built into Android. The Flutter app calls Laravel's `/api/mobile` API. Web sessions and mobile Sanctum tokens authenticate against the same `users` rows and hashed passwords.
+CareRoute 1.7.0 uses Laravel 8/PHP and the existing MySQL `colleges` database at `localhost:3306`. The web portal and Flutter Android app share accounts, requests, hospital inventory and ambulance trips. Android calls `/api/mobile`; it contains no database credentials and does not connect directly to MySQL.
 
-The local backend now uses Laravel's configuration cache so Apache requests consistently use the configured database and existing application key. After editing `.env`, run `C:\xampp\php\php.exe artisan config:cache` from the project folder to refresh that cache. Version 1.5.1 also fixes the server dialog and provides **Current test server** to replace a saved address from an earlier build.
+## Request path
 
-Request Care saves `problem_type` (Internal/External), `assistance_preference`, `preferred_hospital_id`, `department_id`, `description` and `location_captured_at` alongside coordinates. Apply migrations 000010 and 000011 on other installations. Internal requests show nearest idle ambulance booking first; External requests show service-compatible hospital beds first. Both options remain available. Selected ambulance bookings reserve one driver under the SQL dispatch lock until acceptance, cancellation, decline, completion or expiry. The booking's `care_request_id` is stored in the existing SQL trip payload, and transport reuses that request. Only the chosen driver receives a selected booking, and only the chosen hospital sees a bed booking. Live pickup updates also refresh linked care coordinates. See [the demo guide](CARE-BOOKING-DEMO.md).
-
-## Data and responsibilities
-
-Insurance/family support uses the additive migration 000012, shared organisation/hospital mapping masters and owner-scoped `patient_dependents`/`patient_coverages` CRUD. Card uploads remain private and require owner or booked-hospital access. SOS separates its patient snapshot from reporter contact and supports a remote manual pickup pin. Linked care requests carry coverage verification and cashless decisions independently of bed status. See [INSURANCE-FAMILY-SOS.md](INSURANCE-FAMILY-SOS.md).
-
-| Area | Shared SQL tables | Access |
-|---|---|---|
-| Accounts and menus | users, role_mast, modules, module_assigning | Admin manages accounts and role assignments |
-| Hospital masters | hospital_mast, department_mast, hospital_department_mapping, bedding_type, blood_type | Assigned master modules |
-| Hospital workflow | care_beds, care_requests, care_events; existing blodd_inventory_management | Patient owns requests; hospital manages its assigned hospital |
-| Ambulance details | ambulance_category_mast, ambulance_details | Admin maintains vehicles, staff and ownership |
-| Drivers | ambulance_drivers linked to users and ambulance_details | One assigned ambulance per driver account |
-| Emergency profiles and trips | patient_emergency_profiles, ambulance_trips | Patient owns profile/trips; driver sees offered or assigned trips |
-| API authentication | personal_access_tokens | Scoped mobile tokens, disabled-account checks, seven-day expiry |
-
-Dispatch used to read a JSON file and fixed driver email mappings. Its default store now uses SQL transactions and a shared dispatch row lock. First acceptance wins. The JSON file adapter remains only for explicitly supplied isolated test paths; live dispatch does not use it. Existing JSON profiles/trips with valid owners and drivers are imported by migration 000009; the original file remains a backup. Existing unassigned driver accounts must be linked to a vehicle through Accounts & Hospital Access.
-
-## Setup and test build
-
-Keep Apache and MySQL running. Apply only the additive migrations needed by this populated database:
-
-```powershell
-C:\xampp\php\php.exe artisan migrate --path=database/migrations/2019_12_14_000001_create_personal_access_tokens_table.php --force
-C:\xampp\php\php.exe artisan migrate --path=database/migrations/2026_10_12_000009_create_sql_ambulance_dispatch.php --force
-C:\xampp\php\php.exe artisan db:seed --class=MobileTestAccountsSeeder --force
+```mermaid
+flowchart LR
+    W[Web portal] --> C[Laravel controllers]
+    A[Android app] --> API[Authenticated mobile API]
+    API --> C
+    C --> S[Workflow services and models]
+    S --> DB[(Shared MySQL database)]
+    S --> F[Private photo, voice and insurance files]
 ```
 
-The test seeder creates separate patient, hospital, two driver and admin accounts, a labelled test hospital with three beds, and two test ambulances. It preserves existing accounts, passwords and operational records. Test vehicles include one hospital-associated and one private ambulance. Clinical modules are assigned to dedicated test roles; existing role permissions are preserved.
+Web authentication uses sessions and CSRF protection. Mobile authentication uses scoped Sanctum bearer tokens, disabled-account checks and seven-day expiry. Both authenticate the same `users` rows and hashed passwords. Runtime menus read `modules` and `module_assigning`; catalogue/seed configuration does not replace these assignments.
 
-On the phone, use **Server connection** to enter `http://10.9.4.210/Hospital/public/api/mobile`. This is the PC's Wi-Fi address at build time; update it if the address changes. Phone and PC must share the network. Open the API `/health` address in the phone browser first. Android emulator uses `http://10.0.2.2/Hospital/public/api/mobile`. The web login is `http://localhost/Hospital/public/login` on the PC.
+## Code responsibilities
 
-The APK is a debug-signed local test build with HTTP allowed. Its release configuration still requires HTTPS. GPS is foreground-only; background dispatch/push notifications are not implemented. No real phone was attached during automated checks.
+| Layer | Main locations | Responsibility |
+| --- | --- | --- |
+| Controllers | `app/Http/Controllers`, `routes/web.php`, `routes/api.php` | Authentication, validation, CRUD and web/API responses |
+| Services | `EmergencyBedService`, `AmbulanceService`, `AmbulanceDispatchStore` | Matching, ownership, reservation and dispatch transitions |
+| Coverage/media services | `PatientCoverageService`, `SosRecipientService`, `SosReporterPhotoService`, `SosReporterVoiceService` | Eligibility, reporter identity and private attachments |
+| Models | `app/Models` | Existing masters and workflow relationships |
+| Web views | `resources/views` | Role pages and shared CRUD forms |
+| Android client | `mobile/careroute/lib` | API/session state, responsive screens and request/trip views |
+| Android capture | `MainActivity.kt`, `SosCaptureActivity.kt` | Foreground automatic front photo, 10-second audio and playback |
 
-## Verification
+## Shared data and access
 
-`tests/shared-database-api-smoke.php` checks installed MySQL logins and a complete patient SOS → driver acceptance → pickup → hospital verification/acceptance/arrival → handoff flow inside a rolled-back transaction. `tests/shared-logins-http.ps1` checks actual Apache web/API logins for every test role, then revokes issued test tokens. Flutter analysis and widget tests cover the Android client. Older unrelated legacy school routes remain in the repository and are not used by the new app.
+| Area | SQL tables | Responsibility |
+| --- | --- | --- |
+| Accounts/modules | `users`, `role_mast`, `modules`, `module_assigning` | Admin assigns enabled accounts and modules |
+| Hospital masters | `hospital_mast`, `department_mast`, `hospital_department_mapping`, `bedding_type`, `blood_type` | Assigned master CRUD |
+| Hospital operations | `care_beds`, `care_requests`, `care_events`, legacy `blodd_inventory_management` | Patient-owned requests; assigned-hospital capacity and decisions |
+| Ambulances/drivers | `ambulance_category_mast`, `ambulance_details`, `ambulance_drivers` | Vehicle/staff/ownership masters and one assigned ambulance per driver |
+| Profiles/trips | `patient_emergency_profiles`, `ambulance_trips` | Sender owns SOS; drivers see offered/assigned trips |
+| Coverage/panels | `coverage_organisations`, `hospital_coverage_mapping`, `patient_dependents`, `patient_coverages` | Admin/hospital mappings and owner-scoped family/coverage records |
+| Mobile tokens | `personal_access_tokens` | Scoped authenticated API access |
 
-`tests/login-http-smoke.php` checks all five API logins through Apache and deletes only its own issued tokens, preserving driver availability. Pass an API base address as its first argument to check the phone's network endpoint. Version 1.5.1 passes 23 Flutter tests, including four server-connection regression checks.
+## Booking and concurrency
+
+Request Care stores Internal/External problem type, assistance preference, department, description, preferred hospital and timestamped pickup coordinates. Internal shows ambulance selection first; External shows compatible hospital beds first. These are assistance preferences, not an automated diagnosis.
+
+Selected ambulance booking reserves the chosen idle driver under the SQL dispatch lock while confirmation is pending. Direct SOS broadcasts to eligible nearby drivers; first acceptance wins under the same lock. A busy driver cannot accept a second active trip. The default dispatch store is SQL; the JSON adapter remains only for explicitly supplied isolated test paths.
+
+Trips link to care requests through `care_request_id` in the existing trip payload. Hospital transfer reuses that request where applicable. Hospital verification/acceptance is required for the bed; arrival must be confirmed before driver handoff completes. Hospital workflow mutations also use a shared SQL lock to protect holds and occupied beds. The operational journey is in [System flow & jury pitch](SYSTEM-FLOW-AND-PITCH.md).
+
+## Private files
+
+SOS photo/voice metadata is associated with `ambulance_trips.payload`; binary attachments stay on the private local disk, outside `public/storage`. Photos use `storage/app/sos-reporter-photos` and recordings use `storage/app/sos-reporter-voices`. Owner/admin and current offered/assigned drivers can retrieve them through authenticated endpoints. Active-SOS retries preserve the originals; failed saves remove new files.
+
+Insurance cards require owner or related booked-hospital access. Drivers cannot view policy details/cards. Coverage verification and cashless decisions remain independent from bed status. See [SOS media](SOS-PHOTO.md) and [Insurance & family](INSURANCE-FAMILY-SOS.md). Back up the private attachment folders alongside the database.
+
+## Setup and verification
+
+Use [SETUP.md](SETUP.md) for the complete additive migration list and optional sample data. Use [TEST-ACCOUNTS.md](TEST-ACCOUNTS.md) for the current credentials. Do not apply legacy reset/demo instructions from earlier prototype releases.
+
+The APK's bundled phone endpoint is `http://10.9.6.195/Hospital/public/api/mobile`; change Server connection when the PC's Wi-Fi address changes. The Android emulator uses `10.0.2.2`. Check `/api/mobile/health`; the current backend returns `service: CareRoute`, `storage: mysql` and `mock_data: false`.
+
+After a deliberate `.env` change, refresh configuration with `C:\xampp\php\php.exe artisan config:cache`. Preserve the existing application key and database. The local APK allows HTTP for testing; production release configuration requires HTTPS.
+
+The 1.7.0 release passed 52 Flutter tests, 64 voice checks, 60 photo checks, 30 SOS API checks, 50 shared SQL checks and 44 insurance/family checks. `tests/login-http-smoke.php` checks all five real API logins and revokes only its issued tokens. SQL workflow tests use isolated data or roll back their changes. Automatic capture still needs physical phone verification; foreground GPS/status updates are implemented, background push and external insurer integrations are not.

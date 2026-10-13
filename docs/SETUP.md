@@ -2,12 +2,12 @@
 
 ## Web setup on XAMPP
 
-1. Start Apache and MySQL. Use the existing populated database. For a new installation, import the project's legacy database schema/data first: the original Laravel migrations do not recreate every legacy table.
+1. Start Apache and MySQL. Use the existing populated database. For a new installation, restore a valid legacy database backup first: this checkout does not include a complete SQL dump, and the original Laravel migrations do not recreate every legacy table.
 2. Install PHP dependencies with `composer install`. Confirm `public/index.php` and `vendor/autoload.php` exist. Old `public.zip`/`vendor.zip` snapshots are recovery material and should not overwrite current application files blindly.
 3. Configure `.env` with your database credentials. Keep the existing `APP_KEY`; generate a key only for a new installation without one.
 
 ```dotenv
-APP_URL=http://localhost
+APP_URL=http://localhost/Hospital/public
 DB_CONNECTION=mysql
 DB_HOST=localhost
 DB_PORT=3306
@@ -38,7 +38,7 @@ C:\xampp\php\php.exe artisan optimize:clear
 C:\xampp\php\php.exe artisan storage:link
 ```
 
-5. Keep `storage` and `bootstrap/cache` writable. Hospital logos use the public storage link; ambulance photos are stored privately and served through authenticated routes.
+5. Keep `storage` and `bootstrap/cache` writable. Hospital logos use the public storage link; ambulance photos, SOS photo/voice attachments and insurance cards are stored privately and served through authenticated routes. Include private storage folders in backups.
 6. Open [web login](http://localhost/Hospital/public/login). Hospital bed creation is available at [Add bed](http://localhost/Hospital/public/emergency/inventory/create) after hospital login and module assignment.
 
 ## Optional sample masters and test accounts
@@ -53,15 +53,19 @@ C:\xampp\php\php.exe artisan db:seed --class=CoverageSampleSeeder
 
 The master seeder adds standard departments (including ENT, Ophthalmology and Dentistry), ambulance categories, bed types, blood groups and labelled sample hospitals/mappings. Sample master hospitals have request acceptance disabled.
 
-The test account seeder adds a separate App Test Hospital with three beds, two ambulances (hospital-associated and private), and the following accounts. All five use **`TestCare@2026`** on web and Android.
-
-| Login role | User ID / email |
-| --- | --- |
-| Patient | `patient.test@careroute.test` |
-| Hospital | `hospital.test@careroute.test` |
-| Driver 1 | `driver1.test@careroute.test` |
-| Driver 2 | `driver2.test@careroute.test` |
-| Admin | `admin.test@careroute.test` |
+The test account seeder adds a separate App Test Hospital with three beds and two ambulances (hospital-associated and private). Use the five dedicated accounts in [TEST-ACCOUNTS.md](TEST-ACCOUNTS.md) on web and Android.
 
 Dedicated test roles have the needed clinical modules without changing existing role permissions. Save the patient's emergency profile before testing SOS. Test phone numbers are placeholders; replace them with your own test numbers before using call buttons. These credentials are for local testing only.
 
+
+## Connect Android
+
+Install [the APK](../deliverables/Hospital-Test.apk) and keep the phone/PC on the same Wi-Fi. In Server connection, choose **Current test server → Test & save** or enter `http://PC-IP/Hospital/public/api/mobile`. Phone `localhost` refers to the phone; Android emulator uses `http://10.0.2.2/Hospital/public/api/mobile`.
+
+Run `ipconfig` on Windows and use the Wi-Fi IPv4 address rather than a virtual-adapter address. Open the API `/health` endpoint in the phone browser first. It must report `storage: mysql` and `mock_data: false`. If unreachable, check Apache, the network and Apache's firewall access on the trusted Private network.
+
+The first Android SOS use requires camera/microphone permission; it then automatically captures a front photo and 10 seconds of audio. Keep the app open. Save the patient's emergency profile first and follow [the two-phone SOS check](SOS-PHOTO.md).
+
+The commands above clear installation caches. If the running installation uses cached configuration and you deliberately change `.env`, refresh it with `C:\xampp\php\php.exe artisan config:cache`; keep the existing application key. No additional migration is required specifically for the 1.7.0 SOS media change.
+
+See [Android development](../mobile/careroute/README.md), [current test logins](TEST-ACCOUNTS.md) and [system flow & jury demonstration](SYSTEM-FLOW-AND-PITCH.md).

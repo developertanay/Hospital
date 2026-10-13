@@ -1,28 +1,18 @@
 # CareRoute Android app
 
-**Version 1.7.0** connects patients, hospitals and ambulance drivers to the existing Laravel web backend. SOS automatically captures a front-camera photo and records 10 seconds of audio inside the Android app. No shutter, gallery or media confirmation is needed. The first use requires Android camera/microphone permission. Drivers see the photo and can play the voice recording; both are privately stored with the SOS. Login and ordinary care booking behavior are preserved. The minimal responsive interface remains.
+**1.7.0 (13)** is the Flutter client for the shared Laravel/MySQL system. It includes care requests, hospital/ambulance selection, foreground tracking, family/coverage records and automatic SOS photo plus 10-second audio capture.
 
-[Download the APK](../../deliverables/Hospital-Test.apk) · [Test accounts](../../docs/TEST-ACCOUNTS.md) · [Shared database setup](../../docs/WEB-APP-DATABASE.md)
+[Download APK](../../deliverables/Hospital-Test.apk) · [Test accounts](../../docs/TEST-ACCOUNTS.md) · [System flow & pitch](../../docs/SYSTEM-FLOW-AND-PITCH.md) · [Setup](../../docs/SETUP.md)
 
-## Connect and sign in
+## Connect
 
-Keep the phone and backend PC on the same Wi-Fi, with Apache/MySQL running. Use **Server connection → Current test server → Test & save** to select the address bundled with this APK. Enter another address if the PC's IP changes. The web and app use the same accounts.
+Keep Apache/MySQL running and the phone on the backend PC's Wi-Fi. Use **Server connection → Current test server → Test & save**, or enter the PC's current API address. Phone `localhost` is the phone itself; the Android emulator uses `http://10.0.2.2/Hospital/public/api/mobile`.
 
-## Main screens
+Screens and menus follow the account's role and assigned modules. Internal care prefers ambulance selection; External care prefers a compatible hospital bed. Both alternatives remain available. SOS media capture is automatic after the existing profile/recipient details and Android camera/microphone permission. Read [the SOS guide](../../docs/SOS-PHOTO.md) for storage and interruption behavior.
 
-| Screen | Purpose |
-| --- | --- |
-| SOS / Dispatch | Request emergency assistance or manage driver pickups |
-| Request care | Describe the problem and select hospital or ambulance assistance |
-| Requests | Review booking status, approvals and patient arrival |
-| Beds | See current hospital bed availability |
-| Account | Manage family/insurance records and connection settings |
+## Develop and test
 
-Screens are shown according to your role and assigned permissions. Internal cases prefer ambulance assistance; External cases prefer suitable hospital beds. Both booking options remain available.
-
-Read [SOS photo flow and device checks](../../docs/SOS-PHOTO.md). Use this APK with the updated backend; older apps cannot send a new SOS without both required attachments.
-
-## Development
+From this folder, with Flutter and Android SDK configured:
 
 ```sh
 flutter pub get
@@ -31,6 +21,18 @@ flutter test
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2/Hospital/public/api/mobile
 ```
 
-To package the local Android test build, run `build-test-apk.ps1`. It keeps the existing server configuration and copies the APK to `../../deliverables/Hospital-Test.apk`.
+The repository-local SDK, when installed, is `../../.tools/flutter`. Use `run-android.ps1 -ServerUrl http://PC-IP/Hospital/public/api/mobile` to check the backend and run. Add `-DeviceId <device-id>` to choose a device or `-BuildApk` to package a debug APK.
 
-[UI verification](../../docs/UI-REFRESH.md) · [Booking demo](../../docs/CARE-BOOKING-DEMO.md) · [Insurance and family SOS](../../docs/INSURANCE-FAMILY-SOS.md)
+## Build
+
+On this configured Windows workspace, run:
+
+```powershell
+.\build-test-apk.ps1
+```
+
+This builds the Android test APK with the configured API address and copies it to `../../deliverables/Hospital-Test.apk`. Pass `-ApiBaseUrl http://PC-IP/Hospital/public/api/mobile` for another server. General Flutter builds can use `flutter build apk --debug --dart-define=API_BASE_URL=http://PC-IP/Hospital/public/api/mobile`.
+
+Release builds require HTTPS and production signing configuration. iOS builds require a Mac/Xcode; automatic SOS capture and playback are implemented only on Android. The 1.7.0 release passed 52 Flutter tests and analysis; physical camera/microphone/GPS behavior remains a device check.
+
+[Database/API architecture](../../docs/WEB-APP-DATABASE.md) · [Insurance & family](../../docs/INSURANCE-FAMILY-SOS.md) · [APK checksum](../../deliverables/README.md)

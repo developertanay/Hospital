@@ -1,6 +1,6 @@
 # Insurance, panels and SOS for another patient
 
-Available in CareRoute Android 1.5.0 (8). Web and app use the existing MySQL database. Apply the additive migration `2026_10_12_000012_add_insurance_and_dependents.php`; existing accounts, passwords, beds and bookings remain intact.
+Current in CareRoute Android 1.7.0 (13). Web and app use the existing MySQL database. Apply the additive migration `2026_10_12_000012_add_insurance_and_dependents.php`; existing accounts, passwords, beds and bookings remain intact.
 
 ## Masters and permissions
 
@@ -54,4 +54,6 @@ Insurance is optional and does not block unknown-person SOS. [Automatic photo an
 C:\xampp\php\php.exe tests/insurance-sos-smoke.php
 ```
 
-All 44 insurance/family/SOS checks and 19 Flutter tests passed. Android APK signing and version are checked separately. Physical-device photo selection and GPS still require device testing.
+The 1.7.0 release passed 44 insurance/family/SOS checks and 52 Flutter tests. Android APK signing and version are checked separately. Physical-device SOS camera/microphone capture, card selection and GPS still require device testing.
+
+For the presentation journey, use [System flow & jury pitch](SYSTEM-FLOW-AND-PITCH.md).
