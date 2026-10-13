@@ -1,6 +1,7 @@
 <?php
 require __DIR__.'/../vendor/autoload.php';$app=require __DIR__.'/../bootstrap/app.php';$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 require __DIR__.'/support/sql-test-account.php';
+require __DIR__.'/support/sos-photo-fixtures.php'; $cleanupPhotos=sosPhotoFixtureDisk();
 use Illuminate\Support\Facades\DB;use Illuminate\Support\Facades\Auth;use App\Models\User;use App\Models\CareRequest;use App\Models\CoverageOrganisation;use App\Models\HospitalCoverage;use App\Services\EmergencyBedService;
 $checks=0;$files=[];
 function insuredCheck($value,$message){global $checks;if(!$value)throw new RuntimeException($message);$checks++;}
@@ -40,13 +41,15 @@ DB::beginTransaction();try{
     insuredApi($hospitalUser,'coverage/review',['request_id'=>$id,'insurance_status'=>'Pending','cashless_status'=>'Approved','insurance_note'=>'Reference'],409);
     insuredApi($hospitalUser,'coverage/review',['request_id'=>$id,'insurance_status'=>'Verified','cashless_status'=>'Approved','insurance_note'=>'Manual insurer reference TEST-1']);insuredCheck(CareRequest::find($id)->cashless_status==='Approved','Hospital can record separate verified cashless decision');
     insuredApi($patients[0],'coverages/'.$coverage,array_diff_key($body,['card_base64'=>1]),200,'PUT');insuredCheck(CareRequest::find($id)->cashless_status==='NotRequested','Policy edits reset approval for re-verification');
-    $fix=['lat'=>28.6139,'lng'=>77.209,'accuracy'=>5,'captured_at'=>time(),'mode'=>'gps'];
+    $fix=['lat'=>28.6139,'lng'=>77.209,'accuracy'=>5,'captured_at'=>time(),'mode'=>'gps','reporter_photo_base64'=>sosPhotoFixtureBase64()]+sosVoiceFixtureInput();
     $recipient=['reported_for'=>'Family','dependent_id'=>$dependent,'coverage_id'=>$coverage,'reporter_name'=>'Reporting Son','reporter_phone'=>'9000000012','reporter_with_patient'=>true,'description'=>'Father needs help'];
     $tripId=insuredApi($patients[0],'sos/action',['action'=>'sos']+$recipient+$fix,201)['id'];$trip=\App\Models\AmbulanceTrip::find($tripId)->payload;insuredCheck($trip['patient']['name']==='Father Patient' && $trip['reporter']['name']==='Reporting Son','Patient and reporting person are separate');insuredCheck($trip['coverage']['policy_number']==='FAMILY-TEST','Family policy is linked to dependent SOS');
     insuredApi($patients[0],'sos/action',['action'=>'cancel','id'=>$tripId]);
     insuredApi($patients[1],'sos/action',['action'=>'sos']+$recipient+$fix,409);
     $other=['action'=>'sos','reported_for'=>'Other','patient_name'=>null,'patient_age'=>null,'reporter_name'=>'Bystander','reporter_phone'=>'9000000013','reporter_with_patient'=>false,'description'=>'Accident victim','pickup_address'=>'Patient location, not reporter location','lat'=>28.614,'lng'=>77.21,'accuracy'=>0,'captured_at'=>time(),'mode'=>'manual'];
+    $other['reporter_photo_base64']=sosPhotoFixtureBase64();
+    $other+=sosVoiceFixtureInput();
     $otherId=insuredApi($patients[1],'sos/action',$other,201)['id'];$unknown=\App\Models\AmbulanceTrip::find($otherId)->payload;insuredCheck($unknown['patient']['name']==='Unknown patient' && $unknown['patient']['age']===null,'Unknown victim can receive SOS without patient profile');insuredCheck($unknown['location']['mode']==='manual' && $unknown['reporter']['with_patient']===false,'Remote SOS uses patient pin instead of reporter GPS');
     insuredApi($patients[1],'sos/action',['action'=>'cancel','id'=>$otherId]);
     echo "$checks insurance/family/SOS checks passed; database changes rolled back.\n";
-}finally{DB::rollBack();foreach($files as $file)\Illuminate\Support\Facades\Storage::disk('local')->delete($file);}
+}finally{DB::rollBack();foreach($files as $file)\Illuminate\Support\Facades\Storage::disk('local')->delete($file);$cleanupPhotos();}

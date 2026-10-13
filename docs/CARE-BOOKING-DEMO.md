@@ -1,10 +1,10 @@
 # Request Care booking demo
 
-Use Android **CareRoute 1.5.1 (9)** and the Laravel backend with migrations 000010 and 000011 applied. The APK is in `deliverables/Hospital-Test.apk`. Test accounts and password are listed in [TEST-ACCOUNTS.md](TEST-ACCOUNTS.md).
+Use Android **CareRoute 1.7.0 (13)** and the Laravel backend with migrations 000010 and 000011 applied. The APK is in `deliverables/Hospital-Test.apk`. Test accounts and password are listed in [TEST-ACCOUNTS.md](TEST-ACCOUNTS.md).
 
 ## Prepare the demo
 
-1. Start XAMPP Apache/MySQL. Connect all test phones to the PC's Wi-Fi. Set **Server connection** to `http://10.9.4.210/Hospital/public/api/mobile` (update the IP if needed).
+1. Start XAMPP Apache/MySQL. Connect all test phones to the PC's Wi-Fi. Set **Server connection** to `http://10.9.6.195/Hospital/public/api/mobile` (update the IP if needed).
 2. In the web hospital login, check the App Test Hospital coordinates, accepting status and available beds. Use coordinates near your demo location if demonstrating real nearest-hospital distances.
 3. In admin masters, check active departments and hospital-to-department mappings. The labelled App Test Hospital has test mappings for General Medicine and Emergency Medicine. Dentistry should appear only for hospitals with an active Dentistry mapping and a suitable available bed.
 4. Sign in as Driver 1 on another phone. Choose **Use my GPS** and go on duty with location permission. Keep the app open. Driver 2 can do the same on another device for an alternative. Test/SOS simulation mode does not make an ambulance eligible for the real-GPS Request Care list.

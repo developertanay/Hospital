@@ -159,8 +159,8 @@
 				<div>
 					<h4 class="logo-text" style="color: {{ config('branding.primary_color') }};">{{ $short_name ? strtoupper($short_name) : config('branding.name') }}</h4>
 				</div>
-				<div class="toggle-icon ms-auto"><i class='bx bx-arrow-back'></i>
-				</div>
+				<button type="button" class="toggle-icon ms-auto" aria-label="Toggle menu" aria-controls="menu"><i class='bx bx-arrow-back' aria-hidden="true"></i>
+				</button>
 			 </div>
 			<!--navigation-->
 			<ul class="metismenu" id="menu">
@@ -188,8 +188,8 @@
 		<header>
 			<div class="topbar d-flex align-items-center">
 				<nav class="navbar navbar-expand gap-3">
-					<div class="mobile-toggle-menu"><i class='bx bx-menu'></i>
-					</div>
+					<button type="button" class="mobile-toggle-menu" aria-label="Open menu" aria-controls="menu"><i class='bx bx-menu' aria-hidden="true"></i>
+					</button>
 
 					  <div class="position-relative search-bar d-lg-block d-none" data-bs-toggle="modal" data-bs-target="#SearchModal">
 					  	{{--

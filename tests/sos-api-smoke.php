@@ -2,6 +2,7 @@
 require __DIR__.'/../vendor/autoload.php';
 $app=require __DIR__.'/../bootstrap/app.php';$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 require __DIR__.'/support/mobile-sql-fixtures.php'; mobileSqlFixtures();
+require __DIR__.'/support/sos-photo-fixtures.php'; $cleanupPhotos=sosPhotoFixtureDisk();
 $path=storage_path('app/sos-test-api-'.bin2hex(random_bytes(4)).'.json');
 $app->instance(App\Services\AmbulanceService::class,new App\Services\AmbulanceService($path));
 $app->instance(App\Services\EmergencyBedService::class,new App\Services\EmergencyBedService);
@@ -29,7 +30,7 @@ try {
     sosHttp('patient','sos/action',['action'=>'profile','name'=>'API SOS Patient','mobile'=>'+919000000001','age'=>30,'emergency_name'=>'Contact','emergency_phone'=>'+919000000002']);
     sosHttp('driver','sos/action',['action'=>'duty','on_duty'=>true,'lat'=>28.6139,'lng'=>77.2090,'mode'=>'demo']);
     sosHttp('driver2','sos/action',['action'=>'duty','on_duty'=>true,'lat'=>28.6239,'lng'=>77.2190,'mode'=>'demo']);
-    $fix=['action'=>'sos','lat'=>28.6139,'lng'=>77.2090,'accuracy'=>5,'captured_at'=>time(),'mode'=>'demo'];
+    $fix=['action'=>'sos','lat'=>28.6139,'lng'=>77.2090,'accuracy'=>5,'captured_at'=>time(),'mode'=>'demo','reporter_photo_base64'=>sosPhotoFixtureBase64()]+sosVoiceFixtureInput();
     sosHttp('patient','sos/action',array_merge($fix,['accuracy'=>500]),422);
     $id=sosHttp('patient','sos/action',$fix,201)['id'];
     $offer=sosHttp('driver','sos/state');if(isset($offer['calls'][0]['patient']['mobile']))throw new RuntimeException('Contacts leaked before acceptance');
@@ -46,4 +47,4 @@ try {
     sosHttp('driver','sos/action',['action'=>'handoff','id'=>$id]);
     if(sosHttp('patient','sos/state')['calls'][0]['status']!=='Completed')throw new RuntimeException('Handoff failed');
     echo "PASS: $count authenticated SOS API checks (isolated stores)\n";
-}finally{foreach($tokens as $t)$t->delete();foreach([$path,$path.'.lock',$path.'.tmp',$path.'.beds',$path.'.beds.lock',$path.'.beds.tmp']as$f)if(file_exists($f))unlink($f);}
+}finally{foreach($tokens as $t)$t->delete();foreach([$path,$path.'.lock',$path.'.tmp',$path.'.beds',$path.'.beds.lock',$path.'.beds.tmp']as$f)if(file_exists($f))unlink($f);$cleanupPhotos();}

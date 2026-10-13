@@ -54,13 +54,22 @@ void main() {
           ),
         ),
       );
-      await tester.pump(const Duration(milliseconds:100));
-      expect(find.text('Emergency details'), findsNothing);
+      await tester.pump(const Duration(milliseconds: 100));
       expect(
-        find.textContaining('Patient-provided pickup pin.'),
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Emergency details'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Manual pin · not live GPS.'), findsOneWidget);
+      expect(find.textContaining('Location accuracy: 0'), findsNothing);
+      await tester.tap(find.text('Pickup details'));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(
+        find.text('Patient pickup pin · reporter GPS is not used.'),
         findsOneWidget,
       );
-      expect(find.textContaining('Location accuracy: 0'), findsNothing);
       await tester.pumpWidget(const SizedBox());
       s.dispose();
     },
@@ -91,7 +100,7 @@ void main() {
       );
       await tester.tap(find.text('Start SOS'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('For another person / unknown patient'));
+      await tester.tap(find.text('Another person / unknown patient'));
       await tester.pumpAndSettle();
       Future<void> fill(String label, String value) async {
         final finder = find.widgetWithText(TextFormField, label);
@@ -173,6 +182,9 @@ void main() {
       expect(find.text('Father Patient'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Demo Insurance'), 200);
       expect(find.text('Demo Insurance'), findsOneWidget);
+      await tester.ensureVisible(find.text('Policy details'));
+      await tester.tap(find.text('Policy details'));
+      await tester.pumpAndSettle();
       expect(find.textContaining('POLICY-1'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       s.dispose();

@@ -111,6 +111,11 @@ class AmbulanceService {
                 $own=$r['owner_id']===$p['id']; $assigned=$p['role']==='driver' && ($r['driver_id']===($p['driver']??null) || in_array($p['driver']??null,array_column($r['offers'],'driver_id'),true));
                 if ($p['role']!=='admin' && !$own && !$assigned) continue;
                 unset($r['skipped'],$r['retry_at']);
+                $r['has_reporter_photo']=!empty($r['reporter_photo']['path']);
+                unset($r['reporter_photo']);
+                $r['has_reporter_voice']=!empty($r['reporter_voice']['path']);
+                $r['reporter_voice_duration_ms']=$r['reporter_voice']['duration_ms']??null;
+                unset($r['reporter_voice']);
                 $r['nearby_driver_count']=count($r['offers']);
                 $r['eta_kind']='estimate';
                 if ($p['role']==='driver' && !$r['driver_id']) {
@@ -156,8 +161,32 @@ class AmbulanceService {
     public function heartbeat($p) {
         return $this->transaction(function (&$s) use ($p) { foreach ($s['drivers'] as &$d) if ($d['id']===$p['driver']) $d['seen_at']=$this->now(); unset($d); $this->dispatch($s); return ['message'=>'Online.']; });
     }
-    public function create($p,$location,$recipient=[]) {
-        return $this->transaction(function (&$s) use ($p,$location,$recipient) {
+    public function reporterPhoto($p,$id) {
+        return $this->transaction(function (&$s) use ($p,$id) {
+            $r=collect($s['calls'])->firstWhere('id',$id);
+            abort_unless($r,404);
+            $own=$p['role']==='patient' && $r['owner_id']===$p['id'];
+            $driver=$p['role']==='driver' && !empty($p['driver']) && ($r['driver_id']===$p['driver'] || in_array($p['driver'],array_column($r['offers'],'driver_id'),true));
+            abort_unless($p['role']==='admin' || $own || $driver,403);
+            abort_unless(!empty($r['reporter_photo']),404);
+            return $r['reporter_photo'];
+        });
+    }
+    public function reporterVoice($p,$id) {
+        return $this->transaction(function (&$s) use ($p,$id) {
+            $r=collect($s['calls'])->firstWhere('id',$id);
+            abort_unless($r,404);
+            $own=$p['role']==='patient' && $r['owner_id']===$p['id'];
+            $driver=$p['role']==='driver' && !empty($p['driver']) && ($r['driver_id']===$p['driver'] || in_array($p['driver'],array_column($r['offers'],'driver_id'),true));
+            abort_unless($p['role']==='admin' || $own || $driver,403);
+            abort_unless(!empty($r['reporter_voice']),404);
+            return $r['reporter_voice'];
+        });
+    }
+    public function create($p,$location,$recipient=[],$photo=null,$voice=null) {
+        $storedPhoto=null; $storedVoice=null;
+        try {
+        return $this->transaction(function (&$s) use ($p,$location,$recipient,$photo,$voice,&$storedPhoto,&$storedVoice) {
             $profile=$s['profiles'][(string)$p['id']]??null; if (($recipient['reported_for']??'Self')==='Self' && (!$profile || !$this->completeProfile($profile))) throw new RuntimeException('Save your emergency details before using SOS.');
             $context=$recipient?app(SosRecipientService::class)->resolve($p,$recipient,$profile):[];
             $profile=$context['patient']??$profile;
@@ -168,9 +197,16 @@ class AmbulanceService {
             $id=bin2hex(random_bytes(6));
             $r=['id'=>$id,'owner_id'=>$p['id'],'patient'=>$profile,'location'=>$location,'status'=>'Searching','created_at'=>$this->now(),'search_until'=>$this->now()+600,'offer_driver'=>null,'offer_until'=>null,'driver_id'=>null,'distance_km'=>null,'skipped'=>[],'retry_at'=>$this->now()+60,'bed_request_id'=>null,'hospital_id'=>null,'offers'=>[],'events'=>[]];
             $r=array_merge($r,$context);
+            if ($photo!==null) $r['reporter_photo']=$storedPhoto=app(SosReporterPhotoService::class)->store($photo);
+            if ($voice!==null) $r['reporter_voice']=$storedVoice=app(SosReporterVoiceService::class)->store($voice);
             $this->event($r,'SOS received. Searching for an on-duty ambulance within 25 km.'); $s['calls'][]=$r; $this->dispatch($s);
             return ['id'=>$id,'message'=>'SOS sent. Waiting for driver confirmation.'];
         });
+        } catch (\Throwable $e) {
+            if ($storedPhoto) app(SosReporterPhotoService::class)->delete($storedPhoto);
+            if ($storedVoice) app(SosReporterVoiceService::class)->delete($storedVoice);
+            throw $e;
+        }
     }
     private function idleOptions($s,$location) {
         $busy=[]; $now=$this->now();

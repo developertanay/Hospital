@@ -3,6 +3,7 @@ require __DIR__.'/../vendor/autoload.php';
 $app=require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 require __DIR__.'/support/sql-test-account.php';
+require __DIR__.'/support/sos-photo-fixtures.php'; $cleanupPhotos=sosPhotoFixtureDisk();
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
@@ -51,7 +52,7 @@ try {
     sharedApi('patient','sos/action',['action'=>'profile','name'=>'Shared SQL Patient','mobile'=>'+19999999991','age'=>30,'emergency_name'=>'Test Contact','emergency_phone'=>'+19999999992']);
     sharedCheck(PatientEmergencyProfile::find($users['patient']->id)->name==='Shared SQL Patient','Emergency profile stored in MySQL');
     foreach (['driver','driver2'] as $role) sharedApi($role,'sos/action',['action'=>'duty','on_duty'=>true,'lat'=>28.6139,'lng'=>77.2090,'mode'=>'demo','follow_pickup'=>true]);
-    $tripId=sharedApi('patient','sos/action',['action'=>'sos','lat'=>28.6139,'lng'=>77.2090,'accuracy'=>5,'captured_at'=>time(),'mode'=>'demo'],201)['id'];
+    $tripId=sharedApi('patient','sos/action',['action'=>'sos','lat'=>28.6139,'lng'=>77.2090,'accuracy'=>5,'captured_at'=>time(),'mode'=>'demo','reporter_photo_base64'=>sosPhotoFixtureBase64()]+sosVoiceFixtureInput(),201)['id'];
     sharedCheck(AmbulanceTrip::find($tripId)->status==='Searching','Trip stored in MySQL');
     $offers=sharedApi('driver','sos/state');
     $offered=collect($offers['calls'])->firstWhere('id',$tripId);
@@ -76,4 +77,4 @@ try {
     sharedCheck(!AmbulanceDriver::where('user_id',$users['driver']->id)->first()->on_duty,'Driver logout removes availability');
     sharedApi('driver','state',null,401);
     echo "PASS: $checks installed SQL web/mobile checks; all test writes rolled back\n";
-} finally { DB::rollBack(); }
+} finally { DB::rollBack(); $cleanupPhotos(); }

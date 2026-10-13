@@ -6,18 +6,20 @@ import 'location.dart';
 
 Future<Map<String, dynamic>?> chooseSosRecipient(
   BuildContext context,
-  Session s,
-) async {
+  Session s, {
+  Future<Map<String, dynamic>> Function()? captureLocation,
+}) async {
   String who = 'Self';
   final selection = await showDialog<String>(
     context: context,
     builder: (ctx) => SimpleDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: const Text('Who needs help?'),
       children: [
         for (final entry in {
           'Self': 'For myself',
-          'Family': 'For a saved family member',
-          'Other': 'For another person / unknown patient',
+          'Family': 'Family member',
+          'Other': 'Another person / unknown patient',
         }.entries)
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, entry.key),
@@ -66,6 +68,7 @@ Future<Map<String, dynamic>?> chooseSosRecipient(
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: Text(
           who == 'Self'
               ? 'My SOS details'
@@ -205,9 +208,7 @@ Future<Map<String, dynamic>?> chooseSosRecipient(
                       onChanged: (v) => set(() => coverage = v),
                     ),
                   if (!withPatient) ...[
-                    const Text(
-                      'Enter the patient’s pickup pin. Your phone GPS will not be used for their location.',
-                    ),
+                    const Text('Patient pickup pin · your GPS is not used.'),
                     TextFormField(
                       controller: address,
                       decoration: const InputDecoration(
@@ -250,12 +251,7 @@ Future<Map<String, dynamic>?> chooseSosRecipient(
                       },
                     ),
                   ] else
-                    const Text(
-                      'Pickup uses current GPS at the patient’s location.',
-                    ),
-                  const Text(
-                    'Missing insurance or an unknown patient name does not block SOS.',
-                  ),
+                    const Text('Live GPS pickup at the patient’s location.'),
                   if (error != null)
                     Text(error!, style: const TextStyle(color: Colors.red)),
                 ],
@@ -276,7 +272,7 @@ Future<Map<String, dynamic>?> chooseSosRecipient(
                     set(() => busy = true);
                     try {
                       final fix = withPatient
-                          ? await PickupLocation.current()
+                          ? await (captureLocation ?? PickupLocation.current)()
                           : {
                               'lat': double.parse(lat.text),
                               'lng': double.parse(lng.text),
@@ -359,15 +355,17 @@ Future<void> reviewInsurance(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Text('Insurance / panel review'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Record the actual verification and insurer/TPA decision. Bed acceptance does not approve cashless treatment.',
+                'Record insurer / TPA approval separately from the bed.',
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: verification,
                 decoration: const InputDecoration(
                   labelText: 'Coverage verification',
@@ -378,6 +376,7 @@ Future<void> reviewInsurance(
                 onChanged: (v) => set(() => verification = v!),
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: cashless,
                 decoration: const InputDecoration(
                   labelText: 'Cashless decision',

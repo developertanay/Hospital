@@ -26,3 +26,17 @@ yarn-error.log
 /.tools/
 /storage/app/ambulance-demo.json*
 /storage/app/sos-test-*
+
+# Keep the shared UI styles reviewable without tracking generated/public uploads.
+!/public/
+/public/*
+!/public/assets/
+/public/assets/*
+!/public/assets/css/
+/public/assets/css/*
+!/public/assets/css/login.css
+!/public/assets/css/crud.css
+!/public/assets/css/dashboard-theme.css
+!/public/assets/js/
+/public/assets/js/*
+!/public/assets/js/driver-dispatch.js

@@ -36,6 +36,8 @@ Route::prefix('mobile')->group(function () {
         Route::get('state', [App\Http\Controllers\EmergencyController::class,'state']);
         Route::post('action', [App\Http\Controllers\EmergencyController::class,'mutate']);
         Route::get('sos/state', [App\Http\Controllers\API\AmbulanceController::class,'state']);
+        Route::get('sos/{id}/reporter-photo', [App\Http\Controllers\API\AmbulanceController::class,'reporterPhoto'])->name('mobile.sos.reporter-photo');
+        Route::get('sos/{id}/reporter-voice', [App\Http\Controllers\API\AmbulanceController::class,'reporterVoice'])->name('mobile.sos.reporter-voice');
         Route::post('sos/action', [App\Http\Controllers\API\AmbulanceController::class,'action']);
         Route::get('portfolio',[App\Http\Controllers\API\PatientPortfolioController::class,'index']);
         Route::post('coverage/review',[App\Http\Controllers\API\PatientPortfolioController::class,'review']);

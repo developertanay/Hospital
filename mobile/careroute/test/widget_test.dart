@@ -72,10 +72,7 @@ void main() {
       expect(find.text('Choose ambulance'), findsOneWidget);
       await tester.tap(find.text('Choose ambulance'));
       await tester.pumpAndSettle();
-      expect(
-        find.text('Use current location to find ambulances'),
-        findsOneWidget,
-      );
+      expect(find.text('Find with my location'), findsOneWidget);
       expect(
         find.text('On-duty drivers have not shared fresh live GPS.'),
         findsOneWidget,
@@ -155,7 +152,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Ambulance · recommended first'), findsOneWidget);
+      expect(find.text('Ambulance · first choice'), findsOneWidget);
       expect(find.text('TESTAMB001'), findsOneWidget);
       expect(find.text('1.2 km · estimated arrival 4 min'), findsOneWidget);
       expect(find.text('Doctor: Test Doctor'), findsOneWidget);
@@ -188,7 +185,7 @@ void main() {
       await tester.ensureVisible(problem);
       await tester.tap(problem);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('External — accident, injury').last);
+      await tester.tap(find.text('External — accident or injury').last);
       await tester.pumpAndSettle();
       expect(find.text('Preferred hospital'), findsOneWidget);
       final assistance = find.byType(DropdownButtonFormField<String>).at(1);
@@ -199,11 +196,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Preferred hospital'), findsNothing);
       expect(
-        find.text(
-          'Next: compare nearby idle ambulances and hospitals that provide your required service. Both options remain available.',
-        ),
-        findsOneWidget,
+        tester.widget<DropdownButtonFormField<String>>(assistance).initialValue,
+        'Ambulance',
       );
+      expect(find.text('Choose hospital'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       session.dispose();
     },
@@ -386,9 +382,9 @@ void main() {
         ),
       ),
     );
-    await tester.ensureVisible(find.text('Continue to ambulance selection'));
+    await tester.ensureVisible(find.text('Choose ambulance'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue to ambulance selection'));
+    await tester.tap(find.text('Choose ambulance'));
     await tester.pump();
     expect(session.submitted, isNull);
     expect(find.text('Enter the patient name or ID'), findsOneWidget);
@@ -401,9 +397,9 @@ void main() {
     );
     tester.testTextInput.hide();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Continue to ambulance selection'));
+    await tester.ensureVisible(find.text('Choose ambulance'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue to ambulance selection'));
+    await tester.tap(find.text('Choose ambulance'));
     await tester.pump();
     expect(session.submitted, {
       'action': 'create',
@@ -434,7 +430,7 @@ void main() {
       ),
     );
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Continue to ambulance selection'),
+      find.widgetWithText(FilledButton, 'Choose ambulance'),
     );
     expect(button.onPressed, isNull);
     await tester.pumpWidget(const SizedBox());

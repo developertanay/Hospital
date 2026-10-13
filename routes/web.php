@@ -39,6 +39,8 @@ use Illuminate\Support\Facades\Route;
     Route::resource('HospitalDepartment', 'HospitalDepartmentController')->except('show');
     Route::resource('CoverageOrganisation','CoverageMasterController')->except('show');
     Route::resource('HospitalCoverage','CoverageMasterController')->except('show');
+    Route::get('emergency/dispatch/{id}/reporter-photo',[App\Http\Controllers\API\AmbulanceController::class,'reporterPhoto'])->middleware('auth')->name('dispatch.reporter-photo');
+    Route::get('emergency/dispatch/{id}/reporter-voice',[App\Http\Controllers\API\AmbulanceController::class,'reporterVoice'])->middleware('auth')->name('dispatch.reporter-voice');
     Route::middleware(['auth',App\Http\Middleware\DriverDispatchAccess::class])->group(function () {
         Route::get('emergency/dispatch','DriverDispatchController@index');
         Route::get('emergency/dispatch/state',[App\Http\Controllers\API\AmbulanceController::class,'state']);

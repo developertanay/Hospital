@@ -1,4 +1,4 @@
-param([string]$ApiBaseUrl='http://10.9.4.210/Hospital/public/api/mobile')
+param([string]$ApiBaseUrl='http://10.9.6.195/Hospital/public/api/mobile')
 $ErrorActionPreference='Stop'
 $projectRoot=Resolve-Path (Join-Path $PSScriptRoot '../..')
 $flutterCommand=Join-Path $projectRoot '.tools/flutter/bin/flutter.bat'

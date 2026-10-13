@@ -26,12 +26,27 @@ class AmbulanceController extends Controller {
         },$bedState['hospitals']);
         $state['care_types']=$beds->careTypes();
         foreach ($state['calls'] as &$call) {
+            $call['reporter_photo_url']=!empty($call['has_reporter_photo']) ? route($request->is('api/*')?'mobile.sos.reporter-photo':'dispatch.reporter-photo',['id'=>$call['id']]) : null;
+            $call['reporter_voice_url']=!empty($call['has_reporter_voice']) ? route($request->is('api/*')?'mobile.sos.reporter-voice':'dispatch.reporter-voice',['id'=>$call['id']]) : null;
             $call['hospital_options']=$state['hospitals']??[];
             foreach ($call['hospital_options'] as &$h) if (isset($h['latitude'],$h['longitude'])) $h['distance']=round(AmbulanceService::distance($call['location']['lat'],$call['location']['lng'],$h['latitude'],$h['longitude']),1);
             unset($h);
             if(!empty($call['department_id'])) $call['hospital_options']=array_values(array_filter($call['hospital_options'],fn($h)=>in_array((int)$call['department_id'],array_column($h['departments'],'id'),true)));
         } unset($call);
         return response()->json($state)->header('Cache-Control','private, no-store');
+    }
+    public function reporterPhoto(Request $request,$id,AmbulanceService $service,\App\Services\SosReporterPhotoService $photos) {
+        $p=RoleAccess::profile();
+        abort_unless($p && in_array($p['role'],['patient','driver','admin'],true),403);
+        if (!$request->is('api/*') && $p['role']==='driver') abort_unless(RoleAccess::canPage('dispatch'),403);
+        $photo=$service->reporterPhoto($p,$id);
+        return $photos->response($photo);
+    }
+    public function reporterVoice(Request $request,$id,AmbulanceService $service,\App\Services\SosReporterVoiceService $voices) {
+        $p=RoleAccess::profile();
+        abort_unless($p && in_array($p['role'],['patient','driver','admin'],true),403);
+        if (!$request->is('api/*') && $p['role']==='driver') abort_unless(RoleAccess::canPage('dispatch'),403);
+        return $voices->response($service->reporterVoice($p,$id));
     }
     public function action(Request $request,AmbulanceService $service,EmergencyBedService $beds) {
         $p=RoleAccess::profile(); if (!$p) return response()->json(['message'=>'Sign in first.'],401);
@@ -68,7 +83,9 @@ class AmbulanceController extends Controller {
                 if ($action==='location') { $request->validate(['id'=>'required|string|max:32']); return response()->json($service->location($p,$request->id,$input)); }
                 $recipient=$request->validate(\App\Services\SosRecipientService::rules());
                 if($input['mode']==='manual' && (($recipient['reported_for']??'Self')==='Self' || ($recipient['reporter_with_patient']??true))) throw new RuntimeException('A manual pin is only for a patient at a different location.');
-                return response()->json($service->create($p,$input,$recipient),201);
+                $photo=app(\App\Services\SosReporterPhotoService::class)->validate($request);
+                $voice=app(\App\Services\SosReporterVoiceService::class)->validate($request);
+                return response()->json($service->create($p,$input,$recipient,$photo,$voice),201);
             }
             if ($action==='duty') {
                 $input=$request->validate(['follow_pickup'=>'nullable|boolean','on_duty'=>'required|boolean','lat'=>'required_if:on_duty,true|numeric|between:-90,90','lng'=>'required_with:lat|numeric|between:-180,180','mode'=>'required_with:lat|in:gps,demo']);

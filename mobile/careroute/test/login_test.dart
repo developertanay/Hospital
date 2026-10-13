@@ -50,7 +50,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(session.checkedAddress, bundled);
     expect(session.api.base, bundled);
-    expect(find.text('Connect to your server'), findsNothing);
+    expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     session.dispose();
@@ -70,7 +70,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.text('Connect to your server'), findsNothing);
+      expect(find.byType(AlertDialog), findsNothing);
       expect(find.text('Sign in'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       session.dispose();
@@ -91,7 +91,7 @@ void main() {
     await tester.pump();
     await tester.binding.handlePopRoute();
     await tester.pump();
-    expect(find.text('Connect to your server'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('Checking…'), findsOneWidget);
     expect(
       tester
@@ -102,7 +102,7 @@ void main() {
     probe.complete();
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('Connect to your server'), findsNothing);
+    expect(find.byType(AlertDialog), findsNothing);
     await tester.pumpWidget(const SizedBox());
     session.dispose();
   });

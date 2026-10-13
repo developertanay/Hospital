@@ -1,17 +1,35 @@
-# Hospital Android test build
+# CareRoute Android — 1.7.0
 
-Install `Hospital-Test.apk` on an Android 7.0+ device. App name: **CareRoute**, version **1.5.1 (9)**. This is a debug-signed local test build supporting ARM32, ARM64 and x86_64.
+[**Download Hospital-Test.apk**](Hospital-Test.apk) · [Test accounts](../docs/TEST-ACCOUNTS.md) · [Automatic SOS guide](../docs/SOS-PHOTO.md)
 
-This build shows ambulance booking first for Internal requests and service-compatible hospital beds first for External requests. Both options remain available. Patients see nearby idle real-GPS ambulances and estimated arrival, book one selected vehicle, see its driver/contact details and track pickup. Selected bookings reserve the vehicle while the driver confirms. Hospital booking reaches only that hospital, and driver transport reuses the same care request. Follow [the demo guide](../docs/CARE-BOOKING-DEMO.md). File size: 162,038,535 bytes (approximately 155 MiB).
+| Item | Value |
+| --- | --- |
+| Version | 1.7.0 (13) |
+| Package | `com.careroute.careroute` |
+| Android | 7.0+ (minimum API 24; target API 36) |
+| Architectures | ARM32, ARM64, x86_64 |
+| Signing | Debug test build; APK v2 signature verified |
+| Size | 162,078,155 bytes (about 155 MiB) |
+| Server | `http://10.9.6.195/Hospital/public/api/mobile` |
 
-Use [the test account list](../docs/TEST-ACCOUNTS.md). All five test accounts use password `TestCare@2026`. The phone's server address is `http://10.9.4.210/Hospital/public/api/mobile`; adjust it in **Server connection** if the PC's Wi-Fi address changes. Keep XAMPP Apache/MySQL running and use the same Wi-Fi network.
+## This update
 
-Version 1.5.1 fixes closing the server connection dialog and prevents dismissal while the server is being checked. If the app remembers an old address, choose **Server connection → Current test server → Test & save**. The selected server is now visible on the login page.
+Tap SOS to automatically capture a front-camera photo and record 10 seconds of audio. No shutter, gallery or media confirmation is needed. Android asks for camera/microphone permission on first use; capture then runs automatically while the app stays in the foreground.
 
-For Internal cases, use **Continue to ambulance selection → Choose ambulance**. Missing patient GPS can be captured from the chooser. Only on-duty drivers sharing fresh live GPS can be booked; demo/offline drivers are excluded and the app explains the empty list. Availability loads automatically after the previous action finishes.
+The photo and recording are privately stored with the SOS. Eligible/assigned drivers can view the photo and play audio in the app or web dispatch. Denied permission or interrupted/incomplete capture sends no new SOS.
 
-Version 1.5.0 adds **Account → Family & insurance**, dependent and policy/panel CRUD, private card-photo uploads and optional coverage on requests/SOS. **SOS for family / another person** separates the patient from the reporter and supports unknown details or a remote patient pickup pin. The booked hospital reviews coverage and cashless status separately, through the app or web desk. See [the complete flow](../docs/INSURANCE-FAMILY-SOS.md). The 44 new backend checks and 23 total Flutter tests pass; physical photo-picker/GPS testing is still needed.
+Login, ordinary ambulance/bed booking, dispatch rules, recipient forms and the existing minimal interface remain unchanged. No new app dependency, migration, seeder or password reset is required. Use this APK with the updated backend; older APKs cannot send a new SOS without both attachments.
 
-Verified: APK v2 signature, package/version/Android compatibility, 23 Flutter UI tests, 13 Request Care detail checks, 30 care booking checks, 50 installed-database integration checks, and all five web/API logins through Apache. A physical phone was not connected for installation testing. The architecture and limitations are recorded in [WEB-APP-DATABASE.md](../docs/WEB-APP-DATABASE.md).
+## Install and connect
 
-SHA-256: `B06EA3D51A035B35319DAA7CA4949536C54F5E8FD106D5683FFB8C062F02AF7E`.
+Install over the previous test version. Keep Apache/MySQL running and the phone on the PC's Wi-Fi. Choose **Server connection → Current test server → Test & save** if the app remembers an older address.
+
+The dedicated test accounts still use `TestCare@2026`; see [the account list](../docs/TEST-ACCOUNTS.md).
+
+## Verified
+
+52 Flutter tests and clean analysis; 64 automatic voice checks, 60 photo checks, 30 SOS API checks, 50 shared SQL checks and 44 insurance/family checks passed. All five real API logins and the web voice/history display check passed. Database writes roll back and media fixtures use disposable private folders. Android compilation and APK package/version/v2 signature were verified.
+
+Physical phone camera/microphone capture, GPS and installation remain device checks. Follow [the two-phone test](../docs/SOS-PHOTO.md).
+
+SHA-256: `AB897C9E32BB82C513161403C3A4E357E0C59917440B9831CCC6D198F520D2D4`.

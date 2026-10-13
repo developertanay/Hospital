@@ -8,30 +8,35 @@ import 'session.dart';
 import 'managed_dialog.dart';
 import 'location.dart';
 import 'recipient.dart';
+import 'responsive.dart';
+import 'recent_activity.dart';
+import 'sos_photo.dart';
+import 'sos_media.dart';
 
 const _red = Color(0xFFC6283D);
-const _navy = Color(0xFF102C46);
+const _navy = Color(0xFF17352F);
 
 class SosScreen extends StatefulWidget {
   final Session session;
   final void Function(String) openBed;
-  const SosScreen({super.key, required this.session, required this.openBed});
+  final SosMediaCapture? captureMedia;
+  final Future<Map<String, dynamic>> Function()? captureLocation;
+  const SosScreen({
+    super.key,
+    required this.session,
+    required this.openBed,
+    this.captureMedia,
+    this.captureLocation,
+  });
   @override
   State<SosScreen> createState() => _SosScreenState();
 }
 
 class _SosScreenState extends State<SosScreen> {
   bool demo = false, locating = false;
+  String? sosStage;
   String? selfCoverage;
-  Future<void> sendForSomeone() async {
-    final input = await chooseSosRecipient(context, s);
-    if (input == null || !mounted) return;
-    if (input['reported_for'] == 'Self' && !profileReady) {
-      await editProfile(context, s);
-      if (!mounted || !profileReady) return;
-    }
-    await run({'action': 'sos', ...input});
-  }
+  Future<void> sendForSomeone() => send(forSomeone: true);
 
   bool setupShown = false;
   String? locationError;
@@ -91,9 +96,13 @@ class _SosScreenState extends State<SosScreen> {
             final choice = await showDialog<String>(
               context: context,
               builder: (ctx) => AlertDialog(
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
                 title: const Text('Start receiving SOS pickups'),
                 content: const Text(
-                  'Use live GPS and go on duty to appear in nearby available ambulances. Keep the driver app open for pickup alerts. Demo mode is only for simulated SOS testing.',
+                  'Go on duty with GPS and keep the app open for pickups. Demo mode uses simulated locations.',
                 ),
                 actions: [
                   TextButton(
@@ -162,33 +171,71 @@ class _SosScreenState extends State<SosScreen> {
                 : null,
           ),
         )
-      : PickupLocation.current();
+      : (widget.captureLocation ?? PickupLocation.current)();
 
-  Future<void> send() async {
-    if (!profileReady) {
-      await editProfile(context, s);
-      if (!mounted || !profileReady) return;
+  Future<void> send({bool forSomeone = false}) async {
+    if (!enabled || s.role != 'patient' || calls.any((c) => !terminal(c))) {
+      return;
     }
     setState(() {
       locating = true;
+      sosStage = 'SOS details…';
       locationError = null;
     });
     final epochToken = s.api.token;
     try {
-      final fix = await locate();
+      final input = forSomeone
+          ? await chooseSosRecipient(
+              context,
+              s,
+              captureLocation: () => locate(useDemo: false),
+            )
+          : <String, dynamic>{
+              if (selfCoverage != null) ...{
+                'reported_for': 'Self',
+                'coverage_id': selfCoverage,
+              },
+            };
+      if (input == null || !mounted || epochToken != s.api.token) return;
+      if ((input['reported_for'] ?? 'Self') == 'Self' && !profileReady) {
+        await editProfile(context, s);
+        if (!mounted || !profileReady || epochToken != s.api.token) return;
+      }
+      setState(() => sosStage = 'Capturing photo & recording 10s…');
+      final media = await (widget.captureMedia ?? captureSosReporterMedia)();
       if (!mounted || epochToken != s.api.token) return;
-      await s.sosAction({
-        'action': 'sos',
-        if (selfCoverage != null) ...{
-          'reported_for': 'Self',
-          'coverage_id': selfCoverage,
-        },
-        ...fix,
-      });
+      if (media == null) {
+        setState(
+          () => locationError =
+              'Photo and 10-second audio required. SOS was not sent.',
+        );
+        return;
+      }
+      media.validate();
+      setState(() => sosStage = 'Getting location…');
+      // Camera capture may take a while. Refresh GPS before dispatching, but
+      // preserve a remote patient's manually entered pickup pin.
+      final fix = input['mode'] == 'manual'
+          ? {
+              'lat': input['lat'],
+              'lng': input['lng'],
+              'accuracy': input['accuracy'],
+              'mode': 'manual',
+              'captured_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            }
+          : await locate(useDemo: forSomeone ? false : null);
+      if (!mounted || epochToken != s.api.token) return;
+      setState(() => sosStage = 'Sending SOS…');
+      await s.sosAction({'action': 'sos', ...input, ...fix, ...media.payload});
     } catch (e) {
       if (mounted) setState(() => locationError = e.toString());
     } finally {
-      if (mounted) setState(() => locating = false);
+      if (mounted) {
+        setState(() {
+          locating = false;
+          sosStage = null;
+        });
+      }
     }
   }
 
@@ -257,7 +304,7 @@ class _SosScreenState extends State<SosScreen> {
 
   Widget panel(List<Widget> children) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: children,
@@ -292,7 +339,7 @@ class _SosScreenState extends State<SosScreen> {
   Widget callButton(String label, dynamic phone) => OutlinedButton.icon(
     onPressed: () => external(Uri(scheme: 'tel', path: phone.toString())),
     icon: const Icon(Icons.call),
-    label: Text('$label · $phone'),
+    label: Text('$label · $phone', textAlign: TextAlign.center),
   );
 
   @override
@@ -303,236 +350,256 @@ class _SosScreenState extends State<SosScreen> {
     final active = calls.any((c) => !terminal(c));
     return RefreshIndicator(
       onRefresh: s.refresh,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          panel([
-            Text(
-              isDriver
-                  ? 'Ambulance dispatch'
-                  : patient
-                  ? 'Help starts with one tap'
-                  : 'SOS coordination',
-              style: const TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-                color: _navy,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isDriver
-                  ? 'Nearby SOS pickups are shared with multiple drivers. First acceptance confirms the trip.'
-                  : 'Saved emergency details + current pickup location. No request form during SOS.',
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Ambulance service • foreground location and alerts',
-              style: TextStyle(color: _red, fontWeight: FontWeight.bold),
-            ),
-          ]),
-          if (s.sosError != null)
-            panel([
-              Text(s.sosError!, style: const TextStyle(color: _red)),
-              const Text('SOS actions are paused until dispatch reconnects.'),
-            ]),
-          if (patient && !active)
-            panel([
-              SizedBox(
-                height: 104,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: _red),
-                  onPressed: enabled ? send : null,
-                  icon: const Icon(Icons.sos, size: 36),
-                  label: Text(
-                    locating ? 'Getting location…' : 'SOS · Request ambulance',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                profile == null
-                    ? 'Tap SOS to complete missing emergency details first. After setup, SOS takes one tap.'
-                    : demo
-                    ? 'DEMO pickup location selected'
-                    : 'Uses current GPS and your saved emergency details.',
-              ),
-              const Text('Pickup is confirmed only after a driver accepts.'),
-              if ((s.sosState?['coverages'] as List? ?? []).isNotEmpty)
-                DropdownButtonFormField<String>(
-                  initialValue: selfCoverage,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'My insurance / panel (optional)',
-                  ),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('No coverage / provide later'),
-                    ),
-                    ...(s.sosState!['coverages'] as List)
-                        .where((c) => c['dependent_id'] == null)
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c['id'].toString(),
-                            child: Text(
-                              (c['organisation'] as Map?)?['name']
-                                      ?.toString() ??
-                                  'Coverage',
-                            ),
-                          ),
-                        ),
-                  ],
-                  onChanged: (v) => setState(() => selfCoverage = v),
-                ),
-              OutlinedButton.icon(
-                onPressed: enabled ? sendForSomeone : null,
-                icon: const Icon(Icons.group_outlined),
-                label: const Text('SOS for family / another person'),
-              ),
-            ]),
-          for (final c in calls.where((c) => !terminal(c))) trip(c),
-          if (patient)
-            panel([
-              Text(
-                profile == null
-                    ? 'Set up emergency details once'
-                    : '${profile['name']} • ${profile['age']} years',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              if (profile != null)
-                Text(
-                  'Mobile: ${profile['mobile']}\nEmergency contact: ${profile['emergency_name']} · ${profile['emergency_phone']}',
-                ),
-              TextButton.icon(
-                onPressed: s.busy ? null : () => editProfile(context, s),
-                icon: const Icon(Icons.edit_outlined),
-                label: Text(
-                  profile == null
-                      ? 'Add emergency details'
-                      : 'Edit emergency details',
-                ),
-              ),
-              if (!active) ...[
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Use demo pickup location'),
-                  subtitle: const Text(
-                    'Delhi sample pickup. Online demo drivers can serve this or your GPS pickup.',
-                  ),
-                  value: demo,
-                  onChanged: enabled ? (v) => setState(() => demo = v) : null,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Shares your saved details and pickup location with the assigned driver. Driver confirmation is required.',
-                ),
-              ],
-            ]),
-          if (isDriver)
-            panel([
-              Text(
-                '${driver?['name'] ?? s.profile?['name']}\n${driver?['vehicle'] ?? ''}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              Text('Contact: ${driver?['phone'] ?? 'Not set'}'),
-              TextButton.icon(
-                onPressed: enabled
-                    ? () => editDriverContact(
-                        context,
-                        s,
-                        driver?['phone']?.toString() ?? '',
-                      )
-                    : null,
-                icon: const Icon(Icons.phone),
-                label: const Text('Set driver phone for call demo'),
-              ),
-              if (driver?['on_duty'] == true &&
-                  driver?['location_mode'] == 'demo' &&
-                  driver?['follow_pickup'] != true)
-                FilledButton(
-                  onPressed: enabled
-                      ? () {
-                          setState(() => demo = true);
-                          duty(true);
-                        }
-                      : null,
-                  child: const Text('Enable demo pickups near patient GPS'),
-                ),
-              Text(
-                driver?['on_duty'] == true
-                    ? 'ON DUTY · ${driver?['location_mode']} location'
-                    : 'OFF DUTY · no pickups offered',
-              ),
-              if (driver?['on_duty'] != true)
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: demo,
-                  onChanged: enabled ? (v) => setState(() => demo = v) : null,
-                  title: const Text('Use demo driver coordinates'),
-                  subtitle: const Text(
-                    'Simulates an ambulance near each pickup, including GPS pickups. Otherwise uses driver GPS.',
-                  ),
-                ),
-              FilledButton.icon(
-                onPressed: enabled
-                    ? () => duty(driver?['on_duty'] != true)
-                    : null,
-                icon: Icon(
-                  driver?['on_duty'] == true
-                      ? Icons.pause_circle
-                      : Icons.local_shipping,
-                ),
-                label: Text(
-                  locating
-                      ? 'Getting location…'
-                      : driver?['on_duty'] == true
-                      ? 'Go off duty'
-                      : 'Go online · receive SOS',
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'GPS updates every 30 seconds while the app is open. Drivers without a recent heartbeat stop receiving offers.',
-              ),
-            ]),
-          if (locationError != null)
-            panel([Text(locationError!, style: const TextStyle(color: _red))]),
-          if (calls.isEmpty)
+      child: ResponsivePage(
+        maxWidth: 860,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
             panel([
               Text(
                 isDriver
-                    ? 'No pickup offers yet. Go on duty and keep the app open.'
-                    : 'Your SOS trips will appear here.',
+                    ? 'Ambulance dispatch'
+                    : patient
+                    ? 'Emergency help'
+                    : 'SOS coordination',
+                style: const TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w800,
+                  color: _navy,
+                ),
               ),
             ]),
-          if (isDriver)
-            panel([
-              const Text(
-                "Today's trips",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            if (s.sosError != null)
+              panel([
+                Text(s.sosError!, style: const TextStyle(color: _red)),
+                const Text('SOS actions are paused until dispatch reconnects.'),
+              ]),
+            if (patient && !active)
+              panel([
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 96),
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(backgroundColor: _red),
+                    onPressed: enabled ? () => send() : null,
+                    icon: const Icon(Icons.emergency_outlined, size: 30),
+                    label: Text(
+                      locating
+                          ? sosStage ?? 'Getting location…'
+                          : 'SOS · Request ambulance',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  profile == null
+                      ? 'Add emergency details before your first SOS.'
+                      : demo
+                      ? 'DEMO pickup location selected'
+                      : 'Live GPS pickup',
+                ),
+                const Text(
+                  'SOS automatically captures a photo and 10 seconds of audio.',
+                ),
+                if (locationError != null)
+                  Text(locationError!, style: const TextStyle(color: _red)),
+                if ((s.sosState?['coverages'] as List? ?? []).isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    initialValue: selfCoverage,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'My insurance / panel (optional)',
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('No coverage / provide later'),
+                      ),
+                      ...(s.sosState!['coverages'] as List)
+                          .where((c) => c['dependent_id'] == null)
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c['id'].toString(),
+                              child: Text(
+                                (c['organisation'] as Map?)?['name']
+                                        ?.toString() ??
+                                    'Coverage',
+                              ),
+                            ),
+                          ),
+                    ],
+                    onChanged: (v) => setState(() => selfCoverage = v),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: enabled ? sendForSomeone : null,
+                  icon: const Icon(Icons.group_outlined),
+                  label: const Text('SOS for family / another person'),
+                ),
+              ]),
+            for (final c in calls.where((c) => !terminal(c))) trip(c),
+            if (patient)
+              panel([
+                Text(
+                  profile == null
+                      ? 'Emergency details'
+                      : '${profile['name']} • ${profile['age']} years',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: s.busy || locating
+                      ? null
+                      : () => editProfile(context, s),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(
+                    profile == null
+                        ? 'Add emergency details'
+                        : 'Edit emergency details',
+                  ),
+                ),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Contact & location settings'),
+                  children: [
+                    if (profile != null)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.contact_phone_outlined),
+                        title: Text('${profile['mobile']}'),
+                        subtitle: Text(
+                          '${profile['emergency_name']} · ${profile['emergency_phone']}',
+                        ),
+                      ),
+                    if (!active)
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Use demo pickup location'),
+                        subtitle: const Text('Simulated pickup · testing only'),
+                        value: demo,
+                        onChanged: enabled
+                            ? (v) => setState(() => demo = v)
+                            : null,
+                      ),
+                  ],
+                ),
+              ]),
+            if (isDriver)
+              panel([
+                Text(
+                  '${driver?['name'] ?? s.profile?['name']}\n${driver?['vehicle'] ?? ''}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Driver contact'),
+                  children: [
+                    Text('Contact: ${driver?['phone'] ?? 'Not set'}'),
+                    TextButton.icon(
+                      onPressed: enabled
+                          ? () => editDriverContact(
+                              context,
+                              s,
+                              driver?['phone']?.toString() ?? '',
+                            )
+                          : null,
+                      icon: const Icon(Icons.phone),
+                      label: const Text('Set driver phone for call demo'),
+                    ),
+                  ],
+                ),
+                if (driver?['on_duty'] == true &&
+                    driver?['location_mode'] == 'demo' &&
+                    driver?['follow_pickup'] != true)
+                  FilledButton(
+                    onPressed: enabled
+                        ? () {
+                            setState(() => demo = true);
+                            duty(true);
+                          }
+                        : null,
+                    child: const Text('Enable demo pickups near patient GPS'),
+                  ),
+                Text(
+                  driver?['on_duty'] == true
+                      ? 'ON DUTY · ${driver?['location_mode']} location'
+                      : 'OFF DUTY · no pickups offered',
+                ),
+                if (driver?['on_duty'] != true)
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Location settings'),
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: demo,
+                        onChanged: enabled
+                            ? (v) => setState(() => demo = v)
+                            : null,
+                        title: const Text('Use demo driver coordinates'),
+                        subtitle: const Text(
+                          'Simulated ambulance · testing only',
+                        ),
+                      ),
+                    ],
+                  ),
+                FilledButton.icon(
+                  onPressed: enabled
+                      ? () => duty(driver?['on_duty'] != true)
+                      : null,
+                  icon: Icon(
+                    driver?['on_duty'] == true
+                        ? Icons.pause_circle
+                        : Icons.local_shipping,
+                  ),
+                  label: Text(
+                    locating
+                        ? 'Getting location…'
+                        : driver?['on_duty'] == true
+                        ? 'Go off duty'
+                        : 'Go online · receive SOS',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text('Keep the app open for GPS & pickup alerts.'),
+              ]),
+            if (locationError != null && (!patient || active))
+              panel([
+                Text(locationError!, style: const TextStyle(color: _red)),
+              ]),
+            if (calls.isEmpty)
+              panel([
+                Text(isDriver ? 'No pickup offers yet.' : 'No SOS trips yet.'),
+              ]),
+            if (isDriver)
+              panel([
+                const Text(
+                  "Today's trips",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${calls.where((c) {
+                    final dt = DateTime.fromMillisecondsSinceEpoch(((c['created_at'] as num?) ?? 0).toInt() * 1000);
+                    final today = DateTime.now();
+                    return dt.year == today.year && dt.month == today.month && dt.day == today.day && c['driver_id'] != null;
+                  }).length} assigned trips today',
+                ),
+              ]),
+            if (calls.any(terminal))
+              RecentActivityList(
+                title: 'Recent trips',
+                children: [for (final c in calls.where(terminal)) trip(c)],
               ),
-              Text(
-                '${calls.where((c) {
-                  final dt = DateTime.fromMillisecondsSinceEpoch(((c['created_at'] as num?) ?? 0).toInt() * 1000);
-                  final today = DateTime.now();
-                  return dt.year == today.year && dt.month == today.month && dt.day == today.day && c['driver_id'] != null;
-                }).length} assigned trips today',
-              ),
-            ]),
-          for (final c in calls.where(terminal)) trip(c),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -548,6 +615,12 @@ class _SosScreenState extends State<SosScreen> {
       0,
       600,
     );
+    final events = (c['events'] as List).reversed.toList()
+      ..sort(
+        (a, b) => ((b['time'] ?? b['at'] ?? 0) as num).compareTo(
+          (a['time'] ?? a['at'] ?? 0) as num,
+        ),
+      );
     return panel([
       Row(
         children: [
@@ -563,7 +636,7 @@ class _SosScreenState extends State<SosScreen> {
                   ? 'Driver is on the way'
                   : status.toString(),
               style: const TextStyle(
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _navy,
               ),
@@ -574,6 +647,18 @@ class _SosScreenState extends State<SosScreen> {
       Text(
         'SOS ${c['id']} • ${p['name']} • ${p['age'] == null ? 'Age unknown' : '${p['age']} years'}',
       ),
+      if ((c['reporter_photo_url'] ?? '').toString().isNotEmpty)
+        SosSenderPhoto(
+          key: ValueKey('sender-photo-${c['id']}-${s.api.token}'),
+          api: s.api,
+          url: c['reporter_photo_url'].toString(),
+        ),
+      if ((c['reporter_voice_url'] ?? '').toString().isNotEmpty)
+        SosSenderVoice(
+          key: ValueKey('sender-voice-${c['id']}-${s.api.token}'),
+          api: s.api,
+          url: c['reporter_voice_url'].toString(),
+        ),
       if (c['reporter'] is Map) ...[
         Text(
           'Raised by: ${(c['reporter'] as Map)['name']} • ${(c['reporter'] as Map)['phone']}',
@@ -592,29 +677,15 @@ class _SosScreenState extends State<SosScreen> {
         ),
       if ((c['description'] ?? '').toString().isNotEmpty)
         Text(c['description'].toString()),
-      if (c['care_request_id'] != null)
-        Text('Care request: ${c['care_request_id']} • ${c['problem_type']}'),
       Text(
-        'Pickup: ${l['lat']}, ${l['lng']} • ${l['mode'] == 'demo'
-            ? 'DEMO LOCATION'
+        l['mode'] == 'demo'
+            ? 'Demo pickup'
             : l['mode'] == 'manual'
-            ? 'PATIENT PICKUP PIN'
-            : 'GPS'}',
+            ? 'Patient pickup pin'
+            : 'Live GPS pickup',
+        style: const TextStyle(color: Color(0xFF0F766E)),
       ),
-      if (l['mode'] == 'gps')
-        Text(
-          'Pickup location updated ${((now - (l['captured_at'] as num).toInt()).clamp(0, 99999))} seconds ago',
-        ),
-      if (l['mode'] == 'gps' &&
-          !terminal(c) &&
-          ['Searching', 'Accepted', 'At pickup'].contains(status))
-        Text(
-          'Location accuracy: ${l['accuracy']} m • updates while patient app is open',
-        ),
-      if (l['mode'] == 'manual')
-        const Text(
-          'Patient-provided pickup pin. This is not live GPS and is not replaced by the reporter’s location.',
-        ),
+      if (l['mode'] == 'manual') const Text('Manual pin · not live GPS.'),
       OutlinedButton.icon(
         onPressed: () => external(
           Uri.https('www.google.com', '/maps/search/', {
@@ -625,6 +696,27 @@ class _SosScreenState extends State<SosScreen> {
         icon: const Icon(Icons.map_outlined),
         label: const Text('Open pickup in Maps'),
       ),
+      ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: const Text('Pickup details'),
+        children: [
+          if (c['care_request_id'] != null)
+            Text(
+              'Care request: ${c['care_request_id']} • ${c['problem_type']}',
+            ),
+          Text('Coordinates: ${l['lat']}, ${l['lng']}'),
+          if (l['mode'] == 'gps')
+            Text(
+              'Updated ${((now - (l['captured_at'] as num).toInt()).clamp(0, 99999))} seconds ago',
+            ),
+          if (l['mode'] == 'gps' &&
+              !terminal(c) &&
+              ['Searching', 'Accepted', 'At pickup'].contains(status))
+            Text('Accuracy: ${l['accuracy']} m · updates while app is open'),
+          if (l['mode'] == 'manual')
+            const Text('Patient pickup pin · reporter GPS is not used.'),
+        ],
+      ),
       if (status == 'Searching') ...[
         if (!isDriver) const LinearProgressIndicator(),
         const SizedBox(height: 12),
@@ -634,8 +726,8 @@ class _SosScreenState extends State<SosScreen> {
               : (c['nearby_driver_count'] ??
                         (c['offer_driver'] == null ? 0 : 1)) ==
                     0
-              ? 'No nearby driver is available yet. Searching within 25 km; no pickup is confirmed.'
-              : 'Alert sent to ${c['nearby_driver_count'] ?? 1} nearby drivers. Waiting for acceptance…',
+              ? 'No driver available within 25 km. Pickup unconfirmed.'
+              : '${c['nearby_driver_count'] ?? 1} drivers alerted · awaiting acceptance',
         ),
         if (isDriver) ...[
           button('Accept pickup', 'accept', c),
@@ -653,9 +745,7 @@ class _SosScreenState extends State<SosScreen> {
             '${c['distance_km']} km away • estimated ${c['eta_minutes'] ?? '?'} min to pickup',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
-          const Text(
-            'ETA estimate uses straight-line distance and assumed speed; no traffic routing.',
-          ),
+          const Text('Estimate · direct distance, no traffic included.'),
           if (c['tracking_simulated'] == true)
             const Text(
               'DEMO • simulated ambulance movement',
@@ -674,8 +764,10 @@ class _SosScreenState extends State<SosScreen> {
             label: const Text('View driver in Maps'),
           ),
         ],
-        Text(
-          'Driver position: ${d['lat']}, ${d['lng']} • ${d['location_mode']}',
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('Driver location details'),
+          children: [Text('${d['lat']}, ${d['lng']} • ${d['location_mode']}')],
         ),
         if (now - (d['seen_at'] as num).toInt() > 90 ||
             c['driver_location_stale'] == true)
@@ -716,9 +808,7 @@ class _SosScreenState extends State<SosScreen> {
           'Hospital ${c['hospital_id'] ?? 'not allocated'} • ${c['bed_care']} • ${c['bed_status']}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        const Text(
-          'Hospital must verify severity, accept the bed, and confirm arrival. SOS does not automatically reserve a confirmed bed.',
-        ),
+        const Text('Bed confirmed after hospital approval.'),
         if (s.role == 'patient')
           TextButton(
             onPressed: () => widget.openBed(c['bed_request_id'].toString()),
@@ -733,6 +823,10 @@ class _SosScreenState extends State<SosScreen> {
                   final cancel = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
+                      insetPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 24,
+                      ),
                       title: const Text('Cancel this SOS?'),
                       content: const Text(
                         'The driver will be told the pickup was cancelled.',
@@ -756,16 +850,19 @@ class _SosScreenState extends State<SosScreen> {
               : null,
           child: const Text('Cancel SOS'),
         ),
-      const Divider(),
-      const Text(
-        'Trip activity',
-        style: TextStyle(fontWeight: FontWeight.bold),
+      RecentActivityList(
+        title: 'Trip activity',
+        children: [
+          for (final e in events)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('• ${e['text']}'),
+              ),
+            ),
+        ],
       ),
-      for (final e in (c['events'] as List).reversed.take(6))
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text('• ${e['text']}'),
-        ),
     ]);
   }
 }
@@ -850,27 +947,28 @@ Future<void> editDriverContact(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Text('Driver contact number'),
-        content: Form(
-          key: form,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Use a real test phone number to demonstrate calls. The dialer opens; calls are not placed automatically.',
-              ),
-              TextFormField(
-                controller: controller,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone number'),
-                validator: (v) =>
-                    RegExp(r'^\+?[0-9]{8,15}$').hasMatch(v?.trim() ?? '')
-                    ? null
-                    : 'Enter 8–15 digits with optional +',
-              ),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: _red)),
-            ],
+        content: SingleChildScrollView(
+          child: Form(
+            key: form,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Calls open in your phone dialer.'),
+                TextFormField(
+                  controller: controller,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Phone number'),
+                  validator: (v) =>
+                      RegExp(r'^\+?[0-9]{8,15}$').hasMatch(v?.trim() ?? '')
+                      ? null
+                      : 'Enter 8–15 digits with optional +',
+                ),
+                if (error != null)
+                  Text(error!, style: const TextStyle(color: _red)),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -934,6 +1032,7 @@ Future<void> editProfile(BuildContext context, Session session) async {
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Text('Emergency details'),
         content: SizedBox(
           width: 420,
@@ -944,7 +1043,7 @@ Future<void> editProfile(BuildContext context, Session session) async {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Complete all details before your first SOS. Save once; future pickups need no request form. Contacts are shared after acceptance.',
+                    'Save once for SOS. Contacts are shared after driver acceptance.',
                   ),
                   const SizedBox(height: 12),
                   for (var i = 0; i < fields.length; i++)
@@ -1060,6 +1159,10 @@ Future<void> hospitalDialog(
                     .compareTo((b['distance'] as num?) ?? double.infinity),
               );
         return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
           title: const Text('Request hospital care'),
           content: SizedBox(
             width: 450,
@@ -1067,11 +1170,10 @@ Future<void> hospitalDialog(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Hospital inventory comes from the database. Distance uses hospital and pickup coordinates when provided.',
-                  ),
+                  const Text('Available hospital beds near the patient.'),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: care.isEmpty ? null : care,
                     decoration: const InputDecoration(
                       labelText: 'Required care',

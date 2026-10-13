@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'session.dart';
 import 'managed_dialog.dart';
+import 'responsive.dart';
 
 class PatientPortfolio extends StatefulWidget {
   final Session session;
@@ -48,6 +49,7 @@ class _PatientPortfolioState extends State<PatientPortfolio> {
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Text('Remove saved record?'),
         content: const Text('Previous bookings remain in history.'),
         actions: [
@@ -115,6 +117,10 @@ class _PatientPortfolioState extends State<PatientPortfolio> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
           title: Text(
             '${row.isEmpty ? 'Add' : 'Edit'} ${family ? 'family member' : 'insurance / panel'}',
           ),
@@ -271,7 +277,7 @@ class _PatientPortfolioState extends State<PatientPortfolio> {
                           onChanged: (v) => set(() => removeCard = v!),
                         ),
                       const Text(
-                        'Details are self-reported. Hospital verification and cashless approval are separate.',
+                        'Hospital verification and cashless approval are separate.',
                       ),
                     ],
                     if (message != null)
@@ -342,12 +348,15 @@ class _PatientPortfolioState extends State<PatientPortfolio> {
   void viewCard(Map<String, dynamic> row) => showManagedDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: const Text('Insurance card'),
-      content: Image.network(
-        '${s.api.base}/coverages/${row['id']}/card',
-        headers: {'Authorization': 'Bearer ${s.api.token}'},
-        errorBuilder: (_, _, _) =>
-            const Text('Card unavailable or access expired.'),
+      content: SingleChildScrollView(
+        child: Image.network(
+          '${s.api.base}/coverages/${row['id']}/card',
+          headers: {'Authorization': 'Bearer ${s.api.token}'},
+          errorBuilder: (_, _, _) =>
+              const Text('Card unavailable or access expired.'),
+        ),
       ),
       actions: [
         TextButton(
@@ -360,89 +369,128 @@ class _PatientPortfolioState extends State<PatientPortfolio> {
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: load,
-    child: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text(
-          'Family & insurance',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const Text(
-          'Save family patients and insurance, employer or scheme memberships. You can still request care without coverage.',
-        ),
-        if (loading) const LinearProgressIndicator(),
-        if (error != null)
-          Text(error!, style: const TextStyle(color: Colors.red)),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: loading ? null : () => edit('dependents'),
-          icon: const Icon(Icons.person_add_alt),
-          label: const Text('Add family member'),
-        ),
-        for (final d in list('dependents'))
-          Card(
-            child: ListTile(
-              title: Text(d['name'].toString()),
-              subtitle: Text(
-                '${d['relationship']} · ${d['age'] ?? 'Age unknown'}',
-              ),
-              onTap: () => edit('dependents', d),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => archive('dependents', d),
-              ),
-            ),
-          ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: loading ? null : () => edit('coverages'),
-          icon: const Icon(Icons.shield_outlined),
-          label: const Text('Add insurance / panel membership'),
-        ),
-        if (list('organisations').isEmpty && !loading)
+    child: ResponsivePage(
+      maxWidth: 860,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        children: [
           const Text(
-            'An administrator needs to add insurance/panel organisations in the master first.',
-          ),
-        for (final c in list('coverages'))
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    (c['organisation'] as Map?)?['name']?.toString() ??
-                        'Organisation unavailable',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Policy: ${c['policy_number'] ?? 'Not supplied'} · Member: ${c['member_id'] ?? 'Not supplied'}',
-                  ),
-                  Text(
-                    'Valid until: ${c['valid_until'] ?? 'Not supplied'} · ${c['covers_family'] == true ? 'Family coverage' : 'Individual coverage'}',
-                  ),
-                  Wrap(
-                    children: [
-                      TextButton(
-                        onPressed: () => edit('coverages', c),
-                        child: const Text('Edit'),
-                      ),
-                      TextButton(
-                        onPressed: () => archive('coverages', c),
-                        child: const Text('Remove'),
-                      ),
-                      if (c['has_card'] == true)
-                        TextButton(
-                          onPressed: () => viewCard(c),
-                          child: const Text('View card'),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
+            'Family & insurance',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF17352F),
             ),
           ),
-      ],
+          if (loading) const LinearProgressIndicator(),
+          if (error != null)
+            Text(error!, style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 16),
+          const Text(
+            'Family members',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: loading ? null : () => edit('dependents'),
+            icon: const Icon(Icons.person_add_alt),
+            label: const Text('Add family member'),
+          ),
+          for (final d in list('dependents'))
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.person_outline,
+                  color: Color(0xFF0F766E),
+                ),
+                title: Text(d['name'].toString()),
+                subtitle: Text(
+                  '${d['relationship']} · ${d['age'] ?? 'Age unknown'}',
+                ),
+                onTap: () => edit('dependents', d),
+                trailing: IconButton(
+                  tooltip: 'Remove family member',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => archive('dependents', d),
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+          const Text(
+            'Insurance & panel',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: loading ? null : () => edit('coverages'),
+            icon: const Icon(Icons.shield_outlined),
+            label: const Text(
+              'Add insurance / panel membership',
+              textAlign: TextAlign.center,
+            ),
+          ),
+          if (list('organisations').isEmpty && !loading)
+            const Text(
+              'No organisations available yet. Contact your administrator.',
+            ),
+          for (final c in list('coverages'))
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      (c['organisation'] as Map?)?['name']?.toString() ??
+                          'Organisation unavailable',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      c['covers_family'] == true
+                          ? 'Family coverage'
+                          : 'Individual coverage',
+                      style: const TextStyle(color: Color(0xFF0F766E)),
+                    ),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Policy details'),
+                      children: [
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            'Policy: ${c['policy_number'] ?? 'Not supplied'}',
+                          ),
+                          subtitle: Text(
+                            'Member: ${c['member_id'] ?? 'Not supplied'}\nValid until: ${c['valid_until'] ?? 'Not supplied'}',
+                          ),
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        TextButton(
+                          onPressed: () => edit('coverages', c),
+                          child: const Text('Edit'),
+                        ),
+                        TextButton(
+                          onPressed: () => archive('coverages', c),
+                          child: const Text('Remove'),
+                        ),
+                        if (c['has_card'] == true)
+                          TextButton(
+                            onPressed: () => viewCard(c),
+                            child: const Text('View card'),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     ),
   );
 }

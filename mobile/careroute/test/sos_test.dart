@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:careroute/api.dart';
 import 'package:careroute/session.dart';
 import 'package:careroute/sos.dart';
+import 'package:careroute/sos_media.dart';
 
 class SosSession extends Session {
   Map<String, dynamic>? sent;
@@ -46,7 +47,13 @@ void main() {
     final sos = find.widgetWithText(FilledButton, 'SOS · Request ambulance');
     expect(tester.widget<FilledButton>(sos).onPressed, isNotNull);
     await tester.pumpAndSettle();
-    expect(find.text('Emergency details'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Emergency details'),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     s.sosState!['patient_profile'] = details;
@@ -63,34 +70,54 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     s.dispose();
   });
-  testWidgets(
-    'One tap SOS uses saved profile and explicit demo coordinates without a request form',
-    (tester) async {
-      final s = SosSession('patient');
-      s.sosState!['patient_profile'] = details;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SosScreen(session: s, openBed: (_) {}),
+  testWidgets('SOS captures photo and voice automatically with demo pickup', (
+    tester,
+  ) async {
+    final s = SosSession('patient');
+    s.sosState!['patient_profile'] = details;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SosScreen(
+            session: s,
+            openBed: (_) {},
+            captureMedia: () async => const SosReporterMedia(
+              photoBase64: '/9j/2Q==',
+              voiceBase64: 'AAAAFGZ0eXBNNEEgAAAAAA==',
+              voiceDurationMs: 10000,
+            ),
           ),
         ),
-      );
-      await tester.ensureVisible(find.byType(SwitchListTile));
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.pump();
-      final sos = find.widgetWithText(FilledButton, 'SOS · Request ambulance');
-      await tester.ensureVisible(sos);
-      await tester.tap(sos);
-      await tester.pump();
-      expect(s.sent?['action'], 'sos');
-      expect(s.sent?['mode'], 'demo');
-      expect(s.sent?['lat'], 28.6139);
-      expect(s.sent?['captured_at'], isA<int>());
-      expect(find.byType(TextFormField), findsNothing);
-      await tester.pumpWidget(const SizedBox());
-      s.dispose();
-    },
-  );
+      ),
+    );
+    await tester.ensureVisible(find.text('Contact & location settings'));
+    await tester.tap(find.text('Contact & location settings'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(SwitchListTile));
+    await Scrollable.ensureVisible(
+      tester.element(find.byType(SwitchListTile)),
+      alignment: .5,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pump();
+    final sos = find.widgetWithText(FilledButton, 'SOS · Request ambulance');
+    await tester.ensureVisible(sos);
+    await Scrollable.ensureVisible(tester.element(sos), alignment: .5);
+    await tester.pumpAndSettle();
+    await tester.tap(sos);
+    await tester.pump();
+    expect(s.sent?['action'], 'sos');
+    expect(s.sent?['mode'], 'demo');
+    expect(s.sent?['lat'], 28.6139);
+    expect(s.sent?['captured_at'], isA<int>());
+    expect(s.sent?['reporter_photo_base64'], '/9j/2Q==');
+    expect(s.sent?['reporter_voice_base64'], 'AAAAFGZ0eXBNNEEgAAAAAA==');
+    expect(s.sent?['reporter_voice_duration_ms'], 10000);
+    expect(find.byType(TextFormField), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    s.dispose();
+  });
   testWidgets(
     'Driver sees offered pickup but no contact details until acceptance',
     (tester) async {

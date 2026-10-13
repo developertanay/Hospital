@@ -2,6 +2,8 @@ import 'care_choices.dart';
 import 'portfolio.dart';
 import 'recipient.dart';
 import 'managed_dialog.dart';
+import 'responsive.dart';
+import 'recent_activity.dart';
 
 import 'dart:async';
 
@@ -15,8 +17,79 @@ import 'package:url_launcher/url_launcher.dart';
 import 'session.dart';
 import 'sos.dart';
 
-const navy = Color(0xFF102C46);
-const teal = Color(0xFF008CFF);
+const navy = Color(0xFF17352F);
+const teal = Color(0xFF0F766E);
+
+ThemeData careRouteTheme() => ThemeData(
+  useMaterial3: true,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: teal,
+    primary: teal,
+    surface: Colors.white,
+  ),
+  scaffoldBackgroundColor: const Color(0xFFF4F8F7),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFFF4F8F7),
+    foregroundColor: navy,
+    elevation: 0,
+    scrolledUnderElevation: 0,
+    centerTitle: false,
+  ),
+  cardTheme: CardThemeData(
+    color: Colors.white,
+    elevation: 0,
+    margin: const EdgeInsets.symmetric(vertical: 6),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+      side: const BorderSide(color: Color(0xFFE1EAE7)),
+    ),
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: Colors.white,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFDBE6E2)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFDBE6E2)),
+    ),
+    contentPadding: const EdgeInsets.all(16),
+  ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      minimumSize: const Size(0, 48),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      minimumSize: const Size(0, 48),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  ),
+  navigationBarTheme: const NavigationBarThemeData(
+    backgroundColor: Colors.white,
+    indicatorColor: Color(0xFFDDEFE9),
+    elevation: 0,
+  ),
+  navigationRailTheme: const NavigationRailThemeData(
+    backgroundColor: Colors.white,
+    indicatorColor: Color(0xFFDDEFE9),
+  ),
+  dividerTheme: const DividerThemeData(color: Color(0xFFE1EAE7)),
+  expansionTileTheme: const ExpansionTileThemeData(
+    shape: Border(),
+    collapsedShape: Border(),
+    iconColor: teal,
+    textColor: navy,
+    collapsedTextColor: navy,
+    childrenPadding: EdgeInsets.only(bottom: 16),
+  ),
+);
 
 class CareRouteApp extends StatefulWidget {
   final Session session;
@@ -51,29 +124,7 @@ class _CareRouteAppState extends State<CareRouteApp>
   Widget build(BuildContext context) => MaterialApp(
     title: 'CareRoute',
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: teal),
-      scaffoldBackgroundColor: const Color(0xFFF3F7FA),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF3F7FA),
-        foregroundColor: navy,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-        contentPadding: const EdgeInsets.all(16),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-    ),
+    theme: careRouteTheme(),
     home: AnimatedBuilder(
       animation: widget.session,
       builder: (context, _) {
@@ -106,7 +157,7 @@ Future<void> serverDialog(BuildContext context, Session session) async {
       builder: (context, set) => PopScope(
         canPop: !busy,
         child: AlertDialog(
-          title: const Text('Connect to your server'),
+          title: const Text('Server connection'),
           content: SizedBox(
             width: 450,
             child: SingleChildScrollView(
@@ -115,7 +166,7 @@ Future<void> serverDialog(BuildContext context, Session session) async {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Keep Apache and MySQL running. For a real phone, use your PC’s Wi-Fi IPv4 address. Both devices must be on the same network.',
+                    'Use your PC’s Wi-Fi address on the same network.',
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -130,6 +181,7 @@ Future<void> serverDialog(BuildContext context, Session session) async {
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: [
                       ActionChip(
                         label: const Text('Current test server'),
@@ -145,7 +197,7 @@ Future<void> serverDialog(BuildContext context, Session session) async {
                                   'http://10.0.2.2/Hospital/public/api/mobile',
                       ),
                       ActionChip(
-                        label: const Text('This PC / iOS simulator'),
+                        label: const Text('This PC / simulator'),
                         onPressed: busy
                             ? null
                             : () => controller.text =
@@ -162,9 +214,7 @@ Future<void> serverDialog(BuildContext context, Session session) async {
                       ),
                     ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Changing servers signs you out. The API address is saved on this device.',
-                  ),
+                  const Text('Changing servers signs you out.'),
                 ],
               ),
             ),
@@ -261,21 +311,15 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Image.asset('assets/hospital-logo.png', height: 82),
+                    Image.asset('assets/hospital-logo.png', height: 70),
                     const SizedBox(height: 22),
                     Text(
-                      register
-                          ? 'Create your patient account'
-                          : 'Care starts with the right bed',
+                      register ? 'Create an account' : 'Welcome to CareRoute',
                       style: const TextStyle(
-                        fontSize: 29,
+                        fontSize: 27,
                         fontWeight: FontWeight.w800,
                         color: navy,
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Request emergency care, compare suitable hospitals, and follow your bed confirmation.',
                     ),
                     const SizedBox(height: 24),
                     if (register) ...[
@@ -400,12 +444,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         color: Colors.black54,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Prototype • Seeded hospital data\nSeverity is verified by a hospital before elevated priority applies.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
                   ],
                 ),
               ),
@@ -477,51 +515,93 @@ class _HomeState extends State<Home> {
       ),
     ];
     if (tab >= pages.length) tab = 0;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'CareRoute',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: s.refresh,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (!s.online)
-            Material(
-              color: const Color(0xFFFFE8D9),
-              child: ListTile(
-                dense: true,
-                leading: const Icon(Icons.wifi_off),
-                title: Text(s.error ?? 'Connecting to server…'),
-                subtitle: s.state == null
-                    ? null
-                    : const Text(
-                        'Showing last fetched data. Actions require a connection.',
-                      ),
-                trailing: IconButton(
-                  onPressed: () => serverDialog(context, s),
-                  icon: const Icon(Icons.settings_outlined),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide =
+            constraints.maxWidth >= 720 && constraints.maxHeight >= 600;
+        final content = Column(
+          children: [
+            if (!s.online)
+              Material(
+                color: const Color(0xFFFFE8D9),
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.wifi_off),
+                  title: Text(s.error ?? 'Connecting to server…'),
+                  subtitle: s.state == null
+                      ? null
+                      : const Text(
+                          'Showing saved data. Reconnect to make changes.',
+                        ),
+                  trailing: IconButton(
+                    tooltip: 'Server connection',
+                    onPressed: () => serverDialog(context, s),
+                    icon: const Icon(Icons.settings_outlined),
+                  ),
                 ),
               ),
+            if (s.busy) const LinearProgressIndicator(),
+            Expanded(
+              child: IndexedStack(index: tab, children: pages),
             ),
-          if (s.busy) const LinearProgressIndicator(),
-          Expanded(
-            child: IndexedStack(index: tab, children: pages),
+          ],
+        );
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'CareRoute',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            actions: [
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: s.refresh,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
           ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: tab,
-        destinations: destinations,
-        onDestinationSelected: (v) => setState(() => tab = v),
-      ),
+          body: SafeArea(
+            bottom: wide,
+            child: wide
+                ? Row(
+                    children: [
+                      NavigationRail(
+                        extended: constraints.maxWidth >= 1100,
+                        labelType: constraints.maxWidth >= 1100
+                            ? NavigationRailLabelType.none
+                            : NavigationRailLabelType.all,
+                        selectedIndex: tab,
+                        destinations: destinations
+                            .map(
+                              (d) => NavigationRailDestination(
+                                icon: d.icon,
+                                selectedIcon: d.selectedIcon,
+                                label: Text(d.label),
+                              ),
+                            )
+                            .toList(),
+                        onDestinationSelected: (v) => setState(() => tab = v),
+                      ),
+                      const VerticalDivider(width: 1),
+                      Expanded(child: content),
+                    ],
+                  )
+                : content,
+          ),
+          bottomNavigationBar: wide
+              ? null
+              : NavigationBar(
+                  selectedIndex: tab,
+                  labelBehavior:
+                      constraints.maxWidth < 420 ||
+                          MediaQuery.textScalerOf(context).scale(1) > 1.3
+                      ? NavigationDestinationLabelBehavior.onlyShowSelected
+                      : NavigationDestinationLabelBehavior.alwaysShow,
+                  destinations: destinations,
+                  onDestinationSelected: (v) => setState(() => tab = v),
+                ),
+        );
+      },
     );
   }
 }
@@ -636,312 +716,345 @@ class _RequestFormState extends State<RequestForm> {
   }
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      const HeroPanel(
-        title: 'Find care that can receive you',
-        subtitle: 'A nearby hospital is useful only when the required care is available.',
-        icon: Icons.health_and_safety_outlined,
-      ),
-      const SizedBox(height: 20),
-      Form(
-        key: form,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if ((widget.session.state?['dependents'] as List? ?? []).isNotEmpty)
-              DropdownButtonFormField<String>(
-                initialValue: coveredPatient,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Patient profile'),
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('Myself / enter patient details'),
+  Widget build(BuildContext context) => ResponsivePage(
+    maxWidth: 760,
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        const HeroPanel(
+          title: 'Request care',
+          subtitle: '',
+          icon: Icons.health_and_safety_outlined,
+        ),
+        const SizedBox(height: 20),
+        Form(
+          key: form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if ((widget.session.state?['dependents'] as List? ?? [])
+                  .isNotEmpty)
+                DropdownButtonFormField<String>(
+                  initialValue: coveredPatient,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Patient profile',
                   ),
-                  ...(widget.session.state!['dependents'] as List).map(
-                    (d) => DropdownMenuItem(
-                      value: d['id'].toString(),
-                      child: Text(d['name'].toString()),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Myself'),
+                    ),
+                    ...(widget.session.state!['dependents'] as List).map(
+                      (d) => DropdownMenuItem(
+                        value: d['id'].toString(),
+                        child: Text(
+                          d['name'].toString(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() {
+                    coveredPatient = v;
+                    coverage = null;
+                    if (v != null) {
+                      patient
+                          .text = (widget.session.state!['dependents'] as List)
+                          .firstWhere((d) => d['id'].toString() == v)['name']
+                          .toString();
+                    }
+                  }),
+                ),
+              if ((widget.session.state?['coverages'] as List? ?? [])
+                  .isNotEmpty)
+                DropdownButtonFormField<String>(
+                  key: ValueKey(coveredPatient),
+                  initialValue: coverage,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Insurance / panel (optional)',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('No coverage'),
+                    ),
+                    ...(widget.session.state!['coverages'] as List)
+                        .where(
+                          (c) => coveredPatient == null
+                              ? c['dependent_id'] == null
+                              : c['dependent_id']?.toString() ==
+                                        coveredPatient ||
+                                    (c['dependent_id'] == null &&
+                                        c['covers_family'] == true),
+                        )
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c['id'].toString(),
+                            child: Text(
+                              (c['organisation'] as Map?)?['name']
+                                      ?.toString() ??
+                                  'Coverage',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                  ],
+                  onChanged: (v) => setState(() => coverage = v),
+                ),
+              TextFormField(
+                controller: patient,
+                maxLength: 80,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Patient name / ID',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                validator: (v) =>
+                    v!.trim().isEmpty ? 'Enter the patient name or ID' : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: location,
+                onChanged: (_) => gpsLabel = false,
+                maxLength: 120,
+                decoration: const InputDecoration(
+                  labelText: 'Current location',
+                  hintText: 'Accident Site',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                ),
+                validator: (v) =>
+                    v!.trim().isEmpty ? 'Enter the current location' : null,
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: problemType,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Problem type'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'Internal',
+                    child: Text(
+                      'Internal — illness or symptoms',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'External',
+                    child: Text(
+                      'External — accident or injury',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
-                onChanged: (v) => setState(() {
-                  coveredPatient = v;
-                  coverage = null;
-                  if (v != null) {
-                    patient.text = (widget.session.state!['dependents'] as List)
-                        .firstWhere((d) => d['id'].toString() == v)['name']
-                        .toString();
-                  }
+                onChanged: (value) => setState(() {
+                  problemType = value!;
+                  assistance = value == 'Internal' ? 'Ambulance' : 'Hospital';
                 }),
               ),
-            if ((widget.session.state?['coverages'] as List? ?? []).isNotEmpty)
-              DropdownButtonFormField<String>(
-                key: ValueKey(coveredPatient),
-                initialValue: coverage,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Insurance / panel (optional)',
-                ),
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('No coverage / provide later'),
-                  ),
-                  ...(widget.session.state!['coverages'] as List)
-                      .where(
-                        (c) => coveredPatient == null
-                            ? c['dependent_id'] == null
-                            : c['dependent_id']?.toString() == coveredPatient ||
-                                  (c['dependent_id'] == null &&
-                                      c['covers_family'] == true),
-                      )
-                      .map(
-                        (c) => DropdownMenuItem(
-                          value: c['id'].toString(),
-                          child: Text(
-                            (c['organisation'] as Map?)?['name']?.toString() ??
-                                'Coverage',
-                          ),
-                        ),
-                      ),
-                ],
-                onChanged: (v) => setState(() => coverage = v),
-              ),
-            TextFormField(
-              controller: patient,
-              maxLength: 80,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Patient name / ID',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-              validator: (v) =>
-                  v!.trim().isEmpty ? 'Enter the patient name or ID' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: location,
-              onChanged: (_) => gpsLabel = false,
-              maxLength: 120,
-              decoration: const InputDecoration(
-                labelText: 'Current location',
-                hintText: 'Accident Site',
-                prefixIcon: Icon(Icons.location_on_outlined),
-              ),
-              validator: (v) =>
-                  v!.trim().isEmpty ? 'Enter the current location' : null,
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              initialValue: problemType,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Problem type'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Internal',
-                  child: Text('Internal — appendix, heart problems'),
-                ),
-                DropdownMenuItem(
-                  value: 'External',
-                  child: Text('External — accident, injury'),
-                ),
-              ],
-              onChanged: (value) => setState(() {
-                problemType = value!;
-                assistance = value == 'Internal' ? 'Ambulance' : 'Hospital';
-              }),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              key: ValueKey(assistance),
-              isExpanded: true,
-              initialValue: assistance,
-              decoration: const InputDecoration(
-                labelText: 'Preferred assistance (change if needed)',
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Ambulance', child: Text('Ambulance')),
-                DropdownMenuItem(value: 'Hospital', child: Text('Hospital')),
-              ],
-              onChanged: (value) => setState(() => assistance = value!),
-            ),
-            if (assistance == 'Hospital') ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: preferredHospital,
+                key: ValueKey(assistance),
                 isExpanded: true,
+                initialValue: assistance,
                 decoration: const InputDecoration(
-                  labelText: 'Preferred hospital',
+                  labelText: 'Preferred assistance',
                 ),
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('Recommend a suitable hospital'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'Ambulance',
+                    child: Text('Ambulance'),
                   ),
-                  ...widget.session.hospitals
-                      .where(
-                        (h) =>
-                            h['status'] == 'Open' &&
-                            (department == null ||
-                                (h['departments'] as List? ?? []).any(
-                                  (d) => d['id'].toString() == department,
-                                )) &&
-                            (h['beds'] as List? ?? []).any(
-                              (b) =>
-                                  b['care'] == selectedCare &&
-                                  b['status'] == 'Available',
-                            ),
-                      )
-                      .map(
-                        (h) => DropdownMenuItem(
-                          value: h['id'].toString(),
-                          child: Text(h['name'].toString()),
-                        ),
-                      ),
+                  DropdownMenuItem(value: 'Hospital', child: Text('Hospital')),
                 ],
-                onChanged: (value) => setState(() => preferredHospital = value),
+                onChanged: (value) => setState(() => assistance = value!),
               ),
-              const Text(
-                'You can choose another hospital in recommendations. This does not reserve a bed.',
-              ),
-            ],
-            const SizedBox(height: 12),
-            const Text(
-              'Next: compare nearby idle ambulances and hospitals that provide your required service. Both options remain available.',
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: description,
-              maxLength: 2000,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Problem description',
-                hintText: 'Symptoms or injuries and when they started',
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: locating ? null : shareLocation,
-              icon: const Icon(Icons.my_location),
-              label: const Text('Share live location'),
-            ),
-            Text(locationStatus),
-            const SizedBox(height: 16),
-            if ((widget.session.state?['departments'] as List? ?? [])
-                .isNotEmpty) ...[
-              DropdownButtonFormField<String>(
-                initialValue: department,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Required service / department',
+              if (assistance == 'Hospital') ...[
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: preferredHospital,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Preferred hospital',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text(
+                        'Nearest suitable hospital',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    ...widget.session.hospitals
+                        .where(
+                          (h) =>
+                              h['status'] == 'Open' &&
+                              (department == null ||
+                                  (h['departments'] as List? ?? []).any(
+                                    (d) => d['id'].toString() == department,
+                                  )) &&
+                              (h['beds'] as List? ?? []).any(
+                                (b) =>
+                                    b['care'] == selectedCare &&
+                                    b['status'] == 'Available',
+                              ),
+                        )
+                        .map(
+                          (h) => DropdownMenuItem(
+                            value: h['id'].toString(),
+                            child: Text(
+                              h['name'].toString(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => preferredHospital = value),
                 ),
-                items: (widget.session.state!['departments'] as List)
+              ],
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: description,
+                maxLength: 2000,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Problem description',
+                  hintText: 'Symptoms or injuries and when they started',
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: locating ? null : shareLocation,
+                icon: const Icon(Icons.my_location),
+                label: const Text('Share live location'),
+              ),
+              Text(locationStatus),
+              const SizedBox(height: 16),
+              if ((widget.session.state?['departments'] as List? ?? [])
+                  .isNotEmpty) ...[
+                DropdownButtonFormField<String>(
+                  initialValue: department,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Required service',
+                  ),
+                  items: (widget.session.state!['departments'] as List)
+                      .map(
+                        (d) => DropdownMenuItem(
+                          value: d['id'].toString(),
+                          child: Text(
+                            d['department_name'].toString(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    department = value;
+                    preferredHospital = null;
+                  }),
+                  validator: (value) =>
+                      value == null ? 'Select the service you need' : null,
+                ),
+                const SizedBox(height: 16),
+              ],
+              DropdownButtonFormField<String>(
+                initialValue: severity,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Severity'),
+                items: ['Critical', 'Urgent', 'Stable']
+                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                    .toList(),
+                onChanged: (v) => setState(() => severity = v!),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: selectedCare.isEmpty ? null : selectedCare,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Required care'),
+                items: widget.session.careTypes
                     .map(
-                      (d) => DropdownMenuItem(
-                        value: d['id'].toString(),
-                        child: Text(d['department_name'].toString()),
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(
+                          v == 'General' ? 'General Bed' : v,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(),
-                onChanged: (value) => setState(() {
-                  department = value;
-                  preferredHospital = null;
-                }),
-                validator: (value) =>
-                    value == null ? 'Select the service you need' : null,
+                onChanged: (v) => setState(() => care = v!),
               ),
-              const SizedBox(height: 16),
-            ],
-            DropdownButtonFormField<String>(
-              initialValue: severity,
-              decoration: const InputDecoration(labelText: 'Severity'),
-              items: [
-                'Critical',
-                'Urgent',
-                'Stable',
-              ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-              onChanged: (v) => setState(() => severity = v!),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: selectedCare.isEmpty ? null : selectedCare,
-              decoration: const InputDecoration(labelText: 'Required care'),
-              items: widget.session.careTypes
-                  .map(
-                    (v) => DropdownMenuItem(
-                      value: v,
-                      child: Text(v == 'General' ? 'General Bed' : v),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => care = v!),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'A hospital verifies severity before Critical/Urgent priority applies. Availability comes from saved hospital inventory.',
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed:
-                  widget.session.busy ||
-                      !widget.session.online ||
-                      selectedCare.isEmpty ||
-                      !widget.session.can('create')
-                  ? null
-                  : () async {
-                      if (!form.currentState!.validate()) return;
-                      try {
-                        if (gps == null) await shareLocation();
-                        if (!mounted || !context.mounted) return;
-                        if (gps == null) {
-                          notice(context, locationStatus);
-                          return;
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed:
+                    widget.session.busy ||
+                        !widget.session.online ||
+                        selectedCare.isEmpty ||
+                        !widget.session.can('create')
+                    ? null
+                    : () async {
+                        if (!form.currentState!.validate()) return;
+                        try {
+                          if (gps == null) await shareLocation();
+                          if (!mounted || !context.mounted) return;
+                          if (gps == null) {
+                            notice(context, locationStatus);
+                            return;
+                          }
+                          final result = await widget.session.action({
+                            'action': 'create',
+                            'patient': patient.text.trim(),
+                            'location': location.text.trim(),
+                            'severity': severity,
+                            'care': selectedCare,
+                            if (coverage != null) 'coverage_id': coverage,
+                            if (coveredPatient != null)
+                              'dependent_id': coveredPatient,
+                            'problem_type': problemType,
+                            'department_id': department,
+                            'assistance_preference': assistance,
+                            'description': description.text.trim(),
+                            'preferred_hospital_id': assistance == 'Hospital'
+                                ? preferredHospital
+                                : null,
+                            if (gps != null) 'latitude': gps!['lat'],
+                            if (gps != null) 'longitude': gps!['lng'],
+                            if (gps != null)
+                              'location_captured_at': gps!['captured_at'],
+                          });
+                          if (!mounted) return;
+                          patient.clear();
+                          location.clear();
+                          description.clear();
+                          await locationStream?.cancel();
+                          gps = null;
+                          widget.onCreated(result['id'] as String);
+                        } catch (e) {
+                          if (context.mounted) notice(context, e);
                         }
-                        final result = await widget.session.action({
-                          'action': 'create',
-                          'patient': patient.text.trim(),
-                          'location': location.text.trim(),
-                          'severity': severity,
-                          'care': selectedCare,
-                          if (coverage != null) 'coverage_id': coverage,
-                          if (coveredPatient != null)
-                            'dependent_id': coveredPatient,
-                          'problem_type': problemType,
-                          'department_id': department,
-                          'assistance_preference': assistance,
-                          'description': description.text.trim(),
-                          'preferred_hospital_id': assistance == 'Hospital'
-                              ? preferredHospital
-                              : null,
-                          if (gps != null) 'latitude': gps!['lat'],
-                          if (gps != null) 'longitude': gps!['lng'],
-                          if (gps != null)
-                            'location_captured_at': gps!['captured_at'],
-                        });
-                        if (!mounted) return;
-                        patient.clear();
-                        location.clear();
-                        description.clear();
-                        await locationStream?.cancel();
-                        gps = null;
-                        widget.onCreated(result['id'] as String);
-                      } catch (e) {
-                        if (context.mounted) notice(context, e);
-                      }
-                    },
-              icon: const Icon(Icons.send_outlined),
-              label: Text(
-                problemType == 'Internal'
-                    ? 'Continue to ambulance selection'
-                    : 'Continue to hospital options',
+                      },
+                icon: const Icon(Icons.send_outlined),
+                label: Text(
+                  problemType == 'Internal'
+                      ? 'Choose ambulance'
+                      : 'Choose hospital',
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 
@@ -956,29 +1069,42 @@ class HeroPanel extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(24),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(24),
-      gradient: const LinearGradient(colors: [navy, teal]),
-    ),
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    decoration: BoxDecoration(borderRadius: BorderRadius.circular(18)),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: const Color(0xFF9DEBE1), size: 32),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDDEFE9),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: teal, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: navy,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (subtitle.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(color: Color(0xFF5C716A), height: 1.4),
           ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          subtitle,
-          style: const TextStyle(color: Colors.white, height: 1.5),
-        ),
+        ],
       ],
     ),
   );
@@ -993,8 +1119,13 @@ Color statusColor(String status) => switch (status) {
   'Reserved' => const Color(0xFF3863A0),
   _ => teal,
 };
-Widget badge(String label) => Chip(
-  label: Text(
+Widget badge(String label) => Container(
+  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  decoration: BoxDecoration(
+    color: statusColor(label).withValues(alpha: .08),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: Text(
     label,
     style: TextStyle(
       color: statusColor(label),
@@ -1002,9 +1133,6 @@ Widget badge(String label) => Chip(
       fontWeight: FontWeight.w600,
     ),
   ),
-  backgroundColor: statusColor(label).withValues(alpha: .08),
-  side: BorderSide.none,
-  visualDensity: VisualDensity.compact,
 );
 
 class Queue extends StatelessWidget {
@@ -1014,82 +1142,73 @@ class Queue extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: session.refresh,
-    child: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text(
-          session.role == 'patient' ? 'Your care requests' : 'Emergency queue',
-          style: const TextStyle(
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-            color: navy,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          session.role == 'patient'
-              ? 'Open a request to choose a hospital or track confirmation.'
-              : 'Verified Critical patients appear first. Occupied beds are protected.',
-        ),
-        const SizedBox(height: 16),
-        if (session.requests.isEmpty)
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(28),
-              child: Text('No requests yet. Submitted requests appear here.'),
+    child: ResponsivePage(
+      maxWidth: 960,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          Text(
+            session.role == 'patient'
+                ? 'Your care requests'
+                : 'Emergency queue',
+            style: const TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              color: navy,
             ),
           ),
-        for (final r in session.requests)
-          Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => open(r['id'] as String),
+          const SizedBox(height: 16),
+          if (session.requests.isEmpty)
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            r['patient'].toString(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                padding: EdgeInsets.all(28),
+                child: Text('No requests yet.'),
+              ),
+            ),
+          for (final r in session.requests)
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => open(r['id'] as String),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              r['patient'].toString(),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                        const Icon(Icons.chevron_right),
-                      ],
-                    ),
-                    Text('${r['care']} • ${r['location']}'),
-                    Text(
-                      '${r['problem_type'] ?? 'Not specified'} • Preferred: ${r['assistance_preference'] ?? 'Hospital'}',
-                    ),
-                    if ((r['description'] ?? '').toString().isNotEmpty)
-                      Text(r['description'].toString()),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        badge(r['status'].toString()),
-                        badge(r['severity'].toString()),
-                        badge(
-                          r['verified'] == true
-                              ? 'Verified • P${r['priority']}'
-                              : 'Awaiting triage • P1',
-                        ),
-                      ],
-                    ),
-                    if (r['hospital_id'] != null)
-                      Text('Hospital ${r['hospital_id']} • ${r['bed_id']}'),
-                  ],
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text('${r['care']} • ${r['location']}'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          badge(r['status'].toString()),
+                          badge(r['severity'].toString()),
+                        ],
+                      ),
+                      if (r['hospital_id'] != null)
+                        Text('Hospital ${r['hospital_id']} • ${r['bed_id']}'),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -1156,6 +1275,13 @@ class RequestDetail extends StatelessWidget {
                 .clamp(0, 99999)
                 .toInt()
           : null;
+      final activities =
+          (session.state?['events'] as List? ?? [])
+              .where((e) => e['request_id'] == id)
+              .toList()
+            ..sort(
+              (a, b) => (b['at'] as num? ?? 0).compareTo(a['at'] as num? ?? 0),
+            );
       return Scaffold(
         appBar: AppBar(
           title: const Text('Request details'),
@@ -1168,320 +1294,375 @@ class RequestDetail extends StatelessWidget {
         ),
         body: RefreshIndicator(
           onRefresh: session.refresh,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              HeroPanel(
-                title: r['patient'].toString(),
-                subtitle: '${r['location']}\n${r['care']} care • Request #$id',
-                icon: Icons.medical_information_outlined,
-              ),
-              if (session.role == 'patient' &&
-                  (r['problem_type'] == 'Internal' ||
-                      r['assistance_preference'] == 'Ambulance') &&
-                  ![
-                    'Cancelled',
-                    'Discharged',
-                    'Occupied',
-                  ].contains(status)) ...[
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => Scaffold(
-                        appBar: AppBar(title: const Text('Choose ambulance')),
-                        body: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            AmbulanceChoices(session: session, request: r),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(Icons.emergency_outlined),
-                  label: const Text('Choose ambulance'),
+          child: ResponsivePage(
+            maxWidth: 900,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                HeroPanel(
+                  title: r['patient'].toString(),
+                  subtitle:
+                      '${r['location']}\n${r['care']} care • Request #$id',
+                  icon: Icons.medical_information_outlined,
                 ),
-                const Text(
-                  'Recommended for Internal cases. See nearest available vehicles, estimated arrival and booking here.',
-                ),
-              ],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                children: [
-                  badge(status),
-                  badge(r['severity'].toString()),
-                  badge('Priority ${r['priority']}'),
-                ],
-              ),
-              Text(
-                '${r['problem_type'] ?? 'Not specified'} • Preferred: ${r['assistance_preference'] ?? 'Hospital'}',
-              ),
-              if ((r['description'] ?? '').toString().isNotEmpty)
-                Text(r['description'].toString()),
-              if ((r['reporter_name'] ?? '').toString().isNotEmpty)
-                Text(
-                  'Raised by: ${r['reporter_name']} • ${r['reporter_phone'] ?? 'Contact not supplied'}',
-                ),
-              if (r['latitude'] != null && r['longitude'] != null)
-                Text('Patient GPS: ${r['latitude']}, ${r['longitude']}'),
-              Text(
-                r['verified'] == true
-                    ? 'Severity verified by a hospital operator.'
-                    : 'Severity awaits hospital verification. Elevated priority is not active yet.',
-              ),
-              if (r['coverage_id'] != null) ...[
-                Text(
-                  'Coverage: ${r['insurance_status']} • Cashless: ${r['cashless_status']}',
-                ),
-                if (r['coverage_details'] is Map) ...[
-                  Text(
-                    'Organisation: ${((r['coverage_details'] as Map)['organisation'] as Map?)?['name'] ?? 'Unavailable'}',
-                  ),
-                  Text(
-                    'Policy: ${(r['coverage_details'] as Map)['policy_number'] ?? 'Not supplied'} • Member: ${(r['coverage_details'] as Map)['member_id'] ?? 'Not supplied'}',
-                  ),
-                  Text(
-                    'Validity: ${(r['coverage_details'] as Map)['valid_from'] ?? 'Not supplied'} to ${(r['coverage_details'] as Map)['valid_until'] ?? 'Not supplied'}',
-                  ),
-                  if ((r['coverage_details'] as Map)['has_card'] == true)
-                    TextButton(
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Insurance card'),
-                          content: Image.network(
-                            '${session.api.base}/coverages/${r['coverage_id']}/card',
-                            headers: {
-                              'Authorization': 'Bearer ${session.api.token}',
-                            },
-                            errorBuilder: (_, _, _) =>
-                                const Text('Card unavailable.'),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Close'),
+                if (session.role == 'patient' &&
+                    (r['problem_type'] == 'Internal' ||
+                        r['assistance_preference'] == 'Ambulance') &&
+                    ![
+                      'Cancelled',
+                      'Discharged',
+                      'Occupied',
+                    ].contains(status)) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => Scaffold(
+                          appBar: AppBar(title: const Text('Choose ambulance')),
+                          body: ResponsivePage(
+                            maxWidth: 760,
+                            child: ListView(
+                              padding: EdgeInsets.zero,
+                              children: [
+                                AmbulanceChoices(session: session, request: r),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                      child: const Text('View insurance card'),
                     ),
+                    icon: const Icon(Icons.emergency_outlined),
+                    label: const Text('Choose ambulance'),
+                  ),
                 ],
-                if ((r['insurance_note'] ?? '').toString().isNotEmpty)
-                  Text(r['insurance_note'].toString()),
-                if (operator)
-                  OutlinedButton.icon(
-                    onPressed: enabled
-                        ? () => reviewInsurance(context, session, r)
-                        : null,
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: const Text('Review insurance / panel'),
-                  ),
-              ],
-              if (r['hospital_id'] != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    '${['Pending', 'Reserved', 'Occupied'].contains(status) ? '' : 'Previous allocation: '}Hospital ${r['hospital_id']} • Bed ${r['bed_id']}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              if (seconds != null && ['Pending', 'Reserved'].contains(status))
-                Text(
-                  'Hold expires in about ${seconds ~/ 60}m ${seconds % 60}s. Updated every 5 seconds.',
-                ),
-              if (status == 'Pending')
-                const Text(
-                  'Waiting for hospital acceptance. This is a temporary hold.',
-                ),
-              if (status == 'Reserved')
-                const Text(
-                  'Hospital confirmed your bed. Reach the hospital before the hold expires.',
-                ),
-              if (status == 'Occupied')
-                const Text(
-                  'Arrival recorded. This occupied bed cannot be reassigned.',
-                ),
-              if (status == 'Expired')
-                const Text(
-                  'The hold expired and the bed was released. Choose a suitable hospital to request again.',
-                ),
-              if (status == 'Released')
-                const Text(
-                  'The temporary hold was reassigned to a verified Critical request. Choose another suitable hospital.',
-                ),
-              if (status == 'Rejected')
-                const Text(
-                  'The hospital rejected this request. You can request a bed at a compatible hospital again.',
-                ),
-              if (!session.online)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    'Offline: displayed status may be out of date.',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              if (operator && ['New', 'Pending'].contains(status)) ...[
-                const Divider(height: 32),
-                const Text(
-                  'Hospital triage',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    for (final severity in ['Critical', 'Urgent', 'Stable'])
+                    badge(status),
+                    badge(r['severity'].toString()),
+                    badge('Priority ${r['priority']}'),
+                  ],
+                ),
+                if ((r['description'] ?? '').toString().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(r['description'].toString()),
+                  ),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Request information'),
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if ((r['problem_type'] ?? '').toString().isNotEmpty)
+                            Text(
+                              '${r['problem_type']} • ${r['assistance_preference'] ?? 'Hospital'}',
+                            ),
+                          if ((r['reporter_name'] ?? '').toString().isNotEmpty)
+                            Text(
+                              'Raised by: ${r['reporter_name']}${(r['reporter_phone'] ?? '').toString().isNotEmpty ? ' • ${r['reporter_phone']}' : ''}',
+                            ),
+                          if (r['latitude'] != null && r['longitude'] != null)
+                            Text(
+                              'Patient GPS: ${r['latitude']}, ${r['longitude']}',
+                            ),
+                          Text(
+                            r['verified'] == true
+                                ? 'Severity verified'
+                                : 'Awaiting hospital triage',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (r['coverage_id'] != null) ...[
+                  Text(
+                    'Coverage: ${r['insurance_status']} • Cashless: ${r['cashless_status']}',
+                  ),
+                  if (r['coverage_details'] is Map)
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Insurance details'),
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (((r['coverage_details']
+                                          as Map)['organisation']
+                                      as Map?)?['name'] !=
+                                  null)
+                                Text(
+                                  'Organisation: ${((r['coverage_details'] as Map)['organisation'] as Map)['name']}',
+                                ),
+                              if (((r['coverage_details']
+                                          as Map)['policy_number'] ??
+                                      '')
+                                  .toString()
+                                  .isNotEmpty)
+                                Text(
+                                  'Policy: ${(r['coverage_details'] as Map)['policy_number']}',
+                                ),
+                              if (((r['coverage_details']
+                                          as Map)['member_id'] ??
+                                      '')
+                                  .toString()
+                                  .isNotEmpty)
+                                Text(
+                                  'Member: ${(r['coverage_details'] as Map)['member_id']}',
+                                ),
+                              if ((r['coverage_details']
+                                      as Map)['valid_from'] !=
+                                  null)
+                                Text(
+                                  'Valid from: ${(r['coverage_details'] as Map)['valid_from']}',
+                                ),
+                              if ((r['coverage_details']
+                                      as Map)['valid_until'] !=
+                                  null)
+                                Text(
+                                  'Valid until: ${(r['coverage_details'] as Map)['valid_until']}',
+                                ),
+                              if ((r['coverage_details'] as Map)['has_card'] ==
+                                  true)
+                                TextButton(
+                                  onPressed: () => showDialog<void>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Insurance card'),
+                                      content: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxHeight:
+                                              MediaQuery.sizeOf(ctx).height *
+                                              .6,
+                                          maxWidth: 480,
+                                        ),
+                                        child: Image.network(
+                                          '${session.api.base}/coverages/${r['coverage_id']}/card',
+                                          fit: BoxFit.contain,
+                                          headers: {
+                                            'Authorization':
+                                                'Bearer ${session.api.token}',
+                                          },
+                                          errorBuilder: (_, _, _) =>
+                                              const Text('Card unavailable.'),
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  child: const Text('View insurance card'),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  if ((r['insurance_note'] ?? '').toString().isNotEmpty)
+                    Text(r['insurance_note'].toString()),
+                  if (operator)
+                    OutlinedButton.icon(
+                      onPressed: enabled
+                          ? () => reviewInsurance(context, session, r)
+                          : null,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('Review insurance / panel'),
+                    ),
+                ],
+                if (r['hospital_id'] != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      '${['Pending', 'Reserved', 'Occupied'].contains(status) ? '' : 'Previous allocation: '}Hospital ${r['hospital_id']} • Bed ${r['bed_id']}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                if (seconds != null && ['Pending', 'Reserved'].contains(status))
+                  Text('Hold expires in ${seconds ~/ 60}m ${seconds % 60}s.'),
+                if (status == 'Pending')
+                  const Text('Waiting for hospital acceptance.'),
+                if (status == 'Reserved')
+                  const Text('Bed confirmed. Arrive before expiry.'),
+                if (status == 'Occupied') const Text('Arrival recorded.'),
+                if (status == 'Expired')
+                  const Text('Hold expired. Choose a hospital again.'),
+                if (status == 'Released')
+                  const Text(
+                    'Hold released for critical care. Choose another hospital.',
+                  ),
+                if (status == 'Rejected')
+                  const Text('Request declined. Choose another hospital.'),
+                if (!session.online)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Offline: displayed status may be out of date.',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                if (operator && ['New', 'Pending'].contains(status)) ...[
+                  const Divider(height: 32),
+                  const Text(
+                    'Hospital triage',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final severity in ['Critical', 'Urgent', 'Stable'])
+                        OutlinedButton(
+                          onPressed: enabled
+                              ? () => act(context, 'verify', {
+                                  'severity': severity,
+                                })
+                              : null,
+                          child: Text('Verify $severity'),
+                        ),
+                    ],
+                  ),
+                ],
+                if (operator && status == 'Pending')
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: enabled
+                            ? () => act(context, 'accept')
+                            : null,
+                        icon: const Icon(Icons.check),
+                        label: const Text('Accept bed request'),
+                      ),
                       OutlinedButton(
                         onPressed: enabled
-                            ? () =>
-                                  act(context, 'verify', {'severity': severity})
+                            ? () => act(context, 'reject')
                             : null,
-                        child: Text('Verify $severity'),
+                        child: const Text('Reject'),
                       ),
-                  ],
-                ),
-              ],
-              if (operator && status == 'Pending')
-                Wrap(
-                  spacing: 10,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: enabled ? () => act(context, 'accept') : null,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Accept bed request'),
-                    ),
-                    OutlinedButton(
-                      onPressed: enabled ? () => act(context, 'reject') : null,
-                      child: const Text('Reject'),
-                    ),
-                  ],
-                ),
-              if (operator && status == 'Reserved')
-                FilledButton.icon(
-                  onPressed: enabled ? () => act(context, 'arrive') : null,
-                  icon: const Icon(Icons.how_to_reg),
-                  label: const Text('Mark patient arrived'),
-                ),
-              const Divider(height: 32),
-              if (showRecommendations) ...[
-                Text(
-                  r['problem_type'] == 'Internal'
-                      ? 'Hospital bed · another option'
-                      : 'Hospital recommendations',
-                  style: TextStyle(
-                    fontSize: 21,
-                    color: navy,
-                    fontWeight: FontWeight.bold,
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Required care and an open hospital are mandatory. Distance uses saved coordinates when provided.',
-                ),
-                const SizedBox(height: 12),
-                if ((r['matches'] as List)
-                    .where((m) => m['compatible'] == true)
-                    .isEmpty)
-                  const Text(
-                    'No hospital currently has the required service and available bed. Try ambulance assistance or refresh.',
+                if (operator && status == 'Reserved')
+                  FilledButton.icon(
+                    onPressed: enabled ? () => act(context, 'arrive') : null,
+                    icon: const Icon(Icons.how_to_reg),
+                    label: const Text('Mark patient arrived'),
                   ),
-                for (final m in (r['matches'] as List).where(
-                  (m) => m['compatible'] == true,
-                ))
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
+                const Divider(height: 32),
+                if (showRecommendations) ...[
+                  Text(
+                    r['problem_type'] == 'Internal'
+                        ? 'Hospital beds'
+                        : 'Choose a hospital',
+                    style: TextStyle(
+                      fontSize: 21,
+                      color: navy,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if ((r['matches'] as List)
+                      .where((m) => m['compatible'] == true)
+                      .isEmpty)
+                    const Text(
+                      'No suitable beds available. Try ambulance assistance or refresh.',
+                    ),
+                  for (final m in (r['matches'] as List).where(
+                    (m) => m['compatible'] == true,
+                  ))
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 6,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
                                   m['name'].toString(),
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ),
+                                Text(
+                                  m['distance'] == null
+                                      ? 'Distance unavailable'
+                                      : '${m['distance']} km',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (m['coverage'] != null)
                               Text(
-                                m['distance'] == null
-                                    ? 'Distance not provided'
-                                    : '${m['distance']} km',
+                                'Coverage: ${(m['coverage'] as Map)['status']}',
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          if (m['coverage'] != null)
-                            Text(
-                              'Insurance / panel: ${(m['coverage'] as Map)['status']} • Cashless not automatically approved',
-                            ),
-                          if (m['preferred'] == true)
-                            const Text('Your preferred hospital'),
-                          Text(
-                            '${r['care']}: ${m['available']} available${m['reclaimable'] != 0 ? ' • ${m['reclaimable']} temporary holds eligible for reassignment' : ''}',
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            m['compatible'] == true
-                                ? 'Suitable • priority ${r['priority']}'
-                                : 'Rejected: ${m['reason']}',
-                            style: TextStyle(
-                              color: m['compatible'] == true
-                                  ? teal
-                                  : Colors.red,
-                            ),
-                          ),
-                          if (canRequest && m['compatible'] == true)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: FilledButton(
-                                onPressed: enabled
-                                    ? () => act(context, 'request', {
-                                        'hospital_id': m['id'],
-                                      })
-                                    : null,
-                                child: Text('Request ${r['care']} bed'),
+                            if (m['preferred'] == true)
+                              const Text('Your preferred hospital'),
+                            Text('${r['care']} • ${m['available']} available'),
+                            if (m['reclaimable'] != 0)
+                              Text(
+                                '${m['reclaimable']} eligible temporary holds',
                               ),
-                            ),
-                        ],
+                            if (canRequest && m['compatible'] == true)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: FilledButton(
+                                  onPressed: enabled
+                                      ? () => act(context, 'request', {
+                                          'hospital_id': m['id'],
+                                        })
+                                      : null,
+                                  child: Text('Request ${r['care']} bed'),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
+                  const Divider(height: 32),
+                ],
+                if (session.role == 'patient' &&
+                    r['problem_type'] == 'External' &&
+                    !['Cancelled', 'Discharged', 'Occupied'].contains(status))
+                  AmbulanceChoices(
+                    key: ValueKey('ambulance-$id'),
+                    session: session,
+                    request: r,
                   ),
-                const Divider(height: 32),
+                RecentActivityList(
+                  children: [
+                    for (final e in activities)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.history, color: teal),
+                        title: Text(e['message'].toString()),
+                        subtitle: Text(
+                          DateTime.fromMillisecondsSinceEpoch(
+                            (e['at'] as num).toInt() * 1000,
+                          ).toLocal().toString().split('.').first,
+                        ),
+                      ),
+                  ],
+                ),
               ],
-              if (session.role == 'patient' &&
-                  r['problem_type'] == 'External' &&
-                  !['Cancelled', 'Discharged', 'Occupied'].contains(status))
-                AmbulanceChoices(
-                  key: ValueKey('ambulance-$id'),
-                  session: session,
-                  request: r,
-                ),
-              const Text(
-                'Request activity',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              for (final e in (session.state?['events'] as List? ?? []).where(
-                (e) => e['request_id'] == id,
-              ))
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.history, color: teal),
-                  title: Text(e['message'].toString()),
-                  subtitle: Text(
-                    DateTime.fromMillisecondsSinceEpoch(
-                      (e['at'] as num).toInt() * 1000,
-                    ).toLocal().toString().split('.').first,
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       );
@@ -1495,113 +1676,124 @@ class Hospitals extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: session.refresh,
-    child: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text(
-          'Hospital bed dashboard',
-          style: TextStyle(
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-            color: navy,
+    child: ResponsivePage(
+      maxWidth: 960,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const Text(
+            'Hospital beds',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              color: navy,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Demo inventory • Temporary holds need acceptance. Offline hospitals cannot receive new requests.',
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: [
-            'Available',
-            'Temporary',
-            'Reserved',
-            'Occupied',
-          ].map(badge).toList(),
-        ),
-        for (final h in session.hospitals)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              'Available',
+              'Temporary',
+              'Reserved',
+              'Occupied',
+            ].map(badge).toList(),
+          ),
+          for (final h in session.hospitals)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
                           h['name'].toString(),
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                      badge(h['status'].toString()),
-                    ],
-                  ),
-                  Text(
-                    h['distance'] == null
-                        ? 'Distance not provided'
-                        : '${h['distance']} km',
-                  ),
-                  for (final care in session.careTypes) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      care == 'General' ? 'General beds' : care,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final b in (h['beds'] as List).where(
-                          (b) => b['care'] == care,
-                        ))
-                          Tooltip(
-                            message: '${b['id']}: ${b['status']}',
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusColor(b['status'].toString())
-                                    .withValues(alpha: .1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.bed_outlined,
-                                    size: 19,
-                                    color: statusColor(b['status'].toString()),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    b['status'].toString(),
-                                    style: TextStyle(
-                                      color: statusColor(
-                                        b['status'].toString(),
-                                      ),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        badge(h['status'].toString()),
                       ],
                     ),
+                    if (h['distance'] != null) Text('${h['distance']} km'),
+                    for (final care in session.careTypes) ...[
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: Text(
+                          care == 'General' ? 'General beds' : care,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '${(h['beds'] as List).where((b) => b['care'] == care && b['status'] == 'Available').length} available • ${(h['beds'] as List).where((b) => b['care'] == care).length} total',
+                        ),
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final b in (h['beds'] as List).where(
+                                  (b) => b['care'] == care,
+                                ))
+                                  Tooltip(
+                                    message: '${b['id']}: ${b['status']}',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statusColor(
+                                          b['status'].toString(),
+                                        ).withValues(alpha: .1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.bed_outlined,
+                                            size: 19,
+                                            color: statusColor(
+                                              b['status'].toString(),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Flexible(
+                                            child: Text(
+                                              b['status'].toString(),
+                                              style: TextStyle(
+                                                color: statusColor(
+                                                  b['status'].toString(),
+                                                ),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -1624,83 +1816,70 @@ class Account extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      HeroPanel(
-        title: session.profile?['name']?.toString() ?? 'Your account',
-        subtitle:
-            '${session.profile?['email'] ?? ''}\n${session.role.toUpperCase()}${session.profile?['hospital'] != null ? ' • Hospital ${session.profile!['hospital']}' : ''}',
-        icon: Icons.person_outline,
-      ),
-      const SizedBox(height: 20),
-      ListTile(
-        leading: const Icon(Icons.dns_outlined),
-        title: const Text('Backend server'),
-        subtitle: Text(session.api.base),
-        onTap: () => serverDialog(context, session),
-      ),
-      const Card(
-        child: Padding(
-          padding: EdgeInsets.all(18),
-          child: Text(
-            'Demo process\n1. Patient submits a request and chooses a suitable hospital.\n2. Hospital reviews severity and accepts the bed request.\n3. Patient sees Reserved status.\n4. Hospital records arrival: the bed becomes Occupied.\n\nTemporary and confirmed holds expire after 5 minutes. Only unconfirmed lower-priority holds can be reassigned to verified Critical requests.',
-          ),
+  Widget build(BuildContext context) => ResponsivePage(
+    maxWidth: 760,
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        HeroPanel(
+          title: session.profile?['name']?.toString() ?? 'Your account',
+          subtitle:
+              '${session.profile?['email'] ?? ''}\n${session.role.toUpperCase()}${session.profile?['hospital'] != null ? ' • Hospital ${session.profile!['hospital']}' : ''}',
+          icon: Icons.person_outline,
         ),
-      ),
-      if (session.role == 'admin') ...[
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Admin web modules',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Hospital, bed/blood type, inventory, users and module permissions use the existing web admin screens. Sign in there with the same admin account.',
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => webPortal(context),
-                  icon: const Icon(Icons.open_in_browser),
-                  label: const Text('Open admin portal'),
-                ),
-              ],
-            ),
+          child: ListTile(
+            leading: const Icon(Icons.dns_outlined),
+            title: const Text('Server connection'),
+            subtitle: Text(session.api.base),
+            onTap: () => serverDialog(context, session),
           ),
         ),
-      ],
-      const SizedBox(height: 18),
-      if (session.role == 'patient')
-        OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-              builder: (_) => Scaffold(
-                appBar: AppBar(title: const Text('Family & insurance')),
-                body: PatientPortfolio(session: session),
+        if (session.role == 'admin') ...[
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Admin portal',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => webPortal(context),
+                    icon: const Icon(Icons.open_in_browser),
+                    label: const Text('Open admin portal'),
+                  ),
+                ],
               ),
             ),
           ),
-          icon: const Icon(Icons.shield_outlined),
-          label: const Text('Family & insurance'),
+        ],
+        const SizedBox(height: 18),
+        if (session.role == 'patient')
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(title: const Text('Family & insurance')),
+                  body: PatientPortfolio(session: session),
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.shield_outlined),
+            label: const Text('Family & insurance'),
+          ),
+        FilledButton.tonalIcon(
+          onPressed: session.signOut,
+          icon: const Icon(Icons.logout),
+          label: const Text('Sign out'),
         ),
-      FilledButton.tonalIcon(
-        onPressed: session.signOut,
-        icon: const Icon(Icons.logout),
-        label: const Text('Sign out'),
-      ),
-      const SizedBox(height: 20),
-      const Text(
-        'CareRoute • Web and app accounts, hospital inventory and ambulance dispatch share the same database. Location updates run while the app is open.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.black54, fontSize: 12),
-      ),
-    ],
+      ],
+    ),
   );
 }

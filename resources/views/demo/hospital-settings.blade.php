@@ -13,6 +13,6 @@
 @else
 <table class="table table-bordered"><tr><th>Status</th><td>{{ $hospital->accepting_requests ? 'Open':'Offline' }}</td></tr><tr><th>Contact</th><td>{{ $hospital->contact_no }}</td></tr><tr><th>Address</th><td>{{ $hospital->address }}</td></tr><tr><th>Coordinates</th><td>{{ $hospital->latitude ?? 'Not provided' }} / {{ $hospital->longitude ?? 'Not provided' }}</td></tr></table><a class="btn btn-primary" href="{{ route('hospital.settings.edit',$hospital->id) }}">Edit Hospital Settings</a>
 @endif
-<p class="mt-3">Offline hospitals are excluded from new recommendations; existing admissions and reservations stay protected.</p>
+<p class="mt-3">Offline hides your hospital from new recommendations.</p>
 </div></div></div></div>
 @endsection

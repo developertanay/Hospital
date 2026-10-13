@@ -136,6 +136,7 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         title: const Text('Book this ambulance?'),
         content: Text(
           '${ambulance['vehicle']}\n${ambulance['distance_km']} km away · estimated ${ambulance['eta_minutes']} min\nDriver confirmation is required.',
@@ -190,7 +191,7 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
     final driver = trip?['driver'] as Map<String, dynamic>?;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -198,16 +199,16 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
               children: [
                 const Icon(
                   Icons.local_shipping_outlined,
-                  color: Color(0xFF008CFF),
+                  color: Color(0xFF0F766E),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     internal
-                        ? 'Ambulance · recommended first'
-                        : 'Ambulance · optional pickup',
+                        ? 'Ambulance · first choice'
+                        : 'Ambulance · optional',
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -215,9 +216,7 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Nearby on-duty ambulances with fresh GPS and no active booking. Arrival times are estimates.',
-            ),
+            const Text('Nearby idle ambulances · estimated arrival'),
             if (error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -242,12 +241,12 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
                 ),
                 if (trip['driver_location_stale'] == true)
                   const Text(
-                    'Driver GPS is stale; ETA may be out of date.',
+                    'GPS outdated · ETA may have changed.',
                     style: TextStyle(color: Colors.orange),
                   ),
                 if (trip['driver_available'] == false)
                   const Text(
-                    'Driver is currently offline. Confirmation is pending; you can cancel from tracking and choose another ambulance.',
+                    'Driver offline · awaiting confirmation. Change ambulance from tracking.',
                     style: TextStyle(color: Colors.orange),
                   ),
                 if ((driver['phone'] ?? '').toString().isNotEmpty)
@@ -269,7 +268,7 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 14),
                   child: Text(
-                    availabilityMessage ?? 'No idle ambulance within 25 km right now. Refresh or choose hospital care below.',
+                    availabilityMessage ?? 'No idle ambulance within 25 km. Refresh or choose hospital care.',
                   ),
                 ),
               for (final ambulance in options)
@@ -277,8 +276,9 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
                   margin: const EdgeInsets.only(top: 12),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F7FF),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFF4F8F7),
+                    border: Border.all(color: const Color(0xFFDCE9E5)),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,7 +297,7 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
                       ),
                       Text(
                         (ambulance['doctor_name'] ?? '').toString().isEmpty
-                            ? 'Doctor details not provided by operator'
+                            ? 'Doctor details unavailable'
                             : 'Doctor: ${ambulance['doctor_name']}',
                       ),
                       FilledButton(
@@ -312,12 +312,15 @@ class _AmbulanceChoicesState extends State<AmbulanceChoices> {
               TextButton.icon(
                 onPressed: loading || booking ? null : refresh,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Refresh idle ambulances'),
+                label: const Text('Refresh ambulances'),
               ),
               OutlinedButton.icon(
                 onPressed: loading || booking ? null : locateAndRefresh,
                 icon: const Icon(Icons.my_location),
-                label: const Text('Use current location to find ambulances'),
+                label: const Text(
+                  'Find with my location',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ],

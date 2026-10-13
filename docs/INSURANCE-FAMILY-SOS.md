@@ -42,9 +42,9 @@ The existing self-SOS button remains available, with optional self coverage. Use
 2. For family, choose the dependent and an eligible individual/family coverage record. For an unrelated patient, your own policy cannot be attached.
 3. For another patient, give your name/contact and a description. Patient name, approximate age and phone may be unknown.
 4. If you are with the patient, use current GPS. If the patient is elsewhere, enter their address/landmark and pickup latitude/longitude. Their pin is stored as a manual patient location; the reporter's GPS is not substituted or streamed over it.
-5. Confirm SOS. The reporter tracks the booking. The driver sees patient and reporting contact separately once assigned; unassigned broadcast offers conceal contact details. Hospital transport carries the patient identity, description, reporting contact and selected coverage into the linked care request.
+5. Confirm the details, then the app automatically captures the reporter's front-camera photo and records 10 seconds of audio. Both are mandatory for every SOS; interruption or denied permission sends no alert. The app refreshes live pickup GPS after capture and preserves remote manual pins. The reporter tracks the booking. The driver sees patient and reporting contact separately once assigned; unassigned broadcast offers conceal contact details. Hospital transport carries the patient identity, description, reporting contact and selected coverage into the linked care request.
 
-Insurance is optional and does not block unknown-person SOS. Live GPS updates require the app to stay open. Manual remote pins must come from the patient or someone at the pickup location.
+Insurance is optional and does not block unknown-person SOS. [Automatic photo and voice capture](SOS-PHOTO.md) is required; eligible/assigned drivers see the reporter photo and can play the voice recording while policy details stay private. Live GPS updates require the app to stay open. Manual remote pins must come from the patient or someone at the pickup location.
 
 ## Verification
 
